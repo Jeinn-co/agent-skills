@@ -10,7 +10,28 @@ npx skills add Jeinn-co/agent-skills@ai-usage     # just this skill
 npx skills add Jeinn-co/agent-skills              # everything in the repo
 ```
 
-Or copy a skill directory into `~/.claude/skills/`.
+Or copy a skill directory into your agent's skills folder — `~/.claude/skills/`,
+`~/.codex/skills/`, `~/.grok/skills/`.
+
+## Usage
+
+Type the skill name as a slash command:
+
+    /ai-usage
+
+That is the whole interface. It reads live every time, so there is no cache to clear
+and no refresh flag to remember. You can also run it outside any agent:
+
+    ./skills/ai-usage/run.sh
+
+## Requirements
+
+- **Python 3.9+**, standard library only.
+- The CLI of each provider you want reported, already signed in: `claude`, `codex`,
+  `grok`.
+
+You do not need all three. Install one and you get one row; the others print
+`not installed` and nothing breaks. The skill never prompts for a login.
 
 ## Skills
 
@@ -65,6 +86,35 @@ and a wrong number is worse than none:
 
 See [`skills/ai-usage/references/providers.md`](skills/ai-usage/references/providers.md)
 for how each method was found, including the dead ends, so nobody has to re-walk them.
+
+## Limitations and known issues
+
+**Platform.** Developed and verified on macOS. The code is plain Python with no
+platform-specific calls, so Linux should work, but it is untested. Windows is untested.
+
+**Version-pinned.** Verified 2026-09-12 against `claude` 2.1.268, `codex` 0.154.0,
+`grok` 1.0.25.
+
+| Risk | Where | What happens if it breaks |
+|---|---|---|
+| Claude's two usage lines are free text and are regex-parsed | `claude_usage.py` | Falls back to printing the raw line; never prints a wrong number |
+| Codex's app-server protocol is private to OpenAI and carries no compatibility promise | `codex_usage.py` | Method rename would return `-32600`; the ChatGPT row fails, others still run |
+| Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | Same |
+
+**Deliberately not reported.** A wrong number here is worse than no number:
+
+- **ChatGPT "Usage limit resets"** (Settings shows `Available N`) cannot be read. The
+  app-server can *spend* one via `account/rateLimitResetCredit/consume` but exposes no
+  count — checked against all 163 methods. `credits.balance` is a different pool: an
+  account can show `balance 0` while holding 2 available resets, so it is never
+  substituted.
+- **Claude extra usage** is reported only as enabled/disabled, which is all the CLI
+  exposes.
+- **Grok has one window, not two.** No 5-hour row is invented for it.
+
+**Numbers are per-account, not per-machine.** Claude's `/usage` notes its breakdown is
+approximate and covers local sessions on this machine only; the headline percentages
+are account-wide.
 
 ## License
 
