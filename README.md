@@ -1,7 +1,7 @@
 # Jeinn Agent Skills
 
 Agent skills for Claude Code, Codex CLI, Grok Build, and anything else that reads the
-`SKILL.md` convention.
+`SKILL.md` convention. Nothing here depends on a particular host.
 
 ## Install
 
@@ -48,6 +48,10 @@ directly:
 
 Providers whose CLI is not installed are reported as `not installed`; the rest still
 run. Requires Python 3.9+. No dependencies.
+
+It asks each provider's CLI rather than its own host, so the report is the same
+wherever you install it — run it inside Codex and you still get your Claude and Grok
+numbers.
 
 Two things that are deliberately *not* reported, because they cannot be read locally
 and a wrong number is worse than none:
