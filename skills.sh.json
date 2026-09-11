@@ -1,0 +1,11 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Operations",
+      "description": "Skills for keeping track of the tooling you run every day.",
+      "skills": ["ai-usage"]
+    }
+  ]
+}
