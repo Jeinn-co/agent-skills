@@ -6,8 +6,8 @@ Agent skills for Claude Code, Codex CLI, Grok Build, and anything else that read
 ## Install
 
 ```bash
-npx skills add Jeinn-co/agent-skills              # all skills
-npx skills add Jeinn-co/agent-skills --skill ai-usage
+npx skills add Jeinn-co/agent-skills@ai-usage     # just this skill
+npx skills add Jeinn-co/agent-skills              # everything in the repo
 ```
 
 Or copy a skill directory into `~/.claude/skills/`.
