@@ -5,6 +5,14 @@
 給 Claude Code、Codex CLI、Grok Build，以及任何讀 `SKILL.md` 慣例的 agent 使用的
 skills。內容不綁定任何特定 host。
 
+```bash
+npx skills add Jeinn-co/agent-skills@ai-usage
+```
+
+[在 skills.sh 上瀏覽](https://skills.sh/jeinn-co/agent-skills) · English: [README.md](README.md)
+
+> 安裝前請先讀該 skill 自己的 README —— 裡面列出你機器上需要先有什麼。
+
 ## Skills
 
 | Skill | 做什麼 | 說明文件 |

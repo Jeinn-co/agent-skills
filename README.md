@@ -3,7 +3,13 @@
 Agent skills for Claude Code, Codex CLI, Grok Build, and anything else that reads the
 `SKILL.md` convention. Nothing here depends on a particular host.
 
-繁體中文：[README.zh-TW.md](README.zh-TW.md)
+```bash
+npx skills add Jeinn-co/agent-skills@ai-usage
+```
+
+[Browse on skills.sh](https://skills.sh/jeinn-co/agent-skills) · 繁體中文：[README.zh-TW.md](README.zh-TW.md)
+
+> Read the skill's own README first — it lists what must already be on your machine.
 
 ## Skills
 
