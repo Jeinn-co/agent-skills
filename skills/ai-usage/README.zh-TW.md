@@ -109,6 +109,25 @@ py -3 run.py      # Windows；如果沒有 `py`，改用 `python run.py`
 
 ## 輸出長什麼樣
 
+同一個 `/ai-usage` 指令，在二十分鐘內分別於三個不同的 agent 裡執行：
+
+**Claude Code**
+
+![ai-usage 在 Claude Code 裡執行](images/demo-claude-code.png)
+
+**Codex CLI**
+
+![ai-usage 在 Codex CLI 裡執行](images/demo-codex.png)
+
+**Grok CLI**
+
+![ai-usage 在 Grok CLI 裡執行](images/demo-grok.png)
+
+它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
+的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude 和 Grok 的數字。
+
+純文字版：
+
 ```
 USAGE — 09-12 01:08
 
@@ -136,9 +155,6 @@ USAGE — 09-12 01:08
 | Grok | `grok agent stdio` → ACP 擴充方法 `_x.ai/billing` |
 
 CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。需要 Python 3.9+，無相依套件。
-
-它問的是各 provider 自己的 CLI，不是它所在的 host，所以裝在哪裡報表都一樣 —— 在 Codex
-裡面跑，一樣拿得到 Claude 和 Grok 的數字。
 
 有兩項是**刻意不回報**的，因為本機讀不到，而報一個錯的數字比不報更糟：
 

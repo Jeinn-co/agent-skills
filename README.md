@@ -19,6 +19,20 @@ npx skills add Jeinn-co/agent-skills@ai-cli-version
 | [`ai-usage`](skills/ai-usage/) | One report for how much of your Claude, ChatGPT and Grok subscription is left — percent used, when each window resets, what top-up you have. | [README](skills/ai-usage/README.md) · [中文](skills/ai-usage/README.zh-TW.md) |
 | [`ai-cli-version`](skills/ai-cli-version/) | Whether your Claude Code, Codex and Grok Build CLIs are up to date — installed version and when you installed it, latest version and when it was released. When updates are available, choose `y` to update all or `Esc` to skip. Tested on Windows only; macOS and Linux not yet tested. | [README](skills/ai-cli-version/README.md) · [中文](skills/ai-cli-version/README.zh-TW.md) |
 
+The same `/ai-usage` command, run in Claude Code, Codex CLI and Grok CLI:
+
+**Claude Code**
+
+![ai-usage running in Claude Code](skills/ai-usage/images/demo-claude-code.png)
+
+**Codex CLI**
+
+![ai-usage running in Codex CLI](skills/ai-usage/images/demo-codex.png)
+
+**Grok CLI**
+
+![ai-usage running in Grok CLI](skills/ai-usage/images/demo-grok.png)
+
 ## Install
 
 The `npx` method requires Node.js and npm. Check them before installing:

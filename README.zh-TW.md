@@ -21,6 +21,20 @@ npx skills add Jeinn-co/agent-skills@ai-cli-version
 | [`ai-usage`](skills/ai-usage/) | 一份報表看完 Claude、ChatGPT、Grok 三邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、還有多少加購額度。 | [English](skills/ai-usage/README.md) · [中文](skills/ai-usage/README.zh-TW.md) |
 | [`ai-cli-version`](skills/ai-cli-version/) | 你的 Claude Code、Codex、Grok Build CLI 是不是最新版 —— 目前版本和安裝時間、最新版本和發佈時間。有更新時，可選 `y` 全部更新或 `Esc` 跳過。目前只在 Windows 測過，macOS 與 Linux 尚未測試。 | [English](skills/ai-cli-version/README.md) · [中文](skills/ai-cli-version/README.zh-TW.md) |
 
+同一個 `/ai-usage` 指令，分別在 Claude Code、Codex CLI、Grok CLI 裡執行：
+
+**Claude Code**
+
+![ai-usage 在 Claude Code 裡執行](skills/ai-usage/images/demo-claude-code.png)
+
+**Codex CLI**
+
+![ai-usage 在 Codex CLI 裡執行](skills/ai-usage/images/demo-codex.png)
+
+**Grok CLI**
+
+![ai-usage 在 Grok CLI 裡執行](skills/ai-usage/images/demo-grok.png)
+
 ## 安裝
 
 用 `npx` 安裝需要 Node.js 與 npm。安裝前先確認：
