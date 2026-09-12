@@ -9,26 +9,56 @@ Discovery trick: calling a bogus method returns -32600 whose message enumerates 
 valid method name. That is how `account/rateLimits/read` was found; the string in the
 binary is the shorter `account/usage`, which is not a real wire name.
 """
-import subprocess, json, threading, time, shutil, sys, datetime
+import subprocess, json, threading, time, datetime
+import sys
+from pathlib import Path
 
-if not shutil.which("codex"):
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import portable
+
+portable.stdout_utf8()
+
+cmd = portable.argv("codex", "app-server")
+if cmd is None:
     print("codex CLI not installed")
     sys.exit(0)
 
-p = subprocess.Popen(["codex", "app-server"], stdin=subprocess.PIPE,
-                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                     text=True, bufsize=1)
+FAIL = "rateLimits call failed"
+
+def die(why):
+    print("%s (%s)" % (FAIL, why))
+    try:
+        p.kill()
+    except Exception:
+        pass
+    sys.exit(1)
+
+try:
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                         text=True, bufsize=1)
+except OSError as e:
+    print("%s (could not start codex: %s)" % (FAIL, e))
+    sys.exit(1)
 out = []
 threading.Thread(target=lambda: [out.append(l) for l in p.stdout], daemon=True).start()
 
 def send(i, m, params=None):
-    p.stdin.write(json.dumps({"jsonrpc": "2.0", "id": i, "method": m,
-                              "params": params or {}}) + "\n")
-    p.stdin.flush()
+    """False when the CLI has already exited, so its stdin is gone."""
+    try:
+        p.stdin.write(json.dumps({"jsonrpc": "2.0", "id": i, "method": m,
+                                  "params": params or {}}) + "\n")
+        p.stdin.flush()
+        return True
+    except (BrokenPipeError, OSError, ValueError):
+        return False
 
-send(1, "initialize", {"clientInfo": {"name": "uu", "title": "uu", "version": "1"}})
+if not send(1, "initialize", {"clientInfo": {"name": "uu", "title": "uu",
+                                            "version": "1"}}):
+    die("codex exited before answering; signed in? try `codex login`")
 time.sleep(1.5)
-send(2, "account/rateLimits/read")
+if not send(2, "account/rateLimits/read"):
+    die("codex exited before answering; signed in? try `codex login`")
 
 res = None
 for _ in range(40):
@@ -46,8 +76,7 @@ for _ in range(40):
 p.kill()
 
 if not res:
-    print("rateLimits call failed")
-    sys.exit(1)
+    die("no answer in 10s; exit code %s" % p.poll())
 
 r = res.get("rateLimits", {})
 print("plan: %s" % r.get("planType"))

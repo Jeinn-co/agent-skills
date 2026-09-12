@@ -1,20 +1,45 @@
 ---
 name: ai-usage
 description: Check AI subscription usage limits across Claude, ChatGPT and Grok in one unified report — percent used, how much is left, and when each window resets. Use when the user runs /ai-usage or /uu, or asks 額度, 用量, usage, limit, 還剩多少, 什麼時候 reset, 被限流了嗎, rate limit, quota, "am I out of Claude", "how much ChatGPT left".
+metadata:
+  author: Jeinn
+  version: "1.1.0"
 ---
 
 # /ai-usage — unified AI usage report
 
-Run `./run.sh` from this skill's directory. Reformat its output into the table below.
-Nothing else. No browser, no stored credentials, no network calls of your own.
+Run `python run.py` from this skill's directory (`./run.sh` is a POSIX shim for the
+same thing). Reformat its output into the table below. Nothing else. No browser, no
+stored credentials, no network calls of your own.
 
 `/ai-usage fresh` — same thing; the script always reads live. The flag only means "do not
 reuse an answer from earlier in this conversation".
 
+The first output line is `### ai-usage <version>`. Do not put it in the report. Quote it
+only when the user asks which version they are on, or when they are reporting a bug —
+there is no other way for them to find out, since installing a skill copies the files
+and leaves no record of where they came from. `python run.py --version` prints it alone.
+
+## What must already be in place
+
+Do not install anything and do not ask the user to log in. Just run the script and
+report what comes back.
+
+- **Python 3.9+** on PATH. `run.py` re-launches each probe with its own interpreter,
+  so the caller's `python` / `python3` / `py` name does not matter.
+- **At least one** of `claude`, `codex`, `grok`, already signed in. Zero of them is
+  still a valid run: every row prints `not installed`.
+
+If a provider prints `not installed`, that is the whole answer for that row — say so
+and move on. Do not suggest installing it unless the user asks. If a provider is
+installed but its call fails, report the failure for that row and still print the
+others; never substitute a number from memory or from an earlier run.
+
 ## Where each number comes from
 
 All three are live. No browser, no stored credentials, no cookie access.
-Verified 2026-09-12 on macOS.
+Verified 2026-09-12 on macOS; Windows support is written for but not verified on
+real hardware.
 
 | Provider | Method |
 |---|---|

@@ -13,13 +13,21 @@ sandbox blocks as credential access -- and `-p` is already live, so it buys noth
 The two usage lines are free text, so they are regex-parsed. If Anthropic rewords them
 this is the one thing in /uu that breaks; the raw line is printed as a fallback.
 """
-import subprocess, json, re, shutil, sys
+import subprocess, json, re
+import sys
+from pathlib import Path
 
-if not shutil.which("claude"):
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import portable
+
+portable.stdout_utf8()
+
+if portable.argv("claude") is None:
     print("claude CLI not installed")
     sys.exit(0)
 
-def run(args):
+def run(*args):
+    args = portable.argv("claude", *args)
     try:
         return subprocess.run(args, capture_output=True, text=True, timeout=90,
                               stdin=subprocess.DEVNULL).stdout
@@ -29,13 +37,13 @@ def run(args):
 # plan name comes from a properly structured command
 plan = None
 try:
-    plan = (json.loads(run(["claude", "auth", "status"]) or "{}")
+    plan = (json.loads(run("auth", "status") or "{}")
             .get("subscriptionType"))
 except Exception:
     pass
 print("plan: %s" % (plan or "unknown"))
 
-raw = run(["claude", "-p", "--output-format", "json", "/usage"])
+raw = run("-p", "--output-format", "json", "/usage")
 env = {}
 try:
     env = json.loads(raw)
