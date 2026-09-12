@@ -78,18 +78,43 @@ p.kill()
 if not res:
     die("no answer in 10s; exit code %s" % p.poll())
 
-r = res.get("rateLimits", {})
-print("plan: %s" % r.get("planType"))
-now = datetime.datetime.now().timestamp()
-for key, label in (("primary", "short"), ("secondary", "outer")):
-    w = r.get(key) or {}
-    ts = w.get("resetsAt", 0)
-    dt = datetime.datetime.fromtimestamp(ts)
+def require_mapping(value, path):
+    if not isinstance(value, dict):
+        raise ValueError("%s must be an object" % path)
+    return value
+
+def require_number(mapping, key, path):
+    value = mapping.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("%s.%s must be a number" % (path, key))
+    return value
+
+try:
+    payload = require_mapping(res, "result")
+    r = require_mapping(payload.get("rateLimits"), "rateLimits")
+    windows = []
+    for key, label in (("primary", "short"), ("secondary", "outer")):
+        path = "rateLimits.%s" % key
+        w = require_mapping(r.get(key), path)
+        used = require_number(w, "usedPercent", path)
+        duration = require_number(w, "windowDurationMins", path)
+        ts = require_number(w, "resetsAt", path)
+        if not 0 <= used <= 100:
+            raise ValueError("%s.usedPercent must be between 0 and 100" % path)
+        if duration <= 0:
+            raise ValueError("%s.windowDurationMins must be positive" % path)
+        if ts <= 0:
+            raise ValueError("%s.resetsAt must be positive" % path)
+        windows.append((label, used, duration, datetime.datetime.fromtimestamp(ts)))
+except (ValueError, TypeError, OverflowError, OSError) as e:
+    die("invalid response: %s" % e)
+
+print("plan: %s" % (r.get("planType") or "unknown"))
+for label, used, duration, dt in windows:
     left = dt - datetime.datetime.now()
     rel = "(%dd%dh)" % (left.days, left.seconds // 3600) if left.total_seconds() > 0 else "(expired)"
     print("%-6s %5.1f%% used  window %dh  resets %s %s"
-          % (label, w.get("usedPercent", 0), (w.get("windowDurationMins") or 0) // 60,
-             dt.strftime("%m-%d %H:%M"), rel))
+          % (label, used, duration // 60, dt.strftime("%m-%d %H:%M"), rel))
 # NOT the "Usage limit resets" count. `credits` is the paid top-up balance; the reset
 # tokens shown under Settings > Usage limit resets are a separate pool and the
 # app-server exposes no way to read them -- only `account/rateLimitResetCredit/consume`,

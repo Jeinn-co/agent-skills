@@ -75,22 +75,44 @@ p.kill()
 if not res:
     die("no answer in 10s; exit code %s" % p.poll())
 
-c = res.get("config", {})
-end = c.get("billingPeriodEnd", "")
+def require_mapping(value, path):
+    if not isinstance(value, dict):
+        raise ValueError("%s must be an object" % path)
+    return value
+
+def require_number(mapping, key, path):
+    value = mapping.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("%s.%s must be a number" % (path, key))
+    return value
+
 try:
-    dt = datetime.datetime.fromisoformat(end).astimezone()
+    payload = require_mapping(res, "result")
+    c = require_mapping(payload.get("config"), "config")
+    used = require_number(c, "creditUsagePercent", "config")
+    if not 0 <= used <= 100:
+        raise ValueError("config.creditUsagePercent must be between 0 and 100")
+    period = require_mapping(c.get("currentPeriod"), "config.currentPeriod")
+    period_type = period.get("type")
+    if not isinstance(period_type, str) or not period_type:
+        raise ValueError("config.currentPeriod.type must be a non-empty string")
+    end = c.get("billingPeriodEnd")
+    if not isinstance(end, str) or not end:
+        raise ValueError("config.billingPeriodEnd must be a non-empty string")
+    iso_end = end[:-1] + "+00:00" if end.endswith("Z") else end
+    dt = datetime.datetime.fromisoformat(iso_end).astimezone()
     left = dt - datetime.datetime.now(dt.tzinfo)
     when = "%s (%dd%dh)" % (dt.strftime("%m-%d %H:%M"),
                            left.days, left.seconds // 3600)
-except Exception:
-    when = end
+except (ValueError, TypeError, OverflowError) as e:
+    die("invalid response: %s" % e)
 
-print("plan: %s" % res.get("subscription_tier"))
+print("plan: %s" % (res.get("subscription_tier") or "unknown"))
 print("%-6s %5.1f%% used  window %s  resets %s"
-      % ("week", c.get("creditUsagePercent", 0),
-         (c.get("currentPeriod") or {}).get("type", "").replace("USAGE_PERIOD_TYPE_", "").lower(),
+      % ("week", used,
+         period_type.replace("USAGE_PERIOD_TYPE_", "").lower(),
          when))
-print("prepaid balance %s | on-demand %s/%s"
-      % ((c.get("prepaidBalance") or {}).get("val"),
-         (c.get("onDemandUsed") or {}).get("val"),
-         (c.get("onDemandCap") or {}).get("val")))
+balances = [c.get(key) for key in ("prepaidBalance", "onDemandUsed", "onDemandCap")]
+if all(isinstance(item, dict) and item.get("val") is not None for item in balances):
+    print("prepaid balance %s | on-demand %s/%s"
+          % (balances[0]["val"], balances[1]["val"], balances[2]["val"]))

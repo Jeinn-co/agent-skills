@@ -1,34 +1,41 @@
 ---
 name: ai-usage
 description: Check AI subscription usage limits across Claude, ChatGPT and Grok in one unified report — percent used, how much is left, and when each window resets. Use when the user runs /ai-usage or /uu, or asks 額度, 用量, usage, limit, 還剩多少, 什麼時候 reset, 被限流了嗎, rate limit, quota, "am I out of Claude", "how much ChatGPT left".
+compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.1.0"
+  version: "1.1.2"
 ---
 
 # /ai-usage — unified AI usage report
 
-Run `python run.py` from this skill's directory (`./run.sh` is a POSIX shim for the
-same thing). Reformat its output into the table below. Nothing else. No browser, no
-stored credentials, no network calls of your own.
+Run the platform launcher from this skill's directory: `./run.sh` on macOS or Linux;
+`py -3 run.py` on Windows, falling back to `python run.py` if `py` is unavailable.
+Reformat its output into the table below. Nothing else. No browser, no stored
+credentials, and no direct HTTP calls of your own.
 
 `/ai-usage fresh` — same thing; the script always reads live. The flag only means "do not
 reuse an answer from earlier in this conversation".
 
 The first output line is `### ai-usage <version>`. Do not put it in the report. Quote it
-only when the user asks which version they are on, or when they are reporting a bug —
-there is no other way for them to find out, since installing a skill copies the files
-and leaves no record of where they came from. `python run.py --version` prints it alone.
+only when the user asks which version they are on or reports a bug. This remains useful
+for manually copied installations even though `npx skills` records source information
+for installations it manages. Adding `--version` to the platform command prints the
+version alone.
 
 ## What must already be in place
 
 Do not install anything and do not ask the user to log in. Just run the script and
 report what comes back.
 
-- **Python 3.9+** on PATH. `run.py` re-launches each probe with its own interpreter,
-  so the caller's `python` / `python3` / `py` name does not matter.
+- **Python 3.9+**. The POSIX shim selects `python3` before `python`; Windows uses the
+  `py -3` launcher when available. `run.py` then re-launches every probe with that exact
+  interpreter.
 - **At least one** of `claude`, `codex`, `grok`, already signed in. Zero of them is
   still a valid run: every row prints `not installed`.
+- **Subprocess and network access.** The host must allow local process launches, and
+  each installed provider CLI must be able to reach its own service. The Python code
+  does not make direct HTTP requests.
 
 If a provider prints `not installed`, that is the whole answer for that row — say so
 and move on. Do not suggest installing it unless the user asks. If a provider is
@@ -67,8 +74,10 @@ Print `resets available: unknown (web only)` and leave it at that.
 `prepaidBalance` and `onDemandCap`/`onDemandUsed`. Grok has only one window, not two —
 do not invent a short row for it.
 
-Do not label any of these "redeem" unless the provider itself uses that concept. Only
-Claude's extra usage is confirmed to map onto it.
+Do not label any of these "redeem" unless the provider itself uses that concept.
+Claude's current CLI response does not expose a reliable extra-usage field.
+`fast_mode_disabled_reason` describes fast mode and must never be presented as extra
+usage.
 
 ## Output
 
@@ -78,7 +87,6 @@ USAGE — 09-12 01:08
   Claude    pro
     5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
     week  ████░░░░░░  41%   resets Mon 17:00 (2d16h)
-    extra usage  disabled (Max only)
 
   ChatGPT   plus
     5h    ░░░░░░░░░░   0%   resets 05:55 (4h47m)

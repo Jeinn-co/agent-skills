@@ -19,6 +19,16 @@ npx skills add Jeinn-co/agent-skills@ai-usage
 
 ## Install
 
+The `npx` method requires Node.js and npm. Check them before installing:
+
+```bash
+node --version
+npx --version
+```
+
+The current `skills` CLI declares Node.js 22.20 or newer. If that is not available,
+use the manual-copy method below; the skill itself does not require Node.js at runtime.
+
 ```bash
 npx skills add Jeinn-co/agent-skills@ai-usage     # just this skill
 npx skills add Jeinn-co/agent-skills              # everything in the repo
@@ -31,6 +41,30 @@ Or copy a skill directory into your agent's skills folder — `~/.claude/skills/
 on your machine. Installing copies only that skill's directory, so its README travels
 with it and this page does not.
 
+If a newly installed skill is not visible immediately, start a new conversation or
+restart the agent so it reloads its skill list.
+
+## Update
+
+Updates are not automatic. Installs made with `npx skills add` record their GitHub
+source, so users can refresh them after a release:
+
+```bash
+npx skills update ai-usage -g -y    # global install
+npx skills update ai-usage -p -y    # project install
+```
+
+Open a new conversation or restart the agent after updating so it reloads the skill.
+Manually copied skills are not tracked; copy the directory again to update them.
+
+## Test
+
+Run the regression suite from the repository root:
+
+```bash
+python3 -m unittest -v tests/test_ai_usage_regressions.py
+```
+
 ## Conventions
 
 - **English is canonical.** A `.zh-TW.md` beside a doc is a mirror; when one changes,
@@ -38,9 +72,9 @@ with it and this page does not.
 - **Docs live with the skill.** Anything a user needs after installing goes inside
   `skills/<name>/`, not here. This page is an index.
 - **Versions are by hand.** `SKILL.md` frontmatter carries `metadata.version`; the skill
-  also prints its version so an installed copy can identify itself. Nothing in the
-  tooling reads or enforces either — installing a skill copies files and leaves no
-  record of where they came from.
+  also prints its version so an installed copy can identify itself. The value is
+  informational: `npx skills` tracks its own installs by source and content hash, while
+  manually copied skills have no update record.
 
 ## License
 

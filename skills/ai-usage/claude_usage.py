@@ -68,13 +68,3 @@ if not found:
             found = True
 if not found:
     print("could not parse; raw first line: %s" % text.splitlines()[0][:120])
-
-# Claude's redeem-equivalent is "extra usage" (overage), a Max-plan feature. The
-# envelope reports it even though /usage omits the section when it is unavailable.
-reason = env.get("fast_mode_disabled_reason")
-if reason == "extra_usage_disabled":
-    print("extra usage: disabled (%s plan)" % (plan or "?"))
-elif reason:
-    print("extra usage: %s" % reason)
-else:
-    print("extra usage: available")

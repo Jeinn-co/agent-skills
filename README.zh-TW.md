@@ -21,6 +21,16 @@ npx skills add Jeinn-co/agent-skills@ai-usage
 
 ## 安裝
 
+用 `npx` 安裝需要 Node.js 與 npm。安裝前先確認：
+
+```bash
+node --version
+npx --version
+```
+
+目前的 `skills` CLI 宣告需要 Node.js 22.20 以上。如果環境沒有這個版本，請改用下方的
+手動複製方式；skill 執行時本身不需要 Node.js。
+
 ```bash
 npx skills add Jeinn-co/agent-skills@ai-usage     # 只裝這一個 skill
 npx skills add Jeinn-co/agent-skills              # 裝整個 repo
@@ -32,14 +42,36 @@ npx skills add Jeinn-co/agent-skills              # 裝整個 repo
 **安裝前請先讀該 skill 自己的 README** —— 每個 skill 都列出了它需要你機器上先有什麼。
 安裝時只會複製該 skill 的目錄，所以它的 README 會跟著走，而這一頁不會。
 
+如果剛安裝的 skill 沒有立刻出現，請開新對話或重新啟動 agent，讓它重新載入 skill 清單。
+
+## 更新
+
+更新不會自動發生。透過 `npx skills add` 安裝時會記錄 GitHub 來源，發布新版後可執行：
+
+```bash
+npx skills update ai-usage -g -y    # global 安裝
+npx skills update ai-usage -p -y    # project 安裝
+```
+
+更新後請開新對話或重新啟動 agent，讓它重新載入 skill。手動複製的 skill 不會被追蹤；
+需要再次複製目錄才能更新。
+
+## 測試
+
+在 repository 根目錄執行回歸測試：
+
+```bash
+python3 -m unittest -v tests/test_ai_usage_regressions.py
+```
+
 ## 慣例
 
 - **英文為準。** 文件旁邊的 `.zh-TW.md` 是鏡像；一邊改動，另一邊在同一個 commit 裡跟著改。
 - **說明跟著 skill 走。** 使用者裝完之後會需要的內容，一律放在 `skills/<name>/` 裡面，
   不放在這裡。這一頁只是索引。
 - **版本靠手動維護。** `SKILL.md` frontmatter 裡有 `metadata.version`，skill 執行時也會
-  印出自己的版本，讓已安裝的副本能自報身分。但工具鏈不會讀也不會強制檢查任何一邊 ——
-  安裝 skill 就只是複製檔案，不會留下任何來源紀錄。
+  印出自己的版本，讓已安裝的副本能自報身分。這個值只供辨識：`npx skills` 會用來源與
+  內容 hash 追蹤它安裝的 skill；手動複製的版本則沒有更新紀錄。
 
 ## 授權
 
