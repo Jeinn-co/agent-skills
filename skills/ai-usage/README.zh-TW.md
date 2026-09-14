@@ -46,7 +46,7 @@ Agent host 必須允許這個 skill 啟動本機 subprocess。每個 provider CL
 
 macOS、Linux、Windows 都支援 —— 但請看[限制與已知問題](#限制與已知問題)。啟動程式與
 `portable.py` 已處理 Store stub 的 `python3`、`CreateProcess` 不吃的 npm `.cmd` shim，
-以及 cp950/cp1252 stdout，但從未在真正的 Windows 機器上跑過。
+以及 cp950/cp1252 stdout；2026-09-14 已在一台繁中 Windows 11 機器上實測跑通。
 
 ### 5. 不需要什麼
 
@@ -153,10 +153,15 @@ CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。需要 Pyth
 ## 限制與已知問題
 
 **平台。** 在 macOS 上開發並驗證過。Linux 未經測試，但走的是同一條 code path。
-**Windows 有寫對應處理，但從未在 Windows 機器上實際跑過** —— 啟動程式與
-`portable.py` 已處理 Store stub 的 `python3`、`CreateProcess` 不吃的 `.cmd` shim，
-以及 cp950/cp1252 stdout。程式其他部分沒有平台相依內容。請當成「預期可用」而不是
-「已驗證」。歡迎回報 Windows 上的 bug，回報內容的可信度高於這段文字。
+**Windows 已於 2026-09-14 驗證** —— 在一台繁中 Windows 11 機器（PowerShell、
+Python 3.12）上實測跑通。啟動程式與 `portable.py` 處理了 Store stub 的
+`python3`、`CreateProcess` 不吃的 `.cmd` shim，以及*自己*輸出用的 cp950/cp1252
+stdout。這次實測也抓到一個這段文字之前沒提到的 bug：`subprocess` 的
+`text=True` 是用作業系統 locale 編碼去解碼**被啟動的 CLI**的輸出，不是 UTF-8，
+導致 Claude 的用量那行在 cp950 下丟出 `UnicodeDecodeError`。已透過
+`portable.text_kwargs()` 固定 `encoding="utf-8"` 修好（三個 probe 都套用）。
+目前只在一台機器、一種非英文 locale 測過，其他 locale 或 Windows 版本仍可能
+踩到新問題。歡迎回報 Windows 上的 bug，回報內容的可信度高於這段文字。
 
 **版本綁定。** 2026-09-12 針對 `claude` 2.1.268、`codex` 0.154.0、`grok` 1.0.25 驗證。
 

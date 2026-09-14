@@ -168,11 +168,16 @@ for how each method was found, including the dead ends, so nobody has to re-walk
 ## Limitations and known issues
 
 **Platform.** Developed and verified on macOS. Linux is untested but uses the same
-code path. **Windows is written for but has never been run on Windows hardware** — the
-launcher and `portable.py` handle Store-stub `python3`, `.cmd` shims that
-`CreateProcess` refuses, and cp950/cp1252 stdout. Nothing else in the code is
-platform-specific. Treat it as expected-to-work, not verified. Bug reports from
-Windows are welcome and will be believed over this paragraph.
+code path. **Windows was verified 2026-09-14** on a zh-TW Windows 11 machine
+(PowerShell, Python 3.12) — the launcher and `portable.py` handle Store-stub
+`python3`, `.cmd` shims that `CreateProcess` refuses, and cp950/cp1252 *our own*
+stdout. That first real run also caught a bug this paragraph used to gloss over:
+`subprocess`'s `text=True` decodes a *launched CLI's* output with the OS locale
+encoding, not UTF-8, so Claude's usage line raised `UnicodeDecodeError` under cp950.
+Fixed by pinning `encoding="utf-8"` in `portable.text_kwargs()` (used by all three
+probes). Only tested on one Windows machine and one non-English locale so far — other
+locales or Windows builds may still surface something new. Bug reports from Windows
+are welcome and will be believed over this paragraph.
 
 **Version-pinned.** Verified 2026-09-12 against `claude` 2.1.268, `codex` 0.154.0,
 `grok` 1.0.25.

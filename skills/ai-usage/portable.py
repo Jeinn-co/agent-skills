@@ -16,7 +16,7 @@ Neither has any effect on macOS or Linux.
 import atexit, os, shutil, sys
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.1.2"
+VERSION = "1.1.3"
 
 _SHIM = (".cmd", ".bat")
 

@@ -5,7 +5,7 @@ Each probe runs as a separate process with *this* interpreter (`sys.executable`)
 there is no dependency on a `python3` on PATH -- on Windows that name is often absent,
 or worse, a Microsoft Store stub that opens the store instead of running anything.
 
-Verified 2026-09-12 on macOS. See README for platform notes.
+Verified 2026-09-12 on macOS, 2026-09-14 on Windows 11. See README for platform notes.
 """
 import subprocess, sys
 from pathlib import Path
