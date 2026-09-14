@@ -57,6 +57,18 @@ def stdout_utf8():
     atexit.register(_on_exit)
 
 
+def text_kwargs():
+    """subprocess kwargs that decode a launched CLI's output as UTF-8.
+
+    `text=True` alone decodes with `locale.getpreferredencoding(False)`, which is
+    cp950/cp1252/etc on non-English Windows, not UTF-8. Every CLI probed here
+    (claude, codex, grok) emits UTF-8, so a stray bullet or middot in the output
+    raises UnicodeDecodeError under that locale encoding on Windows. macOS's
+    preferred encoding is already UTF-8, so pinning it here changes nothing there.
+    """
+    return dict(encoding="utf-8", errors="replace")
+
+
 def argv(name, *args):
     """Argument list that actually launches `name` on this OS, or None if absent.
 

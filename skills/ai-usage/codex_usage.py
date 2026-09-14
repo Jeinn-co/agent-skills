@@ -36,7 +36,7 @@ def die(why):
 try:
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                         text=True, bufsize=1)
+                         bufsize=1, **portable.text_kwargs())
 except OSError as e:
     print("%s (could not start codex: %s)" % (FAIL, e))
     sys.exit(1)
