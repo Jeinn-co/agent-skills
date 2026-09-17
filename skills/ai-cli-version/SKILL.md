@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex and Grok Build CLIs are up to date — installed version and when it was installed on this machine, latest version and when it was released. Check only, never installs. Use when the user runs /ai-cli-version, or asks 檢查更新, CLI 有沒有新版, claude/codex/grok 要不要更新, 什麼時候發佈, 我什麼時候更新的, "is my CLI up to date", "when was this released".
+description: Check whether the Claude Code, Codex and Grok Build CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. Use when the user runs /ai-cli-version, or asks 檢查更新, CLI 有沒有新版, claude/codex/grok 要不要更新, 什麼時候發佈, 我什麼時候更新的, "is my CLI up to date", "when was this released".
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org and api.github.com. Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows only; macOS and Linux are not yet tested.
 metadata:
   author: Jeinn
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -12,11 +12,10 @@ metadata:
 Run the platform launcher from this skill's directory: `./run.sh` on macOS or Linux
 (`sh run.sh` if it is not executable);
 `py -3 run.py` on Windows, falling back to `python run.py` if `py` is unavailable.
-Reformat its output into the report below. Nothing else.
+Reformat its output into the report below, then follow the optional update flow.
 
-**Never install or update anything.** Do not run `claude update`, `codex update`, or
-`grok update` without `--check`, unless the user explicitly asks in a later message.
-Only show the update command.
+The launcher is check-only and must never install anything. During the check phase, do
+not run `claude update`, `codex update`, or `grok update` without `--check`.
 
 The first output line is `### ai-cli-version <version>`. Leave it out of the report; quote
 it only when the user asks which version they are on or reports a bug. Adding `--version`
@@ -66,6 +65,9 @@ CLI VERSIONS — 09-17
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
+
+  Update the 1 outdated CLI now?
+  [y] Update all    [Esc] Skip
 ```
 
 Rules:
@@ -76,6 +78,29 @@ Rules:
 - `↑ update` rows end with the update command.
 - `ahead of channel` means the installed build is newer than the channel tag — show it
   as-is, not as an error.
-- Last line: how many updates are available and for which tools, or `All up to date.`
-- No preamble, no recap, no closing offer.
+- Last report line: how many updates are available and for which tools, or `All up to date.`
 - Match the user's language for labels.
+
+## Optional update
+
+Only when one or more rows have `status=update available`, append a two-choice prompt in
+the user's language and stop. Keep the keys exactly `y` and `Esc`:
+
+```
+Update the N outdated CLIs now?
+[y] Update all    [Esc] Skip
+```
+
+- `/ai-cli-version` authorizes the check, not an update. Do not run any updater in the
+  same turn as the initial report.
+- A subsequent exact `y` or `Y` authorizes every `update_cmd` from the immediately
+  preceding report whose status was `update available`. Run those commands separately,
+  so one failure does not prevent the remaining updates.
+- `Esc` or `Escape` skips all updates. Confirm that no updates were run.
+- Any other reply is not authorization. Repeat the two valid choices without updating.
+- After `y`, show success or failure for every selected tool, then run the check-only
+  launcher again and show the refreshed report. Do not show another prompt for a tool
+  whose updater failed during that same update attempt.
+- If all tools are current, or the user explicitly asked for check-only behavior, do not
+  show the prompt.
+- No preamble, recap, or closing offer outside the report, prompt, and update results.

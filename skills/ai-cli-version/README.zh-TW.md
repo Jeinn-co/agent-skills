@@ -5,7 +5,8 @@
 一份報表看你的 Claude Code、Codex、Grok Build CLI 是不是最新版 —— 你目前的版本和安裝時間，
 以及最新版本和發佈時間。
 
-只檢查、不安裝：它不會安裝或更新任何東西，只會列出更新指令。
+版本檢查永遠是唯讀的。有任一 CLI 不是最新版時，agent 會提供兩個選項：按 `y` 更新全部
+過期 CLI，按 `Esc` 全部跳過。
 
 可在 Claude Code、Codex CLI、Grok Build，以及任何讀 `SKILL.md` 慣例的 agent 使用，
 不綁定特定 host。
@@ -86,8 +87,8 @@ npx skills update ai-cli-version -p -y    # project 安裝
     /ai-cli-version
 
 或直接問 ——「CLI 是最新版嗎？」、「檢查更新」、「這版 Codex 什麼時候發佈的？」。每次都即時查詢，
-沒有快取也沒有參數。它不會執行更新：有新版時只會列出指令（`claude update`、`codex update`、
-`grok update`），由你自己執行。
+沒有快取也沒有參數。有一個以上版本過期時，它會先顯示報表，並等你明確輸入 `y` 才執行更新；
+輸入 `Esc` 則不變更任何 CLI。
 
 在 agent 外面執行時，先切到已安裝的 `ai-cli-version` 目錄 —— 例如
 `~/.claude/skills/ai-cli-version` —— 再用對應平台的啟動方式：
@@ -112,7 +113,13 @@ CLI VERSIONS — 09-17
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
+
+  現在更新 1 個過期的 CLI？
+  [y] 全部更新    [Esc] 跳過
 ```
+
+這個選項只會在 agent 裡出現。單獨執行 `run.py` / `run.sh` 永遠只檢查，仍會輸出原始報表資料，
+也不會接受更新選項。
 
 ## 每個數值的來源
 

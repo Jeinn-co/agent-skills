@@ -3,7 +3,8 @@
 One report for whether your Claude Code, Codex and Grok Build CLIs are up to date — the
 version you have and when you installed it, the latest version and when it was released.
 
-Check only: it never installs or updates anything. It shows the update command instead.
+The version check is always read-only. When an update is available, the agent offers two
+choices: `y` updates every outdated CLI, while `Esc` skips all updates.
 
 Works in Claude Code, Codex CLI, Grok Build, and anything else that reads the `SKILL.md`
 convention. Nothing here depends on a particular host.
@@ -92,9 +93,9 @@ Type the skill name as a slash command:
     /ai-cli-version
 
 Or just ask — "is my CLI up to date?", "檢查更新", "when was this Codex released?". It reads
-live every time; there is no cache or flag. It never runs an update: when one is
-available it prints the command (`claude update`, `codex update`, `grok update`) for you
-to run yourself.
+live every time; there is no cache or flag. If one or more versions are outdated, it
+shows the report and waits for an explicit `y` before running their update commands.
+Choose `Esc` to leave every CLI unchanged.
 
 To run it outside an agent, change into the installed `ai-cli-version` directory — for
 example `~/.claude/skills/ai-cli-version` — then use the launcher for your platform:
@@ -119,7 +120,13 @@ CLI VERSIONS — 09-17
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
+
+  Update the 1 outdated CLI now?
+  [y] Update all    [Esc] Skip
 ```
+
+The prompt appears only inside an agent. The standalone `run.py` / `run.sh` launcher is
+always check-only and continues to print raw report data without accepting input.
 
 ## Where each value comes from
 

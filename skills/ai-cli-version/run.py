@@ -20,7 +20,7 @@ import sys
 import urllib.request
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 TIMEOUT = 60
 HOME = os.path.expanduser("~")
