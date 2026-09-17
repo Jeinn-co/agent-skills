@@ -1,7 +1,7 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex and Grok Build CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. Use when the user runs /ai-cli-version, or asks 檢查更新, CLI 有沒有新版, claude/codex/grok 要不要更新, 什麼時候發佈, 我什麼時候更新的, "is my CLI up to date", "when was this released".
-compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org and api.github.com. Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows only; macOS and Linux are not yet tested.
+description: Check whether the Claude Code, Codex and Grok Build CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. Use when the user runs /ai-cli-version or /check-uu, or asks 檢查更新, CLI 有沒有新版, claude/codex/grok 要不要更新, 什麼時候發佈, 我什麼時候更新的, "is my CLI up to date", "when was this released".
+compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org and api.github.com. Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
   version: "1.1.0"
@@ -38,8 +38,8 @@ Only the **latest** version and the **currently installed** version — no histo
   If that path is missing — an npm or Homebrew install, or the macOS/Linux Grok
   installer, which stores builds without a version in the name — the real executable
   behind the command is used instead, then its folder.
-- **Tested on Windows only.** On macOS or Linux, if the script fails or a value looks
-  wrong, report it as-is and mention that this platform has not been tested yet.
+- **Tested on Windows and macOS.** On Linux, if the script fails or a value looks wrong,
+  report it as-is and mention that this platform has not been tested yet.
 - A `check failed (... CERTIFICATE_VERIFY_FAILED ...)` on macOS means a python.org Python
   whose `Install Certificates.command` was never run. Say so; do not work around it. Timestamps before 2015 are discarded (npm extracts files
   with a fixed 1985 date).

@@ -9,10 +9,10 @@ choices: `y` updates every outdated CLI, while `Esc` skips all updates.
 Works in Claude Code, Codex CLI, Grok Build, and anything else that reads the `SKILL.md`
 convention. Nothing here depends on a particular host.
 
-> **Tested on Windows only. macOS and Linux have not been tested yet.** The code has a
-> macOS/Linux path and the install locations were checked against the vendors' install
-> scripts, but it has never been run there. If it fails, please open an issue with the
-> output of `./run.sh`.
+> **Tested on Windows and macOS. Linux has not been tested yet.** The code has a Linux
+> path and the install locations were checked against the vendors' install scripts, but
+> it has never been run there. If it fails, please open an issue with the output of
+> `./run.sh`.
 
 繁體中文說明：[README.zh-TW.md](README.zh-TW.md)
 
@@ -173,11 +173,13 @@ package manager (`brew upgrade`, `npm install -g`) is the safe choice.
 lists every version; expect a second or two per run.
 
 **Verified** 2026-09-17 on Windows 11 (zh-TW, Python 3.12) against `claude` 2.1.274,
-`codex` 0.154.0 and `grok` 1.0.34. The skill has not been run on macOS or Linux. On the
-same date the Codex and Grok paths were checked against their install scripts
-(`chatgpt.com/codex/install.sh`, `x.ai/cli/install.sh`); Claude Code's script hands off to
-the binary, so its macOS path is assumed to match Windows, and if it does not, the
-real-executable fallback applies.
+`codex` 0.154.0 and `grok` 1.0.34. On the same date the Codex and Grok paths were checked
+against their install scripts (`chatgpt.com/codex/install.sh`, `x.ai/cli/install.sh`).
+
+**Verified** 2026-09-18 on macOS 26.6.2 (arm64, Python 3.10.8) against `claude` 2.1.273,
+`codex` 0.154.0 and `grok` 1.0.34. The check-only launcher, version and timestamp lookup,
+and global installation for Claude Code, Codex and Grok Build all completed successfully.
+Linux has not been tested yet.
 
 ## License
 

@@ -11,9 +11,9 @@
 可在 Claude Code、Codex CLI、Grok Build，以及任何讀 `SKILL.md` 慣例的 agent 使用，
 不綁定特定 host。
 
-> **目前只在 Windows 上測過，macOS 與 Linux 尚未測試。** 程式有 macOS/Linux 的處理，
-> 安裝路徑也對照過各家安裝腳本，但從沒在那兩個系統上實際執行過。如果出錯，請附上
-> `./run.sh` 的輸出開 issue。
+> **目前已在 Windows 與 macOS 上測過，Linux 尚未測試。** 程式有 Linux 的處理，安裝路徑
+> 也對照過各家安裝腳本，但尚未在 Linux 上實際執行。如果出錯，請附上 `./run.sh` 的輸出
+> 開 issue。
 
 ## 安裝前必讀
 
@@ -159,9 +159,12 @@ skill 假設原生版的版號跟 npm 套件一致；驗證時版號確實相同
 **下載量。** `@openai/codex` 的 npm registry 文件約 14 MB（列出所有版本），每次執行約需一兩秒。
 
 **已驗證**：2026-09-17，Windows 11（zh-TW，Python 3.12），`claude` 2.1.274、
-`codex` 0.154.0、`grok` 1.0.34。尚未在 macOS 或 Linux 上實際執行。同一天已對照 Codex 與
-Grok 的安裝腳本（`chatgpt.com/codex/install.sh`、`x.ai/cli/install.sh`）確認路徑；Claude Code
-的腳本把安裝交給 binary 本身處理，所以 macOS 路徑是假設與 Windows 相同，不同時會改用實際執行檔。
+`codex` 0.154.0、`grok` 1.0.34。同一天已對照 Codex 與 Grok 的安裝腳本
+（`chatgpt.com/codex/install.sh`、`x.ai/cli/install.sh`）確認路徑。
+
+**已驗證**：2026-09-18，macOS 26.6.2（arm64，Python 3.10.8），`claude` 2.1.273、
+`codex` 0.154.0、`grok` 1.0.34。唯讀檢查 launcher、版本與安裝時間查詢，以及安裝到
+Claude Code、Codex、Grok Build 三個 agent 的 global 安裝流程皆成功。Linux 尚未測試。
 
 ## 授權
 
