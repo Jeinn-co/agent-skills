@@ -5,6 +5,7 @@ Agent skills for Claude Code, Codex CLI, Grok Build, and anything else that read
 
 ```bash
 npx skills add Jeinn-co/agent-skills@ai-usage
+npx skills add Jeinn-co/agent-skills@ai-cli-version
 ```
 
 [Browse on skills.sh](https://skills.sh/jeinn-co/agent-skills) · 繁體中文：[README.zh-TW.md](README.zh-TW.md)
@@ -16,6 +17,7 @@ npx skills add Jeinn-co/agent-skills@ai-usage
 | Skill | What it does | Docs |
 |---|---|---|
 | [`ai-usage`](skills/ai-usage/) | One report for how much of your Claude, ChatGPT and Grok subscription is left — percent used, when each window resets, what top-up you have. | [README](skills/ai-usage/README.md) · [中文](skills/ai-usage/README.zh-TW.md) |
+| [`ai-cli-version`](skills/ai-cli-version/) | Whether your Claude Code, Codex and Grok Build CLIs are up to date — installed version and when you installed it, latest version and when it was released. Check only, never installs. Tested on Windows only; macOS and Linux not yet tested. | [README](skills/ai-cli-version/README.md) · [中文](skills/ai-cli-version/README.zh-TW.md) |
 
 ## Install
 
@@ -30,8 +32,9 @@ The current `skills` CLI declares Node.js 22.20 or newer. If that is not availab
 use the manual-copy method below; the skill itself does not require Node.js at runtime.
 
 ```bash
-npx skills add Jeinn-co/agent-skills@ai-usage     # just this skill
-npx skills add Jeinn-co/agent-skills              # everything in the repo
+npx skills add Jeinn-co/agent-skills@ai-usage           # one skill
+npx skills add Jeinn-co/agent-skills@ai-cli-version     # one skill
+npx skills add Jeinn-co/agent-skills                    # everything in the repo
 ```
 
 Or copy a skill directory into your agent's skills folder — `~/.claude/skills/`,
@@ -50,8 +53,9 @@ Updates are not automatic. Installs made with `npx skills add` record their GitH
 source, so users can refresh them after a release:
 
 ```bash
-npx skills update ai-usage -g -y    # global install
-npx skills update ai-usage -p -y    # project install
+npx skills update ai-usage -g -y          # global install
+npx skills update ai-cli-version -g -y    # global install
+npx skills update ai-usage -p -y          # project install (same for ai-cli-version)
 ```
 
 Open a new conversation or restart the agent after updating so it reloads the skill.

@@ -7,6 +7,7 @@ skills。內容不綁定任何特定 host。
 
 ```bash
 npx skills add Jeinn-co/agent-skills@ai-usage
+npx skills add Jeinn-co/agent-skills@ai-cli-version
 ```
 
 [在 skills.sh 上瀏覽](https://skills.sh/jeinn-co/agent-skills) · English: [README.md](README.md)
@@ -18,6 +19,7 @@ npx skills add Jeinn-co/agent-skills@ai-usage
 | Skill | 做什麼 | 說明文件 |
 |---|---|---|
 | [`ai-usage`](skills/ai-usage/) | 一份報表看完 Claude、ChatGPT、Grok 三邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、還有多少加購額度。 | [English](skills/ai-usage/README.md) · [中文](skills/ai-usage/README.zh-TW.md) |
+| [`ai-cli-version`](skills/ai-cli-version/) | 你的 Claude Code、Codex、Grok Build CLI 是不是最新版 —— 目前版本和安裝時間、最新版本和發佈時間。只檢查，不安裝。目前只在 Windows 測過，macOS 與 Linux 尚未測試。 | [English](skills/ai-cli-version/README.md) · [中文](skills/ai-cli-version/README.zh-TW.md) |
 
 ## 安裝
 
@@ -32,8 +34,9 @@ npx --version
 手動複製方式；skill 執行時本身不需要 Node.js。
 
 ```bash
-npx skills add Jeinn-co/agent-skills@ai-usage     # 只裝這一個 skill
-npx skills add Jeinn-co/agent-skills              # 裝整個 repo
+npx skills add Jeinn-co/agent-skills@ai-usage           # 只裝一個 skill
+npx skills add Jeinn-co/agent-skills@ai-cli-version     # 只裝一個 skill
+npx skills add Jeinn-co/agent-skills                    # 裝整個 repo
 ```
 
 或是直接把 skill 目錄複製到你的 agent skills 資料夾 —— `~/.claude/skills/`、
@@ -49,8 +52,9 @@ npx skills add Jeinn-co/agent-skills              # 裝整個 repo
 更新不會自動發生。透過 `npx skills add` 安裝時會記錄 GitHub 來源，發布新版後可執行：
 
 ```bash
-npx skills update ai-usage -g -y    # global 安裝
-npx skills update ai-usage -p -y    # project 安裝
+npx skills update ai-usage -g -y          # global 安裝
+npx skills update ai-cli-version -g -y    # global 安裝
+npx skills update ai-usage -p -y          # project 安裝（ai-cli-version 同理）
 ```
 
 更新後請開新對話或重新啟動 agent，讓它重新載入 skill。手動複製的 skill 不會被追蹤；

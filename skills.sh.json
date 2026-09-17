@@ -5,7 +5,7 @@
     {
       "title": "Operations",
       "description": "Skills for keeping track of the tooling you run every day.",
-      "skills": ["ai-usage"]
+      "skills": ["ai-usage", "ai-cli-version"]
     }
   ]
 }

@@ -1,0 +1,81 @@
+---
+name: ai-cli-version
+description: Check whether the Claude Code, Codex and Grok Build CLIs are up to date — installed version and when it was installed on this machine, latest version and when it was released. Check only, never installs. Use when the user runs /ai-cli-version, or asks 檢查更新, CLI 有沒有新版, claude/codex/grok 要不要更新, 什麼時候發佈, 我什麼時候更新的, "is my CLI up to date", "when was this released".
+compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org and api.github.com. Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows only; macOS and Linux are not yet tested.
+metadata:
+  author: Jeinn
+  version: "1.0.0"
+---
+
+# /ai-cli-version — CLI version and update check
+
+Run the platform launcher from this skill's directory: `./run.sh` on macOS or Linux
+(`sh run.sh` if it is not executable);
+`py -3 run.py` on Windows, falling back to `python run.py` if `py` is unavailable.
+Reformat its output into the report below. Nothing else.
+
+**Never install or update anything.** Do not run `claude update`, `codex update`, or
+`grok update` without `--check`, unless the user explicitly asks in a later message.
+Only show the update command.
+
+The first output line is `### ai-cli-version <version>`. Leave it out of the report; quote
+it only when the user asks which version they are on or reports a bug. Adding `--version`
+to the platform command prints the version alone.
+
+## What is checked
+
+Only the **latest** version and the **currently installed** version — no history.
+
+| Tool | Installed version | Installed at | Latest version | Released |
+|---|---|---|---|---|
+| Claude Code | `claude --version` | `~/.local/share/claude/versions/<installed>` | npm `@anthropic-ai/claude-code`, dist-tag = `autoUpdatesChannel` in `settings.json` under `$CLAUDE_CONFIG_DIR` or `~/.claude` (default `latest`) | npm publish time |
+| Codex | `codex --version` | `$CODEX_HOME` (default `~/.codex`) `/packages/standalone/releases/<installed>-*` | npm `@openai/codex`, dist-tag `latest` | npm publish time |
+| Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<installed>-*` | same call | **approximate** — see below |
+
+- `claude update` and `codex update` install immediately and have no check-only flag, so
+  their latest version comes from the npm registry (queried over HTTP; npm is not needed).
+  Grok Build has `--check`.
+- **Installed at** is the folder's creation time (Windows, macOS) or modified time (Linux).
+  If that path is missing — an npm or Homebrew install, or the macOS/Linux Grok
+  installer, which stores builds without a version in the name — the real executable
+  behind the command is used instead, then its folder.
+- **Tested on Windows only.** On macOS or Linux, if the script fails or a value looks
+  wrong, report it as-is and mention that this platform has not been tested yet.
+- A `check failed (... CERTIFICATE_VERIFY_FAILED ...)` on macOS means a python.org Python
+  whose `Install Certificates.command` was never run. Say so; do not work around it. Timestamps before 2015 are discarded (npm extracts files
+  with a fixed 1985 date).
+- **Grok release time is approximate.** The official changelog (`x.ai/build/changelog`)
+  blocks scripted requests, so the time comes from the GitHub release of the third-party
+  NixOS package `timoteuszelle/x.ai-grok`, which auto-detects new versions. The official
+  release is no later than that time.
+
+Each tool line is tab-separated:
+`name installed=… installed_at=… latest=… released=… released_note=… channel=… status=… update_cmd=…`,
+or `name<TAB>not installed`, or `name<TAB>check failed (<reason>)`. Times are local
+`MM/DD HH:MM`; `?` means unknown.
+
+## Report
+
+```
+CLI VERSIONS — 09-17
+
+  Tool          Installed               Latest                             Status
+  Claude Code   2.1.274 (09/17 11:20)   2.1.274 (released 09/17 06:36)     ✓ up to date      channel: latest
+  Codex         0.153.4 (09/07 11:03)   0.154.0 (released 09/10 06:40)     ↑ update → codex update
+  Grok Build    1.0.34  (09/17 09:28)   1.0.34  (released ≤ 09/17 03:32*)  ✓ up to date      channel: stable
+
+  * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
+  → 1 update available: Codex.
+```
+
+Rules:
+- Show every tool. `not installed` and `check failed (...)` get their own row with the
+  reason; never drop a row, and never fill in a version or time from memory.
+- Show `?` for an unknown time; do not guess.
+- Grok's release time always gets `≤` and the footnote.
+- `↑ update` rows end with the update command.
+- `ahead of channel` means the installed build is newer than the channel tag — show it
+  as-is, not as an error.
+- Last line: how many updates are available and for which tools, or `All up to date.`
+- No preamble, no recap, no closing offer.
+- Match the user's language for labels.
