@@ -114,5 +114,10 @@ print("%-6s %5.1f%% used  window %s  resets %s"
          when))
 balances = [c.get(key) for key in ("prepaidBalance", "onDemandUsed", "onDemandCap")]
 if all(isinstance(item, dict) and item.get("val") is not None for item in balances):
-    print("prepaid balance %s | on-demand %s/%s"
-          % (balances[0]["val"], balances[1]["val"], balances[2]["val"]))
+    try:
+        nums = [float(item["val"]) for item in balances]
+    except (TypeError, ValueError):
+        nums = None
+    if nums is not None and any(nums):
+        print("prepaid balance %s | on-demand %s/%s"
+              % (balances[0]["val"], balances[1]["val"], balances[2]["val"]))

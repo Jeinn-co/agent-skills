@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT and Grok 
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.1.4"
+  version: "1.1.5"
 ---
 
 # /ai-usage — unified AI usage report
@@ -69,9 +69,10 @@ when a window is 0% used; still print that row, without inventing a reset time.
 no read counterpart). Do not print `unknown (web only)` either. `credits.balance`
 is a different pool (paid top-ups) and is never that reset count.
 
-**Grok** — weekly `creditUsagePercent` and the billing period end, plus
-`prepaidBalance` and `onDemandCap`/`onDemandUsed`. Grok has only one window, not two —
-do not invent a 5h row for it.
+**Grok** — weekly `creditUsagePercent` and the billing period end. Print
+prepaid / on-demand only when any of those values is non-zero. Do not print
+`prepaid 0 / on-demand 0`. Grok has only one window, not two — do not invent a
+5h row for it.
 
 Do not label any of these "redeem" unless the provider itself uses that concept.
 Claude's current CLI response does not expose a reliable extra-usage field.
@@ -93,7 +94,6 @@ USAGE — 09-12 01:08
 
   Grok      SuperGrok
     week  ███░░░░░░░  27%   resets 09-15 09:38 (3d8h)
-    prepaid 0 / on-demand 0
 
   → Use ChatGPT right now. Both windows are fresh.
 ```
@@ -105,6 +105,7 @@ Rules:
 - Never print ChatGPT "resets available" / "Usage limit resets", including
   `unknown (web only)`.
 - Never invent a 5h row for Grok.
+- Never print Grok prepaid / on-demand when every value is 0.
 - Last line names which tool to use right now, and why in a few words.
 - If any week row is over 80%, put a `⚠` line above the arrow saying how long until it
   resets.

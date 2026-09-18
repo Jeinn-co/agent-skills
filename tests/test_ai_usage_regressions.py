@@ -196,6 +196,53 @@ for line in sys.stdin:
         self.assertIn("billing call failed (invalid response:", result.stdout)
         self.assertNotIn("0.0% used", result.stdout)
 
+    def _grok_billing_cli(self, prepaid, on_demand_used, on_demand_cap):
+        return r'''
+import json
+import sys
 
-if __name__ == "__main__":
-    unittest.main()
+for line in sys.stdin:
+    request = json.loads(line)
+    if request["id"] == 1:
+        response = {"jsonrpc": "2.0", "id": 1, "result": {}}
+    else:
+        response = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+                "subscription_tier": "SuperGrok",
+                "config": {
+                    "creditUsagePercent": 27,
+                    "currentPeriod": {"type": "USAGE_PERIOD_TYPE_WEEKLY"},
+                    "billingPeriodEnd": "2099-01-01T00:00:00Z",
+                    "prepaidBalance": {"val": %s},
+                    "onDemandUsed": {"val": %s},
+                    "onDemandCap": {"val": %s},
+                },
+            },
+        }
+    print(json.dumps(response), flush=True)
+''' % (prepaid, on_demand_used, on_demand_cap)
+
+    def test_grok_omits_zero_prepaid_and_on_demand(self):
+        result = self.run_probe(
+            "grok_usage.py",
+            "grok",
+            self._grok_billing_cli(0, 0, 0),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("plan: SuperGrok", result.stdout)
+        self.assertIn("27.0% used", result.stdout)
+        self.assertNotIn("prepaid", result.stdout.lower())
+        self.assertNotIn("on-demand", result.stdout.lower())
+
+    def test_grok_prints_non_zero_prepaid(self):
+        result = self.run_probe(
+            "grok_usage.py",
+            "grok",
+            self._grok_billing_cli(12, 0, 0),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("prepaid balance 12 | on-demand 0/0", result.stdout)
