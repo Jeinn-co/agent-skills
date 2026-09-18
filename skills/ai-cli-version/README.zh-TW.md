@@ -103,6 +103,12 @@ py -3 run.py      # Windows；沒有 `py` 就用 `python run.py`
 
 ## 輸出範例
 
+`/ai-cli-version` 在 Claude Code 裡執行，含按 `y` 更新的流程：
+
+![ai-cli-version 在 Claude Code 裡執行](images/demo-claude-code.png)
+
+純文字版：
+
 ```
 CLI VERSIONS — 09-17
 

@@ -33,6 +33,10 @@ The same `/ai-usage` command, run in Claude Code, Codex CLI and Grok CLI:
 
 ![ai-usage running in Grok CLI](skills/ai-usage/images/demo-grok.png)
 
+`/ai-cli-version` in Claude Code, including the optional `y` update:
+
+![ai-cli-version running in Claude Code](skills/ai-cli-version/images/demo-claude-code.png)
+
 ## Install
 
 The `npx` method requires Node.js and npm. Check them before installing:

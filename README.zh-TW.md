@@ -35,6 +35,10 @@ npx skills add Jeinn-co/agent-skills@ai-cli-version
 
 ![ai-usage 在 Grok CLI 裡執行](skills/ai-usage/images/demo-grok.png)
 
+`/ai-cli-version` 在 Claude Code 裡執行，含按 `y` 更新的流程：
+
+![ai-cli-version 在 Claude Code 裡執行](skills/ai-cli-version/images/demo-claude-code.png)
+
 ## 安裝
 
 用 `npx` 安裝需要 Node.js 與 npm。安裝前先確認：

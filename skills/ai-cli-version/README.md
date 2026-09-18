@@ -110,6 +110,12 @@ tab-separated lines, not the formatted report.
 
 ## What it prints
 
+`/ai-cli-version` in Claude Code, including the optional `y` update:
+
+![ai-cli-version running in Claude Code](images/demo-claude-code.png)
+
+As plain text:
+
 ```
 CLI VERSIONS — 09-17
 
