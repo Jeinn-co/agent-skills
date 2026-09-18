@@ -55,11 +55,20 @@ if not text:
     sys.exit(1)
 
 # "Current session: 25% used · resets Sep 12 at 3:40am (Asia/Taipei)"
-pat = re.compile(r"Current (session|week[^:]*):\s*(\d+)%\s*used\s*·\s*resets\s+([^(\n]+)")
+# Claude omits the reset clause when a window is 0% used:
+# "Current session: 0% used"
+pat = re.compile(
+    r"Current (session|week[^:]*):\s*(\d+)%\s*used(?:\s*·\s*resets\s+([^(\n]+))?"
+)
 found = False
 for m in pat.finditer(text):
     label = "5h" if m.group(1) == "session" else "week"
-    print("%-6s %5.1f%% used  resets %s" % (label, float(m.group(2)), m.group(3).strip()))
+    used = float(m.group(2))
+    reset = (m.group(3) or "").strip()
+    if reset:
+        print("%-6s %5.1f%% used  resets %s" % (label, used, reset))
+    else:
+        print("%-6s %5.1f%% used" % (label, used))
     found = True
 if not found:
     for line in text.splitlines():

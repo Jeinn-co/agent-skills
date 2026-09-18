@@ -59,6 +59,38 @@ else:
         self.assertNotIn("extra usage", result.stdout.lower())
         self.assertIn("25.0% used", result.stdout)
 
+    def test_claude_prints_session_when_reset_clause_is_omitted(self):
+        result = self.run_probe(
+            "claude_usage.py",
+            "claude",
+            r'''
+import json
+import sys
+
+if sys.argv[1:3] == ["auth", "status"]:
+    print(json.dumps({"subscriptionType": "pro"}))
+else:
+    print(json.dumps({
+        "result": (
+            "Current session: 0% used\n"
+            "Current week (all models): 59% used · resets Sep 21 at 4:59pm"
+        ),
+    }))
+''',
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        session_line = [
+            line for line in result.stdout.splitlines() if line.startswith("5h")
+        ][0]
+        week_line = [
+            line for line in result.stdout.splitlines() if line.startswith("week")
+        ][0]
+        self.assertIn("0.0% used", session_line)
+        self.assertNotIn("resets", session_line)
+        self.assertIn("59.0% used", week_line)
+        self.assertIn("resets Sep 21 at 4:59pm", week_line)
+
     def test_codex_rejects_incomplete_rate_limit_data(self):
         result = self.run_probe(
             "codex_usage.py",
@@ -94,6 +126,49 @@ for line in sys.stdin:
         self.assertIn("rateLimits call failed (invalid response:", result.stdout)
         self.assertNotIn("1970", result.stdout)
         self.assertNotIn("0.0% used", result.stdout)
+
+    def test_codex_omits_unread_usage_limit_resets_row(self):
+        result = self.run_probe(
+            "codex_usage.py",
+            "codex",
+            r'''
+import json
+import sys
+
+for line in sys.stdin:
+    request = json.loads(line)
+    if request["id"] == 1:
+        response = {"jsonrpc": "2.0", "id": 1, "result": {}}
+    else:
+        response = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+                "rateLimits": {
+                    "planType": "plus",
+                    "primary": {
+                        "usedPercent": 12,
+                        "windowDurationMins": 300,
+                        "resetsAt": 1893456000,
+                    },
+                    "secondary": {
+                        "usedPercent": 8,
+                        "windowDurationMins": 10080,
+                        "resetsAt": 1893456000,
+                    },
+                    "credits": {"balance": "0"},
+                }
+            },
+        }
+    print(json.dumps(response), flush=True)
+''',
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("plan: plus", result.stdout)
+        self.assertIn("12.0% used", result.stdout)
+        self.assertNotIn("resets available", result.stdout.lower())
+        self.assertNotIn("unknown (web only)", result.stdout.lower())
 
     def test_grok_rejects_incomplete_billing_data(self):
         result = self.run_probe(

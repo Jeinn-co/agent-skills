@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT and Grok 
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.1.3"
+  version: "1.1.4"
 ---
 
 # /ai-usage — unified AI usage report
@@ -60,20 +60,18 @@ numbers are the same ones the TUI shows. Nothing is cached and nothing is scrape
 
 ## Reading the output
 
-**Claude** — current session (5h) and current week.
+**Claude** — current session (5h) and current week. Claude omits the reset clock
+when a window is 0% used; still print that row, without inventing a reset time.
 
-**ChatGPT** — `short` (5h) and `outer` (7d), plus `plan`.
-
-The number of **"Usage limit resets"** (Settings > Usage limit resets, "Available N")
-is **not readable locally**. The app-server has `account/rateLimitResetCredit/consume`,
-which spends one, but no read counterpart -- verified against all 163 methods.
-`credits.balance` is a *different* pool (paid top-ups) and must never be presented as
-the reset count: an account can show `balance 0` while holding 2 available resets.
-Print `resets available: unknown (web only)` and leave it at that.
+**ChatGPT** — `short` (5h) and `outer` (7d), plus `plan`. Do **not** print a
+"Usage limit resets" / "resets available" row. That count is not readable locally
+(the app-server can spend one via `account/rateLimitResetCredit/consume` but has
+no read counterpart). Do not print `unknown (web only)` either. `credits.balance`
+is a different pool (paid top-ups) and is never that reset count.
 
 **Grok** — weekly `creditUsagePercent` and the billing period end, plus
 `prepaidBalance` and `onDemandCap`/`onDemandUsed`. Grok has only one window, not two —
-do not invent a short row for it.
+do not invent a 5h row for it.
 
 Do not label any of these "redeem" unless the provider itself uses that concept.
 Claude's current CLI response does not expose a reliable extra-usage field.
@@ -92,7 +90,6 @@ USAGE — 09-12 01:08
   ChatGPT   plus
     5h    ░░░░░░░░░░   0%   resets 05:55 (4h47m)
     week  ░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
-    resets available  unknown (web only)
 
   Grok      SuperGrok
     week  ███░░░░░░░  27%   resets 09-15 09:38 (3d8h)
@@ -103,7 +100,11 @@ USAGE — 09-12 01:08
 
 Rules:
 - Bars 10 chars, `█` used / `░` free. Percentages are whole numbers.
-- Relative time next to every reset clock.
+- Relative time next to every reset clock. If the probe omitted the reset (Claude
+  5h at 0% used), omit the reset clause — do not invent a time.
+- Never print ChatGPT "resets available" / "Usage limit resets", including
+  `unknown (web only)`.
+- Never invent a 5h row for Grok.
 - Last line names which tool to use right now, and why in a few words.
 - If any week row is over 80%, put a `⚠` line above the arrow saying how long until it
   resets.

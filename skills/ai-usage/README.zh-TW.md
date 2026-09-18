@@ -160,7 +160,8 @@ CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。需要 Pyth
 
 - **ChatGPT 的「Usage limit resets」** —— app-server 可以花掉一次
   （`account/rateLimitResetCredit/consume`），但沒有任何方法可以「讀」剩幾次。全部 163
-  個方法都查過了。`credits.balance` 是另一個池子，不能拿來替代。
+  個方法都查過了。報表直接省略這一行，不印 `unknown`。`credits.balance` 是另一個池子，
+  不能拿來替代。
 - **Claude 的 extra usage** —— 目前 CLI 回應沒有可靠的對應欄位。
   `fast_mode_disabled_reason` 描述的是 fast mode，不是 extra usage。
 
@@ -191,8 +192,8 @@ stdout。這次實測也抓到一個這段文字之前沒提到的 bug：`subpro
 
 - **ChatGPT 的「Usage limit resets」**（設定頁顯示 `Available N`）讀不到。app-server
   可以透過 `account/rateLimitResetCredit/consume` *花掉* 一次，但沒有計數的方法 ——
-  163 個方法全查過了。`credits.balance` 是另一個池子：帳號可能顯示 `balance 0` 但手上
-  還有 2 次 reset，所以絕不拿它替代。
+  163 個方法全查過了。報表直接省略這一行，不印 `unknown`。`credits.balance` 是另一個
+  池子：帳號可能顯示 `balance 0` 但手上還有 2 次 reset，所以絕不拿它替代。
 - **Claude 的 extra usage** 不回報。目前 CLI 回應沒有可靠的對應欄位；
   `fast_mode_disabled_reason` 明確描述的是 fast mode。
 - **Grok 只有一個視窗，不是兩個。** 不會幫它捏造一個 5 小時的列。

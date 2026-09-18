@@ -119,11 +119,10 @@ for label, used, duration, dt in windows:
 # tokens shown under Settings > Usage limit resets are a separate pool and the
 # app-server exposes no way to read them -- only `account/rateLimitResetCredit/consume`,
 # which spends one. Checked all 163 methods 2026-09-12; `account/usage/read` carries
-# lifetime token stats only. Do not print a redeem number here: it would contradict
-# what the web UI shows.
+# lifetime token stats only. Do not print a redeem number, and do not print
+# "unknown (web only)" either: a row that cannot be filled is omitted.
 c = r.get("credits") or {}
 if c.get("unlimited"):
     print("credits: unlimited")
 elif c.get("hasCredits"):
     print("credits: balance=%s" % c.get("balance"))
-print("resets available: unknown (web only - chatgpt.com settings)")

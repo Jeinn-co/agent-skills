@@ -173,8 +173,8 @@ and a wrong number is worse than none:
 
 - **ChatGPT "Usage limit resets"** — the app-server can spend one
   (`account/rateLimitResetCredit/consume`) but exposes no way to count them. Checked
-  against all 163 methods. `credits.balance` is a different pool and is not a
-  substitute.
+  against all 163 methods. The report omits the row entirely; it does not print
+  `unknown`. `credits.balance` is a different pool and is not a substitute.
 - **Claude extra usage** — the current CLI response does not expose a reliable field
   for it. `fast_mode_disabled_reason` describes fast mode, not extra usage.
 
@@ -208,9 +208,9 @@ are welcome and will be believed over this paragraph.
 
 - **ChatGPT "Usage limit resets"** (Settings shows `Available N`) cannot be read. The
   app-server can *spend* one via `account/rateLimitResetCredit/consume` but exposes no
-  count — checked against all 163 methods. `credits.balance` is a different pool: an
-  account can show `balance 0` while holding 2 available resets, so it is never
-  substituted.
+  count — checked against all 163 methods. The report omits the row; it does not print
+  `unknown`. `credits.balance` is a different pool: an account can show `balance 0`
+  while holding 2 available resets, so it is never substituted.
 - **Claude extra usage** is not reported. The current CLI response exposes no reliable
   field for it; `fast_mode_disabled_reason` is specifically about fast mode.
 - **Grok has one window, not two.** No 5-hour row is invented for it.
