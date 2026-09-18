@@ -109,19 +109,7 @@ py -3 run.py      # Windows；如果沒有 `py`，改用 `python run.py`
 
 ## 輸出長什麼樣
 
-同一個 `/ai-usage` 指令，在二十分鐘內分別於三個不同的 agent 裡執行：
-
-**Claude Code**
-
-![ai-usage 在 Claude Code 裡執行](images/demo-claude-code.png)
-
-**Codex CLI**
-
-![ai-usage 在 Codex CLI 裡執行](images/demo-codex.png)
-
-**Grok CLI**
-
-![ai-usage 在 Grok CLI 裡執行](images/demo-grok.png)
+![ai-usage 報表](images/demo.png)
 
 它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
 的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude 和 Grok 的數字。

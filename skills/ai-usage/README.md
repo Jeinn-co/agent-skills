@@ -118,19 +118,7 @@ Add `--version` to the platform command to print the skill version and exit.
 
 ## What it prints
 
-The same `/ai-usage` command, run in three different agents within twenty minutes:
-
-**Claude Code**
-
-![ai-usage running in Claude Code](images/demo-claude-code.png)
-
-**Codex CLI**
-
-![ai-usage running in Codex CLI](images/demo-codex.png)
-
-**Grok CLI**
-
-![ai-usage running in Grok CLI](images/demo-grok.png)
+![ai-usage report](images/demo.png)
 
 It asks each provider's CLI rather than its own host, so it reads the same provider
 accounts wherever you install it — run it inside Codex and you still get your Claude
