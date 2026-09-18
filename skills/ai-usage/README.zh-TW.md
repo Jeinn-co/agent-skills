@@ -156,7 +156,7 @@ USAGE — 09-12 01:08
 
 CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。需要 Python 3.9+，無相依套件。
 
-有兩項是**刻意不回報**的，因為本機讀不到，而報一個錯的數字比不報更糟：
+以下是**刻意不回報**的 —— 報錯數字比不報更糟，永遠是 0 的列則是噪音：
 
 - **ChatGPT 的「Usage limit resets」** —— app-server 可以花掉一次
   （`account/rateLimitResetCredit/consume`），但沒有任何方法可以「讀」剩幾次。全部 163
@@ -164,6 +164,8 @@ CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。需要 Pyth
   不能拿來替代。
 - **Claude 的 extra usage** —— 目前 CLI 回應沒有可靠的對應欄位。
   `fast_mode_disabled_reason` 描述的是 fast mode，不是 extra usage。
+- **Grok prepaid / on-demand 全為 0** —— 讀得到，但省略 `prepaid 0 / on-demand 0`。
+  任一值非 0 才顯示那一行。
 
 每個方法是怎麼找到的（包含走過的死路，讓後人不用再走一次），見 [`references/providers.md`](references/providers.md)。
 
@@ -197,6 +199,8 @@ stdout。這次實測也抓到一個這段文字之前沒提到的 bug：`subpro
 - **Claude 的 extra usage** 不回報。目前 CLI 回應沒有可靠的對應欄位；
   `fast_mode_disabled_reason` 明確描述的是 fast mode。
 - **Grok 只有一個視窗，不是兩個。** 不會幫它捏造一個 5 小時的列。
+- **Grok prepaid / on-demand 全為 0** 時省略。數字讀得到，但印 `prepaid 0 /
+  on-demand 0` 是噪音。任一值非 0 才顯示那一行。
 
 **數字是帳號層級，不是機器層級。** Claude 的 `/usage` 註明它的細項是近似值、且只涵蓋
 本機的 session；但最上層那幾個百分比是整個帳號的。

@@ -168,8 +168,8 @@ directly:
 Providers whose CLI is not installed are reported as `not installed`; the rest still
 run. Requires Python 3.9+. No dependencies.
 
-Two things that are deliberately *not* reported, because they cannot be read locally
-and a wrong number is worse than none:
+Things that are deliberately *not* reported — a wrong number is worse than none,
+and a zero row that never changes is noise:
 
 - **ChatGPT "Usage limit resets"** — the app-server can spend one
   (`account/rateLimitResetCredit/consume`) but exposes no way to count them. Checked
@@ -177,6 +177,8 @@ and a wrong number is worse than none:
   `unknown`. `credits.balance` is a different pool and is not a substitute.
 - **Claude extra usage** — the current CLI response does not expose a reliable field
   for it. `fast_mode_disabled_reason` describes fast mode, not extra usage.
+- **Grok prepaid / on-demand at 0** — readable, but `prepaid 0 / on-demand 0` is
+  omitted. The line appears only when any value is non-zero.
 
 See [`references/providers.md`](references/providers.md)
 for how each method was found, including the dead ends, so nobody has to re-walk them.
@@ -214,6 +216,9 @@ are welcome and will be believed over this paragraph.
 - **Claude extra usage** is not reported. The current CLI response exposes no reliable
   field for it; `fast_mode_disabled_reason` is specifically about fast mode.
 - **Grok has one window, not two.** No 5-hour row is invented for it.
+- **Grok prepaid / on-demand at 0** is omitted. The values are readable; printing
+  `prepaid 0 / on-demand 0` is noise. The line appears only when any value is
+  non-zero.
 
 **Numbers are per-account, not per-machine.** Claude's `/usage` notes its breakdown is
 approximate and covers local sessions on this machine only; the headline percentages

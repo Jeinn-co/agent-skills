@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT and Grok 
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.1.5"
+  version: "1.1.6"
 ---
 
 # /ai-usage — unified AI usage report
