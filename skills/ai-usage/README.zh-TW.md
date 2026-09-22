@@ -3,7 +3,8 @@
 > 中文版。英文版 [README.md](README.md) 為準，本檔為對照翻譯，兩邊同步更新。
 
 一份報表看完 Claude、ChatGPT、Grok 三邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、
-還有多少加購額度。
+還有多少加購額度；另外顯示每個 CLI 目前用的 model 與 effort，以及每家一組共用的
+model + effort 推薦。
 
 可在 Claude Code、Codex CLI、Grok Build，以及任何讀 `SKILL.md` 慣例的 agent 使用，
 不綁定特定 host。
@@ -122,13 +123,21 @@ USAGE — 09-12 01:08
   Claude    pro
     5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
     week  ████░░░░░░  41%   resets Mon 17:00 (2d16h)
+    now   claude-opus-5 · effort high   (0m ago)
 
   ChatGPT   plus
     5h    ░░░░░░░░░░   0%   resets 05:55 (4h47m)
     week  ░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
+    now   gpt-5.6-sol · effort high   (3m ago)
 
   Grok      SuperGrok
     week  ███░░░░░░░  27%   resets 09-15 09:38 (3d8h)
+    now   grok-4.7 · effort high   (6m ago)
+
+  Value (evaluated 2026-09-22) — quality-leaning: Plan, Coding, Review, Bug Fix, Testing
+    Claude   Opus 5 High
+    ChatGPT  GPT-5.6 Sol High
+    Grok     Grok 4.7 High
 
   → Use ChatGPT right now. Both windows are fresh.
 ```
@@ -154,6 +163,20 @@ CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。需要 Pyth
   `fast_mode_disabled_reason` 描述的是 fast mode，不是 extra usage。
 - **Grok prepaid / on-demand 全為 0** —— 讀得到，但省略 `prepaid 0 / on-demand 0`。
   任一值非 0 才顯示那一行。
+
+**目前的 model 與 effort。** 每家下面的 `now` 列，是該 CLI 最新一個本機 session 的
+model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`；不連網、不啟動
+任何程式）。反映的是最後送出的那一輪，所以之後才切換的 model 要等下一則訊息才會出現。
+
+**性價比推薦。** `Value` 區塊是每家一組偏品質的 model + effort，適合 Plan、Coding、
+Review、Bug Fix、Testing。存在 [`value.json`](value.json)，跟 skill 一起 commit，所有
+使用者看到的都一樣 —— 不會依你的用量重排。每次執行都會把各 CLI 目前的 model 清單（來自
+它自己的 model 快取）跟做推薦時的清單比對；只有新增或下架 model 時，該家才會標成
+stale，接著由 agent 呼叫 `codex exec`（read-only sandbox）重新評估，確認答案裡的 model
+真的存在後寫入新的 `value.json`。請把它 commit，讓大家拿到新推薦。
+
+**語言。** 報表會用你提問的語言輸出 —— 英文、中文或其他語言都可以。model 名稱、數字、
+時間不翻譯。
 
 每個方法是怎麼找到的（包含走過的死路，讓後人不用再走一次），見 [`references/providers.md`](references/providers.md)。
 

@@ -1,7 +1,8 @@
 # ai-usage
 
 One report for how much of your Claude, ChatGPT and Grok subscription you have left —
-percent used, when each window resets, and what top-up you have.
+percent used, when each window resets, and what top-up you have — plus which model
+and effort each CLI is running now, and a shared model + effort pick per provider.
 
 Works in Claude Code, Codex CLI, Grok Build, and anything else that reads the `SKILL.md`
 convention. Nothing here depends on a particular host.
@@ -132,13 +133,21 @@ USAGE — 09-12 01:08
   Claude    pro
     5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
     week  ████░░░░░░  41%   resets Mon 17:00 (2d16h)
+    now   claude-opus-5 · effort high   (0m ago)
 
   ChatGPT   plus
     5h    ░░░░░░░░░░   0%   resets 05:55 (4h47m)
     week  ░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
+    now   gpt-5.6-sol · effort high   (3m ago)
 
   Grok      SuperGrok
     week  ███░░░░░░░  27%   resets 09-15 09:38 (3d8h)
+    now   grok-4.7 · effort high   (6m ago)
+
+  Value (evaluated 2026-09-22) — quality-leaning: Plan, Coding, Review, Bug Fix, Testing
+    Claude   Opus 5 High
+    ChatGPT  GPT-5.6 Sol High
+    Grok     Grok 4.7 High
 
   → Use ChatGPT right now. Both windows are fresh.
 ```
@@ -167,6 +176,24 @@ and a zero row that never changes is noise:
   for it. `fast_mode_disabled_reason` describes fast mode, not extra usage.
 - **Grok prepaid / on-demand at 0** — readable, but `prepaid 0 / on-demand 0` is
   omitted. The line appears only when any value is non-zero.
+
+**Current model and effort.** Under each provider, `now` shows the model and effort
+of that CLI's newest local session, read from the session files the CLI already
+writes (`session_info.py`; no network, nothing launched). It reflects the last turn
+that was sent, so a model switched since then appears after the next message.
+
+**Value pick.** The `Value` block is one quality-leaning model + effort per provider,
+suited to planning, coding, review, bug fixing and testing. It lives in
+[`value.json`](value.json), is committed with the skill, and is the same for every
+user — it is not re-ranked by your usage. Each run compares every CLI's current model
+list (from its own model cache) with the list the pick was made against. Only when a
+model is added or withdrawn is that provider marked stale; the agent then asks
+`codex exec` (read-only sandbox) to re-evaluate, checks that the answer names a model
+that actually exists, and writes the new `value.json`. Commit it so everyone gets the
+new pick.
+
+**Language.** The report is written in the language you asked in — English, 中文 or
+anything else. Model names, numbers and times are never translated.
 
 See [`references/providers.md`](references/providers.md)
 for how each method was found, including the dead ends, so nobody has to re-walk them.

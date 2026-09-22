@@ -163,4 +163,9 @@ Rules:
 - A provider whose CLI is not installed prints `not installed` and is shown as one
   greyed row. Never drop it silently.
 - No preamble, no recap, no closing offer.
-- Match the user's language for the labels; the sample above is English.
+- Write the whole report in the language the user wrote their request in: labels,
+  the `Value` header and `profile` text, the `⚠` and `→` lines, and any stale or
+  rejection note. The sample above is English only as a template. Translate the
+  English text that comes from the probes and `value.json`; never translate model
+  ids, numbers, dates or times. With no user text to go by (a bare `/ai-usage`), use
+  the language of the conversation so far, else English.
