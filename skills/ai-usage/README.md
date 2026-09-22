@@ -126,33 +126,6 @@ It asks each provider's CLI rather than its own host, so it reads the same provi
 accounts wherever you install it — run it inside Codex and you still get your Claude
 and Grok numbers.
 
-As plain text:
-
-```
-USAGE — 09-12 01:08 · ai-usage 1.2.1
-
-  Claude    pro
-    5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
-    week  ████░░░░░░  41%   resets Mon 17:00 (2d16h)
-    now   claude-opus-5 · effort high   (0m ago)
-
-  ChatGPT   plus
-    5h    ░░░░░░░░░░   0%   resets 05:55 (4h47m)
-    week  ░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
-    now   gpt-5.6-sol · effort high   (3m ago)
-
-  Grok      SuperGrok
-    week  ███░░░░░░░  27%   resets 09-15 09:38 (3d8h)
-    now   grok-4.7 · effort high   (6m ago)
-
-  Value (evaluated 2026-09-22) — quality-leaning: Plan, Coding, Review, Bug Fix, Testing
-    Claude   Opus 5 High
-    ChatGPT  GPT-5.6 Sol High
-    Grok     Grok 4.7 High
-
-  → Use ChatGPT right now. Both windows are fresh.
-```
-
 **All three numbers are live.** Nothing is scraped from a web page, no browser is
 driven, and no stored credential is ever read. Each provider's own CLI is asked
 directly:

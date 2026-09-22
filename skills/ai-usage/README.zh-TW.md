@@ -116,33 +116,6 @@ skill 版本後結束。
 它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
 的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude 和 Grok 的數字。
 
-純文字版：
-
-```
-USAGE — 09-12 01:08 · ai-usage 1.2.1
-
-  Claude    pro
-    5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
-    week  ████░░░░░░  41%   resets Mon 17:00 (2d16h)
-    now   claude-opus-5 · effort high   (0m ago)
-
-  ChatGPT   plus
-    5h    ░░░░░░░░░░   0%   resets 05:55 (4h47m)
-    week  ░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
-    now   gpt-5.6-sol · effort high   (3m ago)
-
-  Grok      SuperGrok
-    week  ███░░░░░░░  27%   resets 09-15 09:38 (3d8h)
-    now   grok-4.7 · effort high   (6m ago)
-
-  Value (evaluated 2026-09-22) — quality-leaning: Plan, Coding, Review, Bug Fix, Testing
-    Claude   Opus 5 High
-    ChatGPT  GPT-5.6 Sol High
-    Grok     Grok 4.7 High
-
-  → Use ChatGPT right now. Both windows are fresh.
-```
-
 **三個數字全部是即時的。** 沒有爬任何網頁，沒有驅動瀏覽器，沒有讀任何已存憑證。是直接
 問各家自己的 CLI：
 
