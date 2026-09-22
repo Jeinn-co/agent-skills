@@ -115,7 +115,7 @@ USAGE — 09-12 01:08 · ai-usage 1.2.1
     now   grok-4.7 · effort high   (6m ago)
 
   Value (evaluated 2026-09-22) — quality-leaning: Plan, Coding, Review, Bug Fix, Testing
-    Claude   Opus 5 High
+    Claude   Opus 5.5 High
     ChatGPT  GPT-5.6 Sol High
     Grok     Grok 4.7 High
 
@@ -136,9 +136,11 @@ Rules:
   session age in parentheses. Never print the project folder. Omit the `now` row only when the probe printed
   `no local session`; then print `now   no local session`.
 - `Value` block: one line per provider — its `value` pick as `<Model> <Effort>`, nothing
-  else. This pick is shared and fixed: do not re-rank it by today's usage, and do not
-  print `why` unless asked. The header carries the `evaluated` date and the `profile`
-  text (once, not per provider).
+  else. When an alias such as `opus` has a version in the `value` line's description,
+  include that version in the display name (for example, `Opus 5.5 High`). Do not
+  derive the Value version from the separate `now` session row. This pick is shared
+  and fixed: do not re-rank it by today's usage, and do not print `why` unless asked.
+  The header carries the `evaluated` date and the `profile` text (once, not per provider).
 - A `value   stale` line means a model shipped or was withdrawn. Only then re-evaluate,
   and always delegate it to Codex; do not judge it yourself:
   1. Save the full probe output to a scratch file, then run from this skill's directory
