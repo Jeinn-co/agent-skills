@@ -116,8 +116,8 @@ skill 版本後結束。
 它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
 的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude 和 Grok 的數字。
 
-**三個數字全部是即時的。** 沒有爬任何網頁，沒有驅動瀏覽器，沒有讀任何已存憑證。是直接
-問各家自己的 CLI：
+**用量數字是即時的。** 沒有爬任何網頁，沒有驅動瀏覽器，沒有讀任何已存憑證。是直接問各家
+自己的 CLI：
 
 | Provider | 方法 |
 |---|---|
@@ -125,18 +125,8 @@ skill 版本後結束。
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP 擴充方法 `_x.ai/billing` |
 
-CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。需要 Python 3.9+，無相依套件。
-
-以下是**刻意不回報**的 —— 報錯數字比不報更糟，永遠是 0 的列則是噪音：
-
-- **ChatGPT 的「Usage limit resets」** —— app-server 可以花掉一次
-  （`account/rateLimitResetCredit/consume`），但沒有任何方法可以「讀」剩幾次。全部 163
-  個方法都查過了。報表直接省略這一行，不印 `unknown`。`credits.balance` 是另一個池子，
-  不能拿來替代。
-- **Claude 的 extra usage** —— 目前 CLI 回應沒有可靠的對應欄位。
-  `fast_mode_disabled_reason` 描述的是 fast mode，不是 extra usage。
-- **Grok prepaid / on-demand 全為 0** —— 讀得到，但省略 `prepaid 0 / on-demand 0`。
-  任一值非 0 才顯示那一行。
+CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。刻意不回報的項目列在
+[限制與已知問題](#限制與已知問題)。
 
 **目前的 model 與 effort。** 每家下面的 `now` 列，是該 CLI 最新一個本機 session 的
 model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`；不連網、不啟動
@@ -144,15 +134,16 @@ model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`
 
 **性價比推薦。** `Value` 區塊是每家一組偏品質的 model + effort，適合 Plan、Coding、
 Review、Bug Fix、Testing。存在 [`value.json`](value.json)，跟 skill 一起 commit，所有
-使用者看到的都一樣 —— 不會依你的用量重排。每次執行都會把各 CLI 目前的 model 清單（來自
-它自己的 model 快取）跟做推薦時的清單比對；只有新增或下架 model 時，該家才會標成
-stale，接著由 agent 呼叫 `codex exec`（read-only sandbox）重新評估，確認答案裡的 model
-真的存在後寫入新的 `value.json`。請把它 commit，讓大家拿到新推薦。
+使用者看到的都一樣 —— 不會依你的用量重排。每次執行都會把該 CLI 目前的 model 清單跟做
+推薦時的清單比對；新增或下架 model 時，該家會標成 stale，接著由 agent 呼叫
+`codex exec`（read-only sandbox）重新評估，確認答案裡的 model 真的存在後寫入新的
+`value.json`。請把它 commit，讓大家拿到新推薦。
 
 **語言。** 報表會用你提問的語言輸出 —— 英文、中文或其他語言都可以。model 名稱、數字、
 時間不翻譯。
 
-每個方法是怎麼找到的（包含走過的死路，讓後人不用再走一次），見 [`references/providers.md`](references/providers.md)。
+每個用量方法是怎麼找到的（包含走過的死路，讓後人不用再走一次），見
+[`references/providers.md`](references/providers.md)。
 
 ## 限制與已知問題
 
@@ -169,12 +160,17 @@ stdout。這次實測也抓到一個這段文字之前沒提到的 bug：`subpro
 
 **版本綁定。** 2026-09-12 針對 `claude` 2.1.268、`codex` 0.154.0、`grok` 1.0.25 驗證。
 Grok 省略 `creditUsagePercent` 已於 2026-09-22 在 `grok` 1.0.40 上再確認。
+`session_info.py` 讀的 session 與 model 快取欄位，於 2026-09-22 針對 `claude` 2.1.278、
+VS Code 擴充寫出的 Codex session（0.154.0-alpha）、`grok` 1.0.40 驗證。
 
 | 風險 | 位置 | 壞掉時會怎樣 |
 |---|---|---|
 | Claude 那兩行用量是自由文字，靠 regex 解析 | `claude_usage.py` | 退回直接印原始那行；絕不會印出錯的數字 |
 | Codex 的 app-server 協定是 OpenAI 私有的，沒有任何相容性承諾 | `codex_usage.py` | 方法改名或必要欄位缺失時，ChatGPT 那列會明確失敗；絕不預設成 0% |
 | Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位（period、`billingPeriodEnd`）缺失時，Grok 那列會明確失敗。省略 `creditUsagePercent` 時印 `percent omitted`；絕不預設成 0% |
+| session 檔與 model 快取是各 CLI 內部格式，沒有公開文件 | `session_info.py` | 欄位改名時該值印 `?`；檔案搬家時印 `no local session`。用量那幾列不受影響 |
+| Claude Code 本機沒有 model 清單，所以它的選項是寫死在程式裡的 | `session_info.py` | Claude 出新 model 不會觸發 stale。有新 model 時要手動更新 `claude_options()` 和 `value.json` |
+| 重估 stale 的推薦會執行 `codex exec` | `SKILL.md` | 需要已安裝並登入 `codex`，而且會用到 ChatGPT 額度。沒有的話，照舊顯示舊推薦並標 `(stale)` |
 
 **刻意不回報的。** 這裡報錯數字比不報更糟：
 

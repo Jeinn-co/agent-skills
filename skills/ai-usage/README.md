@@ -50,8 +50,8 @@ direct HTTP requests; authentication and network access stay inside the provider
 
 macOS, Linux and Windows — but see [Limitations](#limitations-and-known-issues). The
 launcher and `portable.py` handle Store-stub `python3`, npm `.cmd` shims that
-`CreateProcess` refuses, and cp950/cp1252 stdout, but the skill has never been run on
-Windows hardware.
+`CreateProcess` refuses, and cp950/cp1252 stdout; verified 2026-09-14 on a zh-TW
+Windows 11 machine.
 
 ### 5. Not required
 
@@ -126,9 +126,8 @@ It asks each provider's CLI rather than its own host, so it reads the same provi
 accounts wherever you install it — run it inside Codex and you still get your Claude
 and Grok numbers.
 
-**All three numbers are live.** Nothing is scraped from a web page, no browser is
-driven, and no stored credential is ever read. Each provider's own CLI is asked
-directly:
+**Usage numbers are live.** Nothing is scraped from a web page, no browser is driven,
+and no stored credential is ever read. Each provider's own CLI is asked directly:
 
 | Provider | How |
 |---|---|
@@ -137,19 +136,8 @@ directly:
 | Grok | `grok agent stdio` → ACP extension method `_x.ai/billing` |
 
 Providers whose CLI is not installed are reported as `not installed`; the rest still
-run. Requires Python 3.9+. No dependencies.
-
-Things that are deliberately *not* reported — a wrong number is worse than none,
-and a zero row that never changes is noise:
-
-- **ChatGPT "Usage limit resets"** — the app-server can spend one
-  (`account/rateLimitResetCredit/consume`) but exposes no way to count them. Checked
-  against all 163 methods. The report omits the row entirely; it does not print
-  `unknown`. `credits.balance` is a different pool and is not a substitute.
-- **Claude extra usage** — the current CLI response does not expose a reliable field
-  for it. `fast_mode_disabled_reason` describes fast mode, not extra usage.
-- **Grok prepaid / on-demand at 0** — readable, but `prepaid 0 / on-demand 0` is
-  omitted. The line appears only when any value is non-zero.
+run. What is deliberately left out is listed under
+[Limitations](#limitations-and-known-issues).
 
 **Current model and effort.** Under each provider, `now` shows the model and effort
 of that CLI's newest local session, read from the session files the CLI already
@@ -159,18 +147,17 @@ that was sent, so a model switched since then appears after the next message.
 **Value pick.** The `Value` block is one quality-leaning model + effort per provider,
 suited to planning, coding, review, bug fixing and testing. It lives in
 [`value.json`](value.json), is committed with the skill, and is the same for every
-user — it is not re-ranked by your usage. Each run compares every CLI's current model
-list (from its own model cache) with the list the pick was made against. Only when a
-model is added or withdrawn is that provider marked stale; the agent then asks
-`codex exec` (read-only sandbox) to re-evaluate, checks that the answer names a model
-that actually exists, and writes the new `value.json`. Commit it so everyone gets the
-new pick.
+user — it is not re-ranked by your usage. Each run compares the CLI's current model
+list with the list the pick was made against. When a model is added or withdrawn,
+that provider is marked stale; the agent then asks `codex exec` (read-only sandbox)
+to re-evaluate, checks that the answer names a model that actually exists, and
+writes the new `value.json`. Commit it so everyone gets the new pick.
 
 **Language.** The report is written in the language you asked in — English, 中文 or
 anything else. Model names, numbers and times are never translated.
 
-See [`references/providers.md`](references/providers.md)
-for how each method was found, including the dead ends, so nobody has to re-walk them.
+See [`references/providers.md`](references/providers.md) for how each usage method
+was found, including the dead ends, so nobody has to re-walk them.
 
 ## Limitations and known issues
 
@@ -188,13 +175,18 @@ are welcome and will be believed over this paragraph.
 
 **Version-pinned.** Verified 2026-09-12 against `claude` 2.1.268, `codex` 0.154.0,
 `grok` 1.0.25. Grok's omitted `creditUsagePercent` re-checked 2026-09-22 on
-`grok` 1.0.40.
+`grok` 1.0.40. The session and model-cache fields read by `session_info.py` were
+verified 2026-09-22 against `claude` 2.1.278, Codex sessions written by the VS Code
+extension (0.154.0-alpha), and `grok` 1.0.40.
 
 | Risk | Where | What happens if it breaks |
 |---|---|---|
 | Claude's two usage lines are free text and are regex-parsed | `claude_usage.py` | Falls back to printing the raw line; never prints a wrong number |
 | Codex's app-server protocol is private to OpenAI and carries no compatibility promise | `codex_usage.py` | A method rename or missing required field makes the ChatGPT row fail visibly; it never defaults to 0% |
 | Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field (period, `billingPeriodEnd`) makes the Grok row fail visibly. An omitted `creditUsagePercent` prints `percent omitted`; it never defaults to 0% |
+| Session files and model caches are internal to each CLI and undocumented | `session_info.py` | A renamed field prints `?` for that value; a moved file prints `no local session`. The usage rows are unaffected |
+| Claude Code has no local model list, so its options are a fixed list in the code | `session_info.py` | A new Claude model never marks Claude stale. Update `claude_options()` and `value.json` by hand when one ships |
+| Re-evaluating a stale pick runs `codex exec` | `SKILL.md` | Needs `codex` installed and signed in, and spends ChatGPT quota. Without it, the old pick is shown marked `(stale)` |
 
 **Deliberately not reported.** A wrong number here is worse than no number:
 
