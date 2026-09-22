@@ -1,0 +1,42 @@
+{
+  "evaluated": "2026-09-22",
+  "positioning": "Quality-leaning value: fits Plan, Coding, Review, Bug Fix, Testing.",
+  "basis": "Set by the maintainer on 2026-09-22. Re-evaluate only when session_info.py prints `value stale`; SKILL.md says how (codex exec).",
+  "providers": {
+    "claude": {
+      "models": [
+        "opus",
+        "opusplan",
+        "sonnet",
+        "haiku",
+        "fable"
+      ],
+      "pick": "opus",
+      "effort": "high",
+      "why": "Opus 5, the everyday model for complex work"
+    },
+    "codex": {
+      "models": [
+        "gpt-6-astra",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-5.6-luna",
+        "gpt-5.5"
+      ],
+      "pick": "gpt-5.6-sol",
+      "effort": "high",
+      "why": "the vendor's everyday agentic workhorse"
+    },
+    "grok": {
+      "models": [
+        "grok-4.7",
+        "grok-4.7-build-fast",
+        "grok-4.6",
+        "grok-4.5"
+      ],
+      "pick": "grok-4.7",
+      "effort": "high",
+      "why": "latest model at its vendor-recommended effort; the fast variant costs 2x"
+    }
+  }
+}

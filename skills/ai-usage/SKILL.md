@@ -1,10 +1,10 @@
 ---
 name: ai-usage
-description: Check AI subscription usage limits across Claude, ChatGPT and Grok in one unified report — percent used, how much is left, and when each window resets. Use when the user runs /ai-usage or /uu, or asks 額度, 用量, usage, limit, 還剩多少, 什麼時候 reset, 被限流了嗎, rate limit, quota, "am I out of Claude", "how much ChatGPT left".
+description: Check AI subscription usage limits across Claude, ChatGPT and Grok in one unified report — percent used, how much is left, when each window resets, the model / effort of each CLI's newest session, and a cost-effectiveness recommendation. Use when the user runs /ai-usage or /uu, or asks 額度, 用量, usage, limit, 還剩多少, 什麼時候 reset, 被限流了嗎, rate limit, quota, "am I out of Claude", "how much ChatGPT left".
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.1.8"
+  version: "1.2.0"
 ---
 
 # /ai-usage — unified AI usage report
@@ -58,6 +58,17 @@ Python 3.12) — that run surfaced and fixed a UnicodeDecodeError in the Claude 
 Two of the three are the CLI's own local agent server answering over stdio, so the
 numbers are the same ones the TUI shows. Nothing is cached and nothing is scraped.
 
+After each usage block, `session_info.py <cli>` prints four lines read from that CLI's
+newest local session file (no network, nothing launched): `session` (last write time),
+`model`, `effort`, then one `option` line per model that CLI offers (from its own
+model cache: id, effort levels, default, vendor description), then one `value` line: the
+shared model + effort pick from `value.json`, or `value   stale` when a model was added
+or dropped since that pick was made. A `profile` line follows a valid pick: what the shared set is
+tuned for. These are what the CLI recorded for its
+last turn, not config defaults. See the docstring in `session_info.py` for the files
+and fields. A `?` means the file did not carry that field — print `?`, never a guess.
+`no local session` means that CLI has never run here; print it as one row.
+
 ## Reading the output
 
 **Claude** — current session (5h) and current week. Claude omits the reset clock
@@ -91,13 +102,21 @@ USAGE — 09-12 01:08
   Claude    pro
     5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
     week  ████░░░░░░  41%   resets Mon 17:00 (2d16h)
+    now   claude-opus-5 · effort high   (0m ago)
 
   ChatGPT   plus
     5h    ░░░░░░░░░░   0%   resets 05:55 (4h47m)
     week  ░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
+    now   gpt-5.6-sol · effort high   (3m ago)
 
   Grok      SuperGrok
     week  ███░░░░░░░  27%   resets 09-15 09:38 (3d8h)
+    now   grok-4.7 · effort high   (6m ago)
+
+  Value (evaluated 2026-09-22) — quality-leaning: Plan, Coding, Review, Bug Fix, Testing
+    Claude   Opus 5 High
+    ChatGPT  GPT-5.6 Sol High
+    Grok     Grok 4.7 High
 
   → Use ChatGPT right now. Both windows are fresh.
 ```
@@ -112,6 +131,32 @@ Rules:
   `unknown (web only)`.
 - Never invent a 5h row for Grok.
 - Never print Grok prepaid / on-demand when every value is 0.
+- One `now` row per provider from the session lines: model · effort, then the
+  session age in parentheses. Never print the project folder. Omit the `now` row only when the probe printed
+  `no local session`; then print `now   no local session`.
+- `Value` block: one line per provider — its `value` pick as `<Model> <Effort>`, nothing
+  else. This pick is shared and fixed: do not re-rank it by today's usage, and do not
+  print `why` unless asked. The header carries the `evaluated` date and the `profile`
+  text (once, not per provider).
+- A `value   stale` line means a model shipped or was withdrawn. Only then re-evaluate,
+  and always delegate it to Codex; do not judge it yourself:
+  1. Save the full probe output to a scratch file, then run from this skill's directory
+     `codex exec --ephemeral --skip-git-repo-check -s read-only -o <scratch>/value.new.json -`
+     with stdin = this prompt, the current `value.json`, and the probe output:
+     "Update this value.json for every provider marked `value stale`. For each: set
+     `models` to every current `option` id, and pick the best cost-effectiveness
+     default (`pick`, `effort`) that stays quality-leaning (fit for Plan,
+     Coding, Review, Bug Fix, Testing), choosing only from the
+     `option` lines and their effort levels. Keep providers that are not stale
+     unchanged. Set `evaluated` to today. Reply with the JSON only."
+  2. Check the reply parses as JSON and every `pick` is one of that provider's
+     `option` ids. If not, keep the old `value.json` and say Codex's answer was
+     rejected and why.
+  3. Otherwise write it over `value.json` in this skill's directory, show the user the
+     old → new pick in one line per provider, and say `value.json` changed and should
+     be committed to the skill's source repo so every user gets it.
+  If `codex` is not installed, print the stored pick with `(stale)` and do not guess.
+  Never cite prices or per-token costs; they are not in the probe output.
 - Last line names which tool to use right now, and why in a few words.
 - If any week row is over 80%, put a `⚠` line above the arrow saying how long until it
   resets.

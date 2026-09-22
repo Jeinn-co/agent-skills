@@ -24,19 +24,22 @@ HERE = Path(__file__).resolve().parent
 # claude -p --output-format json "/usage"          -- live, see claude_usage.py
 # codex app-server  -> JSON-RPC account/rateLimits/read  -- live, see codex_usage.py
 # grok agent stdio  -> ACP extension _x.ai/billing       -- live, see grok_usage.py
-PROBES = (("CLAUDE", "claude_usage.py"),
-          ("CHATGPT", "codex_usage.py"),
-          ("GROK", "grok_usage.py"))
+# session_info.py <cli>  -> newest local session file     -- model/effort/permission
+PROBES = (("CLAUDE", "claude_usage.py", "claude"),
+          ("CHATGPT", "codex_usage.py", "codex"),
+          ("GROK", "grok_usage.py", "grok"))
 
 try:
     print("### ai-usage %s" % portable.VERSION)
     print()
-    for i, (header, script) in enumerate(PROBES):
+    for i, (header, script, cli) in enumerate(PROBES):
         if i:
             print()
         print("### %s" % header)
         sys.stdout.flush()
         subprocess.run([sys.executable, str(HERE / script)])
+        sys.stdout.flush()
+        subprocess.run([sys.executable, str(HERE / "session_info.py"), cli])
 except BrokenPipeError:
     # someone piped us into `head` and walked away. Point the fd at devnull so the
     # interpreter's shutdown flush does not print a second traceback on top.
