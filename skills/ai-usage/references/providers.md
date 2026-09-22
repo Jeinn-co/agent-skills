@@ -47,10 +47,17 @@ run. The app-server method is live; prefer it.
 Send `initialize`, then call `_x.ai/billing` with empty params:
 
 ```json
-{"creditUsagePercent":27.0,
- "currentPeriod":{"type":"USAGE_PERIOD_TYPE_WEEKLY","start":"...","end":"..."},
- "onDemandCap":{"val":0},"onDemandUsed":{"val":0},"prepaidBalance":{"val":0}}
+{"subscription_tier":"SuperGrok",
+ "config":{"creditUsagePercent":27.0,
+           "currentPeriod":{"type":"USAGE_PERIOD_TYPE_WEEKLY","start":"...","end":"..."},
+           "billingPeriodEnd":"...",
+           "onDemandCap":{"val":0},"onDemandUsed":{"val":0},"prepaidBalance":{"val":0}}}
 ```
+
+`creditUsagePercent` is optional. grok 1.0.40 omitted it after the weekly reset on
+2026-09-22 (period, `billingPeriodEnd`, and `subscription_tier` still present). It
+was also absent in some 1.0.25 fetches mid-period on 2026-09-10, so a missing field
+is not 0%. The probe prints `percent omitted` and still reports the reset clock.
 
 Two traps that cost time:
 - The method name in the binary is `x.ai/billing`, but the **wire name has a leading

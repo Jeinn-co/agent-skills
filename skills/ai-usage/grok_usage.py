@@ -86,11 +86,17 @@ def require_number(mapping, key, path):
         raise ValueError("%s.%s must be a number" % (path, key))
     return value
 
+def optional_number(mapping, key, path):
+    """None when the key is absent or JSON null. A present non-number still fails."""
+    if key not in mapping or mapping.get(key) is None:
+        return None
+    return require_number(mapping, key, path)
+
 try:
     payload = require_mapping(res, "result")
     c = require_mapping(payload.get("config"), "config")
-    used = require_number(c, "creditUsagePercent", "config")
-    if not 0 <= used <= 100:
+    used = optional_number(c, "creditUsagePercent", "config")
+    if used is not None and not 0 <= used <= 100:
         raise ValueError("config.creditUsagePercent must be between 0 and 100")
     period = require_mapping(c.get("currentPeriod"), "config.currentPeriod")
     period_type = period.get("type")
@@ -108,10 +114,11 @@ except (ValueError, TypeError, OverflowError) as e:
     die("invalid response: %s" % e)
 
 print("plan: %s" % (res.get("subscription_tier") or "unknown"))
-print("%-6s %5.1f%% used  window %s  resets %s"
-      % ("week", used,
-         period_type.replace("USAGE_PERIOD_TYPE_", "").lower(),
-         when))
+window = period_type.replace("USAGE_PERIOD_TYPE_", "").lower()
+if used is None:
+    print("%-6s percent omitted  window %s  resets %s" % ("week", window, when))
+else:
+    print("%-6s %5.1f%% used  window %s  resets %s" % ("week", used, window, when))
 balances = [c.get(key) for key in ("prepaidBalance", "onDemandUsed", "onDemandCap")]
 if all(isinstance(item, dict) and item.get("val") is not None for item in balances):
     try:

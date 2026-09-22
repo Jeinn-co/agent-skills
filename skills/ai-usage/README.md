@@ -186,13 +186,14 @@ locales or Windows builds may still surface something new. Bug reports from Wind
 are welcome and will be believed over this paragraph.
 
 **Version-pinned.** Verified 2026-09-12 against `claude` 2.1.268, `codex` 0.154.0,
-`grok` 1.0.25.
+`grok` 1.0.25. Grok's omitted `creditUsagePercent` re-checked 2026-09-22 on
+`grok` 1.0.40.
 
 | Risk | Where | What happens if it breaks |
 |---|---|---|
 | Claude's two usage lines are free text and are regex-parsed | `claude_usage.py` | Falls back to printing the raw line; never prints a wrong number |
 | Codex's app-server protocol is private to OpenAI and carries no compatibility promise | `codex_usage.py` | A method rename or missing required field makes the ChatGPT row fail visibly; it never defaults to 0% |
-| Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field makes the Grok row fail visibly; it never defaults to 0% |
+| Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field (period, `billingPeriodEnd`) makes the Grok row fail visibly. An omitted `creditUsagePercent` prints `percent omitted`; it never defaults to 0% |
 
 **Deliberately not reported.** A wrong number here is worse than no number:
 
@@ -204,6 +205,8 @@ are welcome and will be believed over this paragraph.
 - **Claude extra usage** is not reported. The current CLI response exposes no reliable
   field for it; `fast_mode_disabled_reason` is specifically about fast mode.
 - **Grok has one window, not two.** No 5-hour row is invented for it.
+- **Grok `creditUsagePercent` omitted** is not treated as 0%. The probe prints
+  `percent omitted` and still reports the reset clock.
 - **Grok prepaid / on-demand at 0** is omitted. The values are readable; printing
   `prepaid 0 / on-demand 0` is noise. The line appears only when any value is
   non-zero.

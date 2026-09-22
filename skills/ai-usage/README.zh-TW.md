@@ -171,12 +171,13 @@ stdout。這次實測也抓到一個這段文字之前沒提到的 bug：`subpro
 踩到新問題。歡迎回報 Windows 上的 bug，回報內容的可信度高於這段文字。
 
 **版本綁定。** 2026-09-12 針對 `claude` 2.1.268、`codex` 0.154.0、`grok` 1.0.25 驗證。
+Grok 省略 `creditUsagePercent` 已於 2026-09-22 在 `grok` 1.0.40 上再確認。
 
 | 風險 | 位置 | 壞掉時會怎樣 |
 |---|---|---|
 | Claude 那兩行用量是自由文字，靠 regex 解析 | `claude_usage.py` | 退回直接印原始那行；絕不會印出錯的數字 |
 | Codex 的 app-server 協定是 OpenAI 私有的，沒有任何相容性承諾 | `codex_usage.py` | 方法改名或必要欄位缺失時，ChatGPT 那列會明確失敗；絕不預設成 0% |
-| Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位缺失時，Grok 那列會明確失敗；絕不預設成 0% |
+| Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位（period、`billingPeriodEnd`）缺失時，Grok 那列會明確失敗。省略 `creditUsagePercent` 時印 `percent omitted`；絕不預設成 0% |
 
 **刻意不回報的。** 這裡報錯數字比不報更糟：
 
@@ -187,6 +188,7 @@ stdout。這次實測也抓到一個這段文字之前沒提到的 bug：`subpro
 - **Claude 的 extra usage** 不回報。目前 CLI 回應沒有可靠的對應欄位；
   `fast_mode_disabled_reason` 明確描述的是 fast mode。
 - **Grok 只有一個視窗，不是兩個。** 不會幫它捏造一個 5 小時的列。
+- **Grok 省略 `creditUsagePercent`** 不當成 0%。探針印 `percent omitted`，重置時間仍報。
 - **Grok prepaid / on-demand 全為 0** 時省略。數字讀得到，但印 `prepaid 0 /
   on-demand 0` 是噪音。任一值非 0 才顯示那一行。
 

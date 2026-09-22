@@ -195,6 +195,81 @@ for line in sys.stdin:
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("billing call failed (invalid response:", result.stdout)
         self.assertNotIn("0.0% used", result.stdout)
+        self.assertNotIn("percent omitted", result.stdout)
+
+    def test_grok_omits_percent_when_field_absent(self):
+        result = self.run_probe(
+            "grok_usage.py",
+            "grok",
+            r'''
+import json
+import sys
+
+for line in sys.stdin:
+    request = json.loads(line)
+    if request["id"] == 1:
+        response = {"jsonrpc": "2.0", "id": 1, "result": {}}
+    else:
+        response = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+                "subscription_tier": "SuperGrok",
+                "config": {
+                    "currentPeriod": {"type": "USAGE_PERIOD_TYPE_WEEKLY"},
+                    "billingPeriodEnd": "2099-01-01T00:00:00Z",
+                    "prepaidBalance": {"val": 0},
+                    "onDemandUsed": {"val": 0},
+                    "onDemandCap": {"val": 0},
+                },
+            },
+        }
+    print(json.dumps(response), flush=True)
+''',
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("plan: SuperGrok", result.stdout)
+        self.assertIn("percent omitted", result.stdout)
+        self.assertNotIn("0.0% used", result.stdout)
+        week_line = [
+            line for line in result.stdout.splitlines() if line.startswith("week")
+        ][0]
+        self.assertIn("resets", week_line)
+
+    def test_grok_rejects_non_numeric_percent(self):
+        result = self.run_probe(
+            "grok_usage.py",
+            "grok",
+            r'''
+import json
+import sys
+
+for line in sys.stdin:
+    request = json.loads(line)
+    if request["id"] == 1:
+        response = {"jsonrpc": "2.0", "id": 1, "result": {}}
+    else:
+        response = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+                "subscription_tier": "SuperGrok",
+                "config": {
+                    "creditUsagePercent": "27",
+                    "currentPeriod": {"type": "USAGE_PERIOD_TYPE_WEEKLY"},
+                    "billingPeriodEnd": "2099-01-01T00:00:00Z",
+                },
+            },
+        }
+    print(json.dumps(response), flush=True)
+''',
+        )
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("billing call failed (invalid response:", result.stdout)
+        self.assertNotIn("0.0% used", result.stdout)
+        self.assertNotIn("percent omitted", result.stdout)
 
     def _grok_billing_cli(self, prepaid, on_demand_used, on_demand_cap):
         return r'''
