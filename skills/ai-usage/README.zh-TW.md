@@ -106,7 +106,8 @@ npx skills update ai-usage -p -y    # project 安裝
 py -3 run.py      # Windows；如果沒有 `py`，改用 `python run.py`
 ```
 
-在對應平台指令後加 `--version`，就會只印出 skill 版本後結束。
+報表標題列最後會顯示產生這份報表的 skill 版本。在對應平台指令後加 `--version`，就會只印出
+skill 版本後結束。
 
 ## 輸出長什麼樣
 
@@ -118,7 +119,7 @@ py -3 run.py      # Windows；如果沒有 `py`，改用 `python run.py`
 純文字版：
 
 ```
-USAGE — 09-12 01:08
+USAGE — 09-12 01:08 · ai-usage 1.2.1
 
   Claude    pro
     5h    ███░░░░░░░  29%   resets 03:40 (2h32m)

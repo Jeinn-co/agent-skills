@@ -115,7 +115,8 @@ installed `ai-usage` directory, then use the launcher for your platform:
 py -3 run.py      # Windows; use `python run.py` if `py` is unavailable
 ```
 
-Add `--version` to the platform command to print the skill version and exit.
+The report's title line ends with the skill version that produced it. Add `--version`
+to the platform command to print the version alone and exit.
 
 ## What it prints
 
@@ -128,7 +129,7 @@ and Grok numbers.
 As plain text:
 
 ```
-USAGE — 09-12 01:08
+USAGE — 09-12 01:08 · ai-usage 1.2.1
 
   Claude    pro
     5h    ███░░░░░░░  29%   resets 03:40 (2h32m)

@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT and Grok 
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # /ai-usage — unified AI usage report
@@ -17,8 +17,9 @@ credentials, and no direct HTTP calls of your own.
 `/ai-usage fresh` — same thing; the script always reads live. The flag only means "do not
 reuse an answer from earlier in this conversation".
 
-The first output line is `### ai-usage <version>`. Do not put it in the report. Quote it
-only when the user asks which version they are on or reports a bug. This remains useful
+The first output line is `### ai-usage <version>`. Put that version at the end of the
+report's title line (`USAGE — <time> · ai-usage <version>`), so every report shows
+which release produced it. This remains useful
 for manually copied installations even though `npx skills` records source information
 for installations it manages. Adding `--version` to the platform command prints the
 version alone.
@@ -97,7 +98,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08
+USAGE — 09-12 01:08 · ai-usage 1.2.1
 
   Claude    pro
     5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
