@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Report installed vs latest versions of the Claude Code, Codex and Grok Build CLIs.
+"""Report installed vs latest versions of the Claude Code, Codex, Grok Build and Muse Code CLIs.
 
 For each tool: the installed version and when it was installed on this machine, and the
 latest version and when it was released. Check only -- this script never installs or
 updates anything.
 
-Standard library only. The Python code makes HTTP requests to the npm registry and to
-the GitHub API; everything else is read from the local CLIs and the filesystem.
+Standard library only. The Python code makes HTTP requests to the npm registry, the
+GitHub API and Muse's public release channel; everything else is read from the local CLIs
+and the filesystem.
 """
 
 import datetime
@@ -20,7 +21,7 @@ import sys
 import urllib.request
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 TIMEOUT = 60
 HOME = os.path.expanduser("~")
@@ -51,9 +52,10 @@ def argv(name, *args):
     return [path, *args]
 
 
-def run(cmd):
+def run(cmd, env=None):
     """Run a command and return its stdout decoded as UTF-8, or raise."""
-    proc = subprocess.run(cmd, capture_output=True, timeout=TIMEOUT)
+    proc = subprocess.run(cmd, capture_output=True, timeout=TIMEOUT,
+                          env={**os.environ, **env} if env else None)
     out = proc.stdout.decode("utf-8", errors="replace")
     if proc.returncode != 0:
         err = proc.stderr.decode("utf-8", errors="replace").strip()
@@ -73,7 +75,17 @@ def parse_version(text):
 
 
 def fmt(version):
+    if version and len(version) == 5:  # Muse: 1.3.0-R3401.1, parsed by muse_version()
+        build = "R%d" % version[3] + (".%d" % version[4] if version[4] else "")
+        return "%d.%d.%d-%s" % (version[:3] + (build,))
     return ".".join(str(part) for part in version) if version else "?"
+
+
+def muse_version(text):
+    """'1.3.0-R3401.1' -> (1, 3, 0, 3401, 1). The R build number orders releases that
+    share a semver."""
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)-R(\d+)(?:\.(\d+))?", text or "")
+    return tuple(int(part or 0) for part in match.groups()) if match else None
 
 
 def local_from_iso(value):
@@ -239,6 +251,43 @@ def check_grok():
         print(f"grok\tcheck failed ({exc})")
 
 
+def check_muse():
+    # The launcher kicks off a background self-update when it runs; this is a check.
+    cmd = argv("muse", "--version")
+    if cmd is None:
+        print("muse	not installed")
+        return
+    try:
+        installed = muse_version(run(cmd, {"MUSE_NO_AUTO_UPDATE": "1"}))
+        if installed is None:
+            raise RuntimeError("unrecognised `muse --version` output")
+        home = os.path.dirname(os.path.realpath(shutil.which("muse")))
+        channel = os.environ.get("MUSE_CHANNEL")
+        if not channel:
+            try:
+                with open(os.path.join(home, ".muse-channel"), encoding="utf-8") as handle:
+                    channel = handle.read().strip()
+            except OSError:
+                pass
+        channel = channel or "muse-stable"
+        # The same unauthenticated manifest the launcher reads. It names no date.
+        manifest = get_json("https://api.meta.ai/muse-code/channels/" + channel,
+                            {"Accept": "application/json"})
+        latest = muse_version(manifest.get("version"))
+        if latest is None:
+            raise RuntimeError("channel manifest has no version")
+        installed_at = install_time(
+            first_match(os.path.join(home, f"muse-bin-{fmt(installed)}*"))
+        ) or package_dir_time("muse")
+        # Single quotes: bash and PowerShell both leave `$env` alone inside them.
+        update = ("powershell -NoProfile -Command '$env:MUSE_SYNC_UPDATE=1; muse --version'"
+                  if os.name == "nt" else "MUSE_SYNC_UPDATE=1 muse --version")
+        emit("muse", installed, installed_at, latest, None,
+             "not published: the release channel carries no date", channel, update)
+    except Exception as exc:  # noqa: BLE001
+        print(f"muse	check failed ({exc})")
+
+
 def main():
     stdout_utf8()
     if "--version" in sys.argv:
@@ -248,6 +297,7 @@ def main():
     check_claude()
     check_codex()
     check_grok()
+    check_muse()
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 > 中文版。英文版 [README.md](README.md) 為準，本檔為對照翻譯，兩邊同步更新。
 
-一份報表看你的 Claude Code、Codex、Grok Build CLI 是不是最新版 —— 你目前的版本和安裝時間，
+一份報表看你的 Claude Code、Codex、Grok Build、Muse Code CLI 是不是最新版 —— 你目前的版本和安裝時間，
 以及最新版本和發佈時間。
 
 版本檢查永遠是唯讀的。有任一 CLI 不是最新版時，agent 會提供兩個選項：按 `y` 更新全部
@@ -40,8 +40,9 @@ macOS 的 `/usr/bin/python3`（3.9）來自 Xcode Command Line Tools；沒裝的
 | Claude Code | `claude` |
 | Codex | `codex` |
 | Grok Build | `grok` |
+| Muse Code | `muse` |
 
-**三個不必裝滿。** 沒裝的工具會印 `not installed`，其他照常執行。讀取版本不需要登入。
+**四個不必裝滿。** 沒裝的工具會印 `not installed`，其他照常執行。讀取版本不需要登入。
 
 ### 3. 網路與 subprocess 權限
 
@@ -116,6 +117,7 @@ CLI VERSIONS — 09-17
   Claude Code   2.1.274 (09/17 11:20)   2.1.274 (released 09/17 06:36)     ✓ up to date      channel: latest
   Codex         0.153.4 (09/07 11:03)   0.154.0 (released 09/10 06:40)     ↑ update → codex update
   Grok Build    1.0.34  (09/17 09:28)   1.0.34  (released ≤ 09/17 03:32*)  ✓ up to date      channel: stable
+  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)   ✓ up to date   channel: muse-stable
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
@@ -134,6 +136,7 @@ CLI VERSIONS — 09-17
 | Claude Code | `claude --version` | `~/.local/share/claude/versions/<本機版本>` | npm registry，dist-tag = `settings.json` 的 `autoUpdatesChannel`（預設 `latest`） | npm 發佈時間 |
 | Codex | `codex --version` | `$CODEX_HOME/packages/standalone/releases/<本機版本>-*` | npm registry，`@openai/codex` 的 `latest` | npm 發佈時間 |
 | Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<本機版本>-*` | 同一個指令 | `timoteuszelle/x.ai-grok` 的 GitHub release（近似值） |
+| Muse Code | `muse --version` | `muse` launcher 旁邊的 `muse-bin-<本機版本>*` | `https://api.meta.ai/muse-code/channels/<channel>`（公開，就是 launcher 讀的那個檔） | 無（`?`） |
 
 `settings.json` 從 `$CLAUDE_CONFIG_DIR` 讀，沒設就讀 `~/.claude`。`$CODEX_HOME` 預設是
 `~/.codex`。如果安裝時間的路徑不存在 —— 例如 npm 或 Homebrew 安裝，或是 macOS/Linux 的
@@ -141,7 +144,9 @@ Grok installer 把檔案存成不含版號的 `~/.grok/downloads/grok-<platform>
 實際的執行檔。
 
 為什麼不用 CLI 自己的更新指令：`claude update` 和 `codex update` 會直接安裝，沒有只檢查
-的選項。`grok update --check` 有，所以 Grok 用它。
+的選項。`grok update --check` 有，所以 Grok 用它。Muse 完全沒有更新子指令：它的
+launcher 每次執行都會在背景自我更新。檢查時設 `MUSE_NO_AUTO_UPDATE=1` 保持唯讀；提供的
+更新指令設 `MUSE_SYNC_UPDATE=1`，讓 launcher 立刻更新。
 
 ## 限制與已知問題
 
@@ -149,6 +154,10 @@ Grok installer 把檔案存成不含版號的 `~/.grok/downloads/grok-<platform>
 `grok update --check --json` 也沒有日期。這裡的時間來自第三方的 NixOS 套件：它偵測到
 Grok Build 新版時會發 GitHub release，所以官方發佈時間*不晚於*這個時間。如果那個 mirror
 停止更新，Grok 的發佈時間會顯示 `?`。
+
+**Muse 沒有發佈時間。** channel manifest 只有版本、沒有日期，所以 Muse 的發佈時間一律
+顯示 `?`。channel 取 `$MUSE_CHANNEL`，沒設就讀 launcher 旁邊的 `.muse-channel`，再沒有就是
+`muse-stable`。
 
 **假設原生版跟 npm 同步。** Claude Code 和 Codex 的原生安裝版不是透過 npm 發佈的。這個
 skill 假設原生版的版號跟 npm 套件一致；驗證時版號確實相同，但沒有官方文件說明這一點。
@@ -171,6 +180,10 @@ skill 假設原生版的版號跟 npm 套件一致；驗證時版號確實相同
 **已驗證**：2026-09-18，macOS 26.6.2（arm64，Python 3.10.8），`claude` 2.1.273、
 `codex` 0.154.0、`grok` 1.0.34。唯讀檢查 launcher、版本與安裝時間查詢，以及安裝到
 Claude Code、Codex、Grok Build 三個 agent 的 global 安裝流程皆成功。Linux 尚未測試。
+
+**已驗證** 2026-09-24 在 Windows 11（zh-TW、Python 3.12）上針對 Muse Code 1.3.0-R3401.1：
+版本、安裝時間、channel 查詢，以及更新指令在 bash 與 PowerShell 下都能執行。Muse 在
+macOS 與 Linux 尚未測試；POSIX launcher（`api.meta.ai/muse-launcher.sh`）用的是同樣的檔名與變數。
 
 ## 授權
 

@@ -1,6 +1,6 @@
 # ai-cli-version
 
-One report for whether your Claude Code, Codex and Grok Build CLIs are up to date — the
+One report for whether your Claude Code, Codex, Grok Build and Muse Code CLIs are up to date — the
 version you have and when you installed it, the latest version and when it was released.
 
 The version check is always read-only. When an update is available, the agent offers two
@@ -42,8 +42,9 @@ without it every HTTPS request fails with `CERTIFICATE_VERIFY_FAILED` and each t
 | Claude Code | `claude` |
 | Codex | `codex` |
 | Grok Build | `grok` |
+| Muse Code | `muse` |
 
-**You do not need all three.** A tool that is not installed prints `not installed`; the
+**You do not need all four.** A tool that is not installed prints `not installed`; the
 others still run. Signing in is not required to read versions.
 
 ### 3. Network and subprocess access
@@ -123,6 +124,7 @@ CLI VERSIONS — 09-17
   Claude Code   2.1.274 (09/17 11:20)   2.1.274 (released 09/17 06:36)     ✓ up to date      channel: latest
   Codex         0.153.4 (09/07 11:03)   0.154.0 (released 09/10 06:40)     ↑ update → codex update
   Grok Build    1.0.34  (09/17 09:28)   1.0.34  (released ≤ 09/17 03:32*)  ✓ up to date      channel: stable
+  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)   ✓ up to date   channel: muse-stable
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
@@ -141,6 +143,7 @@ always check-only and continues to print raw report data without accepting input
 | Claude Code | `claude --version` | `~/.local/share/claude/versions/<installed>` | npm registry, dist-tag = `autoUpdatesChannel` in `settings.json` (default `latest`) | npm publish time |
 | Codex | `codex --version` | `$CODEX_HOME/packages/standalone/releases/<installed>-*` | npm registry, `@openai/codex` `latest` | npm publish time |
 | Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<installed>-*` | same call | GitHub release of `timoteuszelle/x.ai-grok` (approximate) |
+| Muse Code | `muse --version` | `muse-bin-<installed>*` next to the `muse` launcher | `https://api.meta.ai/muse-code/channels/<channel>` (public, the file the launcher reads) | not available (`?`) |
 
 `settings.json` is read from `$CLAUDE_CONFIG_DIR`, else `~/.claude`. `$CODEX_HOME`
 defaults to `~/.codex`. If the installed-at path does not exist — npm or Homebrew
@@ -149,7 +152,10 @@ installs, or the macOS/Linux Grok installer, which saves builds as
 command is used instead.
 
 Why not the CLIs' own updaters: `claude update` and `codex update` install immediately
-and have no check-only option. `grok update --check` does, so Grok uses it.
+and have no check-only option. `grok update --check` does, so Grok uses it. Muse has no
+update subcommand at all: its launcher updates itself in the background whenever it
+runs. The check sets `MUSE_NO_AUTO_UPDATE=1` so it stays read-only, and the offered
+update command sets `MUSE_SYNC_UPDATE=1` to make the launcher update right away.
 
 ## Limitations and known issues
 
@@ -158,6 +164,10 @@ returns 403 to scripted requests, and `grok update --check --json` carries no da
 time shown comes from a third-party NixOS package that publishes a GitHub release when it
 detects a new Grok Build version, so the official release happened *no later than* that.
 If the mirror stops publishing, the Grok release time shows `?`.
+
+**Muse release time is not available.** The channel manifest carries a version and no
+date, so the Muse release time always shows `?`. The channel is `$MUSE_CHANNEL`, else
+the `.muse-channel` file next to the launcher, else `muse-stable`.
 
 **Native builds are assumed to track npm.** The native installers of Claude Code and Codex
 are not published through npm. This skill assumes they ship the same version numbers as
@@ -186,6 +196,11 @@ against their install scripts (`chatgpt.com/codex/install.sh`, `x.ai/cli/install
 `codex` 0.154.0 and `grok` 1.0.34. The check-only launcher, version and timestamp lookup,
 and global installation for Claude Code, Codex and Grok Build all completed successfully.
 Linux has not been tested yet.
+
+**Verified** 2026-09-24 on Windows 11 (zh-TW, Python 3.12) against Muse Code
+1.3.0-R3401.1: version, install time, channel lookup, and the update command from both
+bash and PowerShell. Muse on macOS and Linux has not been tested; the POSIX launcher
+(`api.meta.ai/muse-launcher.sh`) uses the same file names and variables.
 
 ## License
 
