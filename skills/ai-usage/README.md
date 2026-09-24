@@ -1,6 +1,6 @@
 # ai-usage
 
-One report for how much of your Claude, ChatGPT and Grok subscription you have left —
+One report for how much of your Claude, ChatGPT, Grok and Muse subscription you have left —
 percent used, when each window resets, and what top-up you have — plus which model
 and effort each CLI is running now, and a shared model + effort pick per provider.
 
@@ -33,8 +33,9 @@ that opens the store instead of running anything.
 | Claude | `claude` | `claude` once, then `/login` |
 | ChatGPT | `codex` | `codex login` |
 | Grok | `grok` | `grok` once, then follow the auth prompt |
+| Muse | `muse` | `muse login` |
 
-**You do not need all three.** Install one and you get one row; the others print
+**You do not need all four.** Install one and you get one row; the others print
 `not installed` and nothing else breaks. The skill never prompts for a login, never
 opens a browser, and never reads a stored credential — it asks each CLI's own local
 agent server, which means a CLI that is installed but signed out reports a failed
@@ -134,6 +135,14 @@ and no stored credential is ever read. Each provider's own CLI is asked directly
 | Claude | `claude -p "/usage"` — print mode routes the built-in slash command |
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP extension method `_x.ai/billing` |
+| Muse | `muse serve` → one tiny turn, then MSP `usage/read` |
+
+**Muse costs one model call per run.** Muse keeps no usage on disk, and `session/start`
+alone does not fetch it: the numbers arrive only with a model response. So the probe
+sends `Reply with the single word: ok` at `minimal` effort, on the non-contributor twin
+of the default model when the local catalog lists one. Each run spends a sliver of Muse
+quota, takes about 15 s, and leaves one session in Muse's history under
+`<temp>/ai-usage-muse-probe`, which the `now` row skips.
 
 Providers whose CLI is not installed are reported as `not installed`; the rest still
 run. What is deliberately left out is listed under
@@ -144,14 +153,14 @@ of that CLI's newest local session, read from the session files the CLI already
 writes (`session_info.py`; no network, nothing launched). It reflects the last turn
 that was sent, so a model switched since then appears after the next message.
 
-**Value pick.** The `Value` block is one quality-leaning model + effort per provider,
-suited to planning, coding, review, bug fixing and testing. It lives in
-[`value.json`](value.json), is committed with the skill, and is the same for every
-user — it is not re-ranked by your usage. Each run compares the CLI's current model
-list with the list the pick was made against. When a model is added or withdrawn,
-that provider is marked stale; the agent then asks `codex exec` (read-only sandbox)
-to re-evaluate, checks that the answer names a model that actually exists, and
-writes the new `value.json`. Commit it so everyone gets the new pick.
+**CursorBench.** Below the providers, one table row per CLI you use: the
+[CursorBench](https://cursor.com/cursorbench) score, cost / task, tokens / task and
+steps / task of the exact model + effort that CLI ran last, plus CP (score ÷ cost per
+task, points per dollar at Cursor's API prices — higher is better), and one qualified row per
+provider: across every model and effort CursorBench lists for that provider, the best CP at a
+score of 50% or more; when nothing from that provider reaches 50%, its highest score. A model CursorBench does not list shows `not listed`, never a
+neighbouring row. `cursorbench.py` fetches the public page once per run; that is the
+only HTTP request the skill's own code makes, and it sends no credential.
 
 **Language.** The report is written in the language you asked in — English, 中文 or
 anything else. Model names, numbers and times are never translated.
@@ -177,16 +186,17 @@ are welcome and will be believed over this paragraph.
 `grok` 1.0.25. Grok's omitted `creditUsagePercent` re-checked 2026-09-22 on
 `grok` 1.0.40. The session and model-cache fields read by `session_info.py` were
 verified 2026-09-22 against `claude` 2.1.278, Codex sessions written by the VS Code
-extension (0.154.0-alpha), and `grok` 1.0.40.
+extension (0.154.0-alpha), and `grok` 1.0.40. Muse (probe and session fields) verified
+2026-09-24 against Muse Code 1.3.0-R3401.1 on Windows 11.
 
 | Risk | Where | What happens if it breaks |
 |---|---|---|
 | Claude's two usage lines are free text and are regex-parsed | `claude_usage.py` | Falls back to printing the raw line; never prints a wrong number |
 | Codex's app-server protocol is private to OpenAI and carries no compatibility promise | `codex_usage.py` | A method rename or missing required field makes the ChatGPT row fail visibly; it never defaults to 0% |
 | Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field (period, `billingPeriodEnd`) makes the Grok row fail visibly. An omitted `creditUsagePercent` prints `percent omitted`; it never defaults to 0% |
+| Muse's `usage/read` returns only what the host has observed | `muse_usage.py` | If the turn ends with no usage, the Muse row fails visibly (`no usage observed`); it never defaults to 0% |
 | Session files and model caches are internal to each CLI and undocumented | `session_info.py` | A renamed field prints `?` for that value; a moved file prints `no local session`. The usage rows are unaffected |
-| Claude Code has no local model list, so its options are a fixed list in the code | `session_info.py` | A new Claude model never marks Claude stale. Update `claude_options()` and `value.json` by hand when one ships |
-| Re-evaluating a stale pick runs `codex exec` | `SKILL.md` | Needs `codex` installed and signed in, and spends ChatGPT quota. Without it, the old pick is shown marked `(stale)` |
+| CursorBench is a web page parsed by its HTML table, and model ids are mapped to its names by rule | `cursorbench.py` | A layout change prints `bench failed (...)` and the usage rows are unaffected. A model the rules cannot map, or a name CursorBench spells differently, shows `not listed` |
 
 **Deliberately not reported.** A wrong number here is worse than no number:
 
@@ -203,6 +213,8 @@ extension (0.154.0-alpha), and `grok` 1.0.40.
 - **Grok prepaid / on-demand at 0** is omitted. The values are readable; printing
   `prepaid 0 / on-demand 0` is noise. The line appears only when any value is
   non-zero.
+- **Muse plan name** is not reported. `usage/read` gives a numeric tier id
+  (`27681527378179523`), not a name, so the plan shows `?`.
 
 **Numbers are per-account, not per-machine.** Claude's `/usage` notes its breakdown is
 approximate and covers local sessions on this machine only; the headline percentages

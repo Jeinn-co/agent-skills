@@ -321,3 +321,107 @@ for line in sys.stdin:
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("prepaid balance 12 | on-demand 0/0", result.stdout)
+
+    def _muse_serve_cli(self, usage):
+        return r'''
+import json
+import sys
+
+USAGE = %s
+
+def send(message):
+    print(json.dumps(message), flush=True)
+
+for line in sys.stdin:
+    request = json.loads(line)
+    method = request.get("method")
+    if "id" not in request:
+        continue
+    if method == "initialize":
+        send({"jsonrpc": "2.0", "id": request["id"], "result": {}})
+    elif method == "session/start":
+        send({"jsonrpc": "2.0", "id": request["id"],
+              "result": {"session": {"sessionId": "s1"}}})
+    elif method == "turn/start":
+        send({"jsonrpc": "2.0", "id": request["id"], "result": {}})
+        if USAGE:
+            send({"jsonrpc": "2.0", "method": "usage/changed", "params": USAGE})
+        send({"jsonrpc": "2.0", "method": "turn/completed", "params": {}})
+    elif method == "usage/read":
+        send({"jsonrpc": "2.0", "id": request["id"],
+              "result": {"usage": USAGE} if USAGE else {}})
+''' % repr(usage)
+
+    def test_muse_prints_window_and_week(self):
+        result = self.run_probe(
+            "muse_usage.py",
+            "muse",
+            self._muse_serve_cli({
+                "observedAtMs": 1,
+                "tier": "27681527378179523",
+                "window": {"usedPercent": 5, "resetsAtMs": 4070908800000,
+                           "windowDurationMins": 300},
+                "weekly": {"usedPercent": 1, "resetsAtMs": 4070908800000},
+            }),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("plan: ?", result.stdout)
+        self.assertNotIn("27681527378179523", result.stdout)
+        lines = result.stdout.splitlines()
+        self.assertTrue(any(l.startswith("5h") and "5.0% used" in l for l in lines))
+        self.assertTrue(any(l.startswith("week") and "1.0% used" in l for l in lines))
+
+    def test_muse_fails_when_no_usage_observed(self):
+        result = self.run_probe("muse_usage.py", "muse", self._muse_serve_cli(None))
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("usage call failed (no usage observed", result.stdout)
+        self.assertNotIn("0.0% used", result.stdout)
+
+
+class CursorBenchNameTests(unittest.TestCase):
+    def test_maps_cli_model_ids_to_leaderboard_names(self):
+        sys.path.insert(0, str(SKILL))
+        import cursorbench
+
+        cases = {
+            ("claude", "claude-opus-5-5"): "Opus 5.5",
+            ("claude", "claude-fable-5-1"): "Fable 5.1",
+            ("claude", "claude-sonnet-5"): "Sonnet 5",
+            ("claude", "opus"): None,
+            ("codex", "gpt-6-sol"): "GPT-6 Sol",
+            ("codex", "gpt-5.6-terra"): "GPT-5.6 Terra",
+            ("grok", "grok-4.7"): "Grok 4.7",
+            ("grok", "grok-4.7-build-fast"): None,
+            ("muse", "muse-spark-1.3-contributor"): "Muse Spark 1.3",
+            ("muse", "muse-spark-1.3"): "Muse Spark 1.3",
+        }
+        for (cli, model), expected in cases.items():
+            self.assertEqual(cursorbench.name(cli, model) or None, expected, (cli, model))
+
+    def test_pick_searches_the_provider_for_50_percent(self):
+        sys.path.insert(0, str(SKILL))
+        import cursorbench
+
+        board = {
+            "Opus 5.5 Max": ["57.8%", "$13.43"],
+            "Opus 5.5 High": ["56.0%", "$3.97"],
+            "Opus 5.5 Low": ["43.7%", "$1.17"],
+            "Fable 5.1 Max": ["51.8%", "$17.28"],
+            "Grok 4.7 Extra High": ["46.3%", "$6.01"],
+            "Grok 4.7 Medium": ["41.6%", "$3.49"],
+            "Grok 4.6 High": ["40.4%", "$5.20"],
+            "Muse Spark 1.3 Max": ["41.6%", "$2.64"],
+            "Muse Spark 1.3 Minimal": ["24.3%", "$0.56"],
+            "GPT-5.6 Sol Max": ["41.7%", "$8.23"],
+        }
+        # Claude reaches 50%: best cp among >= 50% rows of any Claude model; Low is out
+        self.assertEqual(cursorbench.pick(board, "claude", "Opus 5.5")[0], "Opus 5.5 High")
+        self.assertEqual(cursorbench.pick(board, "claude", "Opus 5.5")[3], "cp")
+        # nothing from Grok reaches 50%: its highest score, not its best cp, and no floor
+        self.assertEqual(cursorbench.pick(board, "grok", "Grok 4.7")[:2], ("Grok 4.7 Extra High", 46.3))
+        self.assertEqual(cursorbench.pick(board, "grok", "Grok 4.7")[3], "closest")
+        self.assertEqual(cursorbench.pick(board, "muse", "Muse Spark 1.3")[0], "Muse Spark 1.3 Max")
+        # an unlisted current model gets no pick, even though older GPT rows exist
+        self.assertIs(cursorbench.pick(board, "codex", "GPT-6 Sol"), False)

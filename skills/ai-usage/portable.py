@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-platform helpers shared by the three probes.
+"""Cross-platform helpers shared by the probes.
 
 Windows needs two things POSIX does not:
 
@@ -16,7 +16,7 @@ Neither has any effect on macOS or Linux.
 import atexit, os, shutil, sys
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.2.2"
+VERSION = "1.4.0"
 
 _SHIM = (".cmd", ".bat")
 

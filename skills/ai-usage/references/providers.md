@@ -1,6 +1,6 @@
 # Why each provider works the way it does
 
-All three services compute usage server-side and return it in API response headers.
+All four services compute usage server-side and return it in API response headers.
 The difference is entirely what each CLI does with that after receiving it.
 
 ## Claude — works, live
@@ -74,3 +74,26 @@ Dead ends, do not retry:
 4. **Browser** — grok.com returns **403 Cloudflare** to Playwright-driven Chrome even
    with real cookies copied from the user's profile. It fingerprints automation, not
    login state. The Playwright MCP extension route was never needed.
+
+## Muse — works, live, costs one model call
+
+`muse serve` speaks MSP (Muse Session Protocol, JSON-RPC 2.0) over stdio. `muse schema
+generate-json-schema --out DIR` writes the full wire schema; the method is `usage/read`,
+answering `{usage: {tier, window: {usedPercent, resetsAtMs, windowDurationMins},
+weekly: {usedPercent, resetsAtMs}, observedAtMs}}`.
+
+The catch: it returns the host's **last-observed** usage, and a fresh host has observed
+nothing, so it answers `{}`. The numbers ride on model responses. The probe therefore
+sends `initialize`, `initialized`, `session/start` (in a dedicated empty workspace), one
+`turn/start` at `minimal` effort, waits for `usage/changed` or `turn/completed`, then
+calls `usage/read`. Command ids must be UUIDv7. `tier` is a numeric product id, not a
+plan name.
+
+Dead ends, do not retry (checked 2026-09-24, Muse Code 1.3.0-R3401.1):
+1. **Local files** — session logs, the session index and the model catalog carry no
+   usage percentages.
+2. **`session/start` without a turn** — still `{}`.
+3. **`muse exec "/usage"`** — not routed as a slash command; goes to the model as a
+   prompt (and ran this very skill). `/usage` in the TUI shows session tokens, not quota.
+4. **A usage endpoint** — the binary's only `api.meta.ai/v1` paths besides the model API
+   are metrics, logs and ASR.

@@ -2,7 +2,7 @@
 
 > 中文版。英文版 [README.md](README.md) 為準，本檔為對照翻譯，兩邊同步更新。
 
-一份報表看完 Claude、ChatGPT、Grok 三邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、
+一份報表看完 Claude、ChatGPT、Grok、Muse 四邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、
 還有多少加購額度；另外顯示每個 CLI 目前用的 model 與 effort，以及每家一組共用的
 model + effort 推薦。
 
@@ -32,8 +32,9 @@ Microsoft Store 的 stub，執行後會跳出商店頁面而不是跑程式。
 | Claude | `claude` | 先跑 `claude`，再輸入 `/login` |
 | ChatGPT | `codex` | `codex login` |
 | Grok | `grok` | 先跑 `grok`，依提示完成認證 |
+| Muse | `muse` | `muse login` |
 
-**三個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。這個 skill
+**四個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。這個 skill
 不會要求你登入、不會開瀏覽器、不會讀任何已存的憑證 —— 它問的是每個 CLI 自己的本機
 agent server，所以「裝了但沒登入」的 CLI 會回報呼叫失敗，而不是彈出登入畫面。
 
@@ -124,6 +125,13 @@ skill 版本後結束。
 | Claude | `claude -p "/usage"` —— print 模式會把內建的 slash command 導進來 |
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP 擴充方法 `_x.ai/billing` |
+| Muse | `muse serve` → 送一個極短的 turn，再呼叫 MSP `usage/read` |
+
+**Muse 每次會呼叫一次模型。** Muse 不把用量存在本機，只開 `session/start` 也拿不到；
+數字只會跟著模型回應一起回來。所以探針用 `minimal` effort 送
+`Reply with the single word: ok`，本機模型清單有非 contributor 版時就用那個。每次跑會用掉
+一點點 Muse 額度、約 15 秒，並在 Muse 歷史裡留下一個 session（位於
+`<temp>/ai-usage-muse-probe`），`now` 那一列會跳過它。
 
 CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。刻意不回報的項目列在
 [限制與已知問題](#限制與已知問題)。
@@ -132,12 +140,12 @@ CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。刻意不�
 model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`；不連網、不啟動
 任何程式）。反映的是最後送出的那一輪，所以之後才切換的 model 要等下一則訊息才會出現。
 
-**性價比推薦。** `Value` 區塊是每家一組偏品質的 model + effort，適合 Plan、Coding、
-Review、Bug Fix、Testing。存在 [`value.json`](value.json)，跟 skill 一起 commit，所有
-使用者看到的都一樣 —— 不會依你的用量重排。每次執行都會把該 CLI 目前的 model 清單跟做
-推薦時的清單比對；新增或下架 model 時，該家會標成 stale，接著由 agent 呼叫
-`codex exec`（read-only sandbox）重新評估，確認答案裡的 model 真的存在後寫入新的
-`value.json`。請把它 commit，讓大家拿到新推薦。
+**CursorBench。** 各 provider 下方有一張表，每個你在用的 CLI 一列：該 CLI 最後一次用的
+model + effort 在 [CursorBench](https://cursor.com/cursorbench) 的分數、每題成本、每題
+tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor 的 API 價格，每 1 美元換到的 CursorBench 分數，
+越高越划算）；每家再列一個「合格」組合：同一個 model 裡，在該家所有模型與強度中，分數 ≥ 50% 裡 CP 最高的一檔；整家都達不到 50% 時，取該家最高分。CursorBench 沒收錄的 model 顯示 `not listed`，
+絕不借用相鄰那列的數字。`cursorbench.py` 每次執行抓一次這個公開頁面；這是 skill 自己的
+程式唯一發出的 HTTP 請求，不帶任何憑證。
 
 **語言。** 報表會用你提問的語言輸出 —— 英文、中文或其他語言都可以。model 名稱、數字、
 時間不翻譯。
@@ -161,16 +169,17 @@ stdout。這次實測也抓到一個這段文字之前沒提到的 bug：`subpro
 **版本綁定。** 2026-09-12 針對 `claude` 2.1.268、`codex` 0.154.0、`grok` 1.0.25 驗證。
 Grok 省略 `creditUsagePercent` 已於 2026-09-22 在 `grok` 1.0.40 上再確認。
 `session_info.py` 讀的 session 與 model 快取欄位，於 2026-09-22 針對 `claude` 2.1.278、
-VS Code 擴充寫出的 Codex session（0.154.0-alpha）、`grok` 1.0.40 驗證。
+VS Code 擴充寫出的 Codex session（0.154.0-alpha）、`grok` 1.0.40 驗證。Muse（探針與
+session 欄位）於 2026-09-24 在 Windows 11 上針對 Muse Code 1.3.0-R3401.1 驗證。
 
 | 風險 | 位置 | 壞掉時會怎樣 |
 |---|---|---|
 | Claude 那兩行用量是自由文字，靠 regex 解析 | `claude_usage.py` | 退回直接印原始那行；絕不會印出錯的數字 |
 | Codex 的 app-server 協定是 OpenAI 私有的，沒有任何相容性承諾 | `codex_usage.py` | 方法改名或必要欄位缺失時，ChatGPT 那列會明確失敗；絕不預設成 0% |
 | Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位（period、`billingPeriodEnd`）缺失時，Grok 那列會明確失敗。省略 `creditUsagePercent` 時印 `percent omitted`；絕不預設成 0% |
+| Muse 的 `usage/read` 只回報 host 觀察到的資料 | `muse_usage.py` | turn 結束仍沒有用量時，Muse 那列會明確失敗（`no usage observed`）；絕不預設成 0% |
 | session 檔與 model 快取是各 CLI 內部格式，沒有公開文件 | `session_info.py` | 欄位改名時該值印 `?`；檔案搬家時印 `no local session`。用量那幾列不受影響 |
-| Claude Code 本機沒有 model 清單，所以它的選項是寫死在程式裡的 | `session_info.py` | Claude 出新 model 不會觸發 stale。有新 model 時要手動更新 `claude_options()` 和 `value.json` |
-| 重估 stale 的推薦會執行 `codex exec` | `SKILL.md` | 需要已安裝並登入 `codex`，而且會用到 ChatGPT 額度。沒有的話，照舊顯示舊推薦並標 `(stale)` |
+| CursorBench 是網頁，靠解析它的 HTML 表格；model id 對應到它的名稱是靠規則 | `cursorbench.py` | 版面改變時印 `bench failed (...)`，用量那幾列不受影響。規則對不上、或 CursorBench 名稱拼法不同時顯示 `not listed` |
 
 **刻意不回報的。** 這裡報錯數字比不報更糟：
 
@@ -184,6 +193,8 @@ VS Code 擴充寫出的 Codex session（0.154.0-alpha）、`grok` 1.0.40 驗證�
 - **Grok 省略 `creditUsagePercent`** 不當成 0%。探針印 `percent omitted`，重置時間仍報。
 - **Grok prepaid / on-demand 全為 0** 時省略。數字讀得到，但印 `prepaid 0 /
   on-demand 0` 是噪音。任一值非 0 才顯示那一行。
+- **Muse 方案名稱**不回報。`usage/read` 給的是數字 tier id（`27681527378179523`），
+  不是名稱，所以方案顯示 `?`。
 
 **數字是帳號層級，不是機器層級。** Claude 的 `/usage` 註明它的細項是近似值、且只涵蓋
 本機的 session；但最上層那幾個百分比是整個帳號的。

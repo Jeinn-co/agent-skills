@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Model and effort of the newest local session of one CLI.
 
-Usage: session_info.py claude|codex|grok
+Usage: session_info.py claude|codex|grok|muse
 
 Reads the session files each CLI already writes under the user's home. No network,
 no credentials, nothing launched. Field names found 2026-09-22 on Windows 11:
@@ -11,15 +11,19 @@ no credentials, nothing launched. Field names found 2026-09-22 on Windows 11:
   codex   ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl
           last {"type":"turn_context"}: payload.model, effort
   grok    ~/.grok/sessions/<cwd>/<id>/summary.json: current_model_id, reasoning_effort
-
-Then one `option` line per model the CLI offers, from its own model cache
-(~/.codex/models_cache.json, ~/.grok/models_cache.json) with the vendor's description
-and effort levels. Claude has no local cache; its lines are the documented /model aliases.
+  muse    ~/.local/share/muse/sessions/YYYY/MM/DD/<id>/session.jsonl (found 2026-09-24):
+          last run.model.configured: payload.record.model_id; effort from the turn
+          records that carry one (command intake, queued prompts). Muse's automated
+          reviewer logs its own model/effort under event.model; that is not the user's.
+          Sessions rooted in muse_usage.PROBE_DIR are the usage probe's and are skipped.
+          TUI turns log no effort, and the /model and /effort pickers write
+          ~/.config/muse/settings.json (`model`, `reasoning_effort`) instead, so a
+          settings value newer than the last matching session record wins.
 
 Every value is what the CLI recorded for its last turn, not what the config defaults to.
 A field the files do not carry prints `?` rather than a guess.
 """
-import datetime, json, sys
+import datetime, json, os, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -117,82 +121,81 @@ def grok():
     report(hit[0], s.get("current_model_id"), s.get("reasoning_effort"))
 
 
-def option(model, efforts, default, desc):
-    print("option  %s  [%s%s]  %s" % (model, "/".join(efforts) or "?",
-                                    ", default %s" % default if default else "", desc or ""))
-    return model
+def find_key(obj, key):
+    """First value stored under `key` anywhere in a JSON tree, or None."""
+    if isinstance(obj, dict):
+        if isinstance(obj.get(key), str):
+            return obj[key]
+        obj = list(obj.values())
+    if isinstance(obj, list):
+        for item in obj:
+            hit = find_key(item, key)
+            if hit is not None:
+                return hit
+    return None
 
 
-def claude_options():
-    # Claude Code has no local model catalogue. These are the /model aliases its docs
-    # list; the plan decides which of them the account may pick.
-    return [option(alias, (), None, desc)
-            for alias, desc in (("opus", "most capable, spends quota fastest"),
-                                ("opusplan", "opus in plan mode, sonnet for execution"),
-                                ("sonnet", "everyday coding, cheaper per turn than opus"),
-                                ("haiku", "fastest and cheapest, simple tasks"),
-                                ("fable", "Fable 5.1, for very long tasks"))]
+def same_dir(a, b):
+    # Muse may record a Windows root in extended-length form: \\?\C:\...
+    a, b = (p[4:] if p.startswith("\\\\?\\") else p for p in (a, b))
+    return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
 
 
-def codex_options():
+def muse():
+    from muse_usage import PROBE_DIR
+    files = []
+    for p in (HOME / ".local" / "share" / "muse" / "sessions").glob("*/*/*/*/session.jsonl"):
+        try:
+            files.append((p.stat().st_mtime, p))
+        except OSError:
+            pass
+    settings_at, settings = 0.0, {}
+    config = Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config") / "muse" / "settings.json"
     try:
-        d = json.loads((HOME / ".codex" / "models_cache.json").read_text(encoding="utf-8"))
+        settings_at = config.stat().st_mtime
+        settings = json.loads(config.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return []
-    return [option(m.get("slug"), [x.get("effort") for x in m.get("supported_reasoning_levels") or []],
-                   m.get("default_reasoning_level"), m.get("description"))
-            for m in sorted(d.get("models") or [], key=lambda m: m.get("priority", 99))
-            if m.get("visibility") == "list"]
-
-
-def grok_options():
-    try:
-        d = json.loads((HOME / ".grok" / "models_cache.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return []
-    ids = []
-    for mid, v in (d.get("models") or {}).items():
-        i = v.get("info") or {}
-        if i.get("hidden"):
+        pass
+    for mtime, path in sorted(files, reverse=True)[:20]:
+        model = effort = root = None
+        model_at = effort_at = 0.0  # seconds; records carry recorded_at in microseconds
+        for d in jsonl(path):
+            payload = d.get("payload") if isinstance(d.get("payload"), dict) else {}
+            kind = d.get("payload_type")
+            at = d.get("recorded_at") / 1e6 if isinstance(d.get("recorded_at"), int) else 0.0
+            found = None
+            if kind == "run.model.configured":
+                found = (payload.get("record") or {}).get("model_id")
+                if found:
+                    model, model_at = found, at
+            elif kind == "runtime.command_intake.received":
+                cmd = ((payload.get("record") or {}).get("command") or {}).get("payload") or {}
+                found = cmd.get("reasoning_effort")
+            elif kind == "runtime.session":
+                event = payload.get("event") or {}
+                inner = event.get("payload") if isinstance(event.get("payload"), dict) else {}
+                found = inner.get("reasoning_effort")
+            if found and kind != "run.model.configured":
+                effort, effort_at = found, at
+            if root is None:
+                root = find_key(d, "workspace_root")
+        if root and same_dir(root, PROBE_DIR):
             continue
-        effs = i.get("reasoning_efforts") or []
-        ids.append(option(mid, [e.get("id") for e in effs],
-                          next((e.get("id") for e in effs if e.get("default")), None),
-                          i.get("description")))
-    return ids
+        if model:
+            if settings.get("model") and settings_at > model_at:
+                model = settings["model"]
+            if settings.get("reasoning_effort") and settings_at > effort_at:
+                effort = settings["reasoning_effort"]
+            return report(mtime, model, effort)
+    print("no local session")
 
 
-def value(cli, ids):
-    """The shared model + effort pick from value.json, or `stale` when the model list moved.
-
-    value.json is evaluated once and committed, so every user of the skill reads the same
-    pick. It records the model ids it was judged against; any id added or dropped since
-    means a new model shipped and the pick needs redoing.
-    """
-    try:
-        v = json.loads((Path(__file__).resolve().parent / "value.json").read_text(encoding="utf-8"))
-        e = v["providers"][cli]
-    except (OSError, ValueError, KeyError):
-        return print("value   stale  (no evaluation yet)")
-    new = [m for m in ids if m not in e.get("models", [])]
-    gone = [m for m in e.get("models", []) if m not in ids]
-    if ids and (new or gone):
-        return print("value   stale  new: %s  gone: %s  (evaluated %s)"
-                     % (",".join(new) or "-", ",".join(gone) or "-", v.get("evaluated", "?")))
-    print("value   %s + %s  %s  (evaluated %s)" % (e["pick"], e["effort"], e.get("why", ""),
-                                                  v.get("evaluated", "?")))
-    if v.get("positioning"):
-        print("profile %s" % v["positioning"])
-
-
-PROBES = {"claude": claude, "codex": codex, "grok": grok}
-OPTIONS = {"claude": claude_options, "codex": codex_options, "grok": grok_options}
+PROBES = {"claude": claude, "codex": codex, "grok": grok, "muse": muse}
 
 if len(sys.argv) != 2 or sys.argv[1] not in PROBES:
-    print("usage: session_info.py claude|codex|grok")
+    print("usage: session_info.py claude|codex|grok|muse")
     sys.exit(2)
 try:
     PROBES[sys.argv[1]]()
-    value(sys.argv[1], OPTIONS[sys.argv[1]]())
 except Exception as e:  # a format change must not take the usage report down with it
     print("session read failed (%s)" % e)
