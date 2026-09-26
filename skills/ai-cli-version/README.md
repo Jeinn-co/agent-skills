@@ -111,20 +111,27 @@ tab-separated lines, not the formatted report.
 
 ## What it prints
 
-`/ai-cli-version` in Claude Code, including the optional `y` update:
+`/ai-cli-version` on 09-27, with all four CLIs up to date:
 
-![ai-cli-version running in Claude Code](images/demo-claude-code.png)
+![ai-cli-version report](images/demo.png)
 
-As plain text:
+Each row shows the version you have and when you installed it, the latest version and
+when it was released, the status and the update channel. Grok Build's release time
+carries `≤` and the `*` footnote because it comes from a third-party mirror; Muse Code's
+is always `?` because its channel publishes no date. The last line is `All up to date.`
+or the list of CLIs that have an update.
+
+When a CLI is outdated, its row ends with the update command and the agent asks before
+running anything. As plain text, with one outdated CLI:
 
 ```
-CLI VERSIONS — 09-17
+CLI VERSIONS — 09-24
 
-  Tool          Installed               Latest                             Status
-  Claude Code   2.1.274 (09/17 11:20)   2.1.274 (released 09/17 06:36)     ✓ up to date      channel: latest
-  Codex         0.153.4 (09/07 11:03)   0.154.0 (released 09/10 06:40)     ↑ update → codex update
-  Grok Build    1.0.34  (09/17 09:28)   1.0.34  (released ≤ 09/17 03:32*)  ✓ up to date      channel: stable
-  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)   ✓ up to date   channel: muse-stable
+  Tool          Installed                     Latest                             Status
+  Claude Code   2.1.274 (09/17 11:20)         2.1.274 (released 09/17 06:36)     ✓ up to date   channel: latest
+  Codex         0.153.4 (09/07 11:03)         0.154.0 (released 09/10 06:40)     ↑ update → codex update
+  Grok Build    1.0.34 (09/17 09:28)          1.0.34 (released ≤ 09/17 03:32*)   ✓ up to date   channel: stable
+  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)         ✓ up to date   channel: muse-stable
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.

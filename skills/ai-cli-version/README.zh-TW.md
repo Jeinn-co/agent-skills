@@ -104,20 +104,24 @@ py -3 run.py      # Windows；沒有 `py` 就用 `python run.py`
 
 ## 輸出範例
 
-`/ai-cli-version` 在 Claude Code 裡執行，含按 `y` 更新的流程：
+`/ai-cli-version` 在 09-27 執行，四個 CLI 都是最新版：
 
-![ai-cli-version 在 Claude Code 裡執行](images/demo-claude-code.png)
+![ai-cli-version 報表](images/demo.png)
 
-純文字版：
+每一列顯示你裝的版本與安裝時間、最新版本與發佈時間、狀態，以及更新 channel。Grok Build
+的發佈時間來自第三方鏡像，所以加上 `≤` 和 `*` 註腳；Muse Code 的 channel 不帶日期，發佈
+時間一律是 `?`。最後一行是 `All up to date.`，或列出有更新的 CLI。
+
+有 CLI 過期時，該列會在最後附上更新指令，agent 會先問過你才執行。純文字版，一個 CLI 過期的例子：
 
 ```
-CLI VERSIONS — 09-17
+CLI VERSIONS — 09-24
 
-  Tool          Installed               Latest                             Status
-  Claude Code   2.1.274 (09/17 11:20)   2.1.274 (released 09/17 06:36)     ✓ up to date      channel: latest
-  Codex         0.153.4 (09/07 11:03)   0.154.0 (released 09/10 06:40)     ↑ update → codex update
-  Grok Build    1.0.34  (09/17 09:28)   1.0.34  (released ≤ 09/17 03:32*)  ✓ up to date      channel: stable
-  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)   ✓ up to date   channel: muse-stable
+  Tool          Installed                     Latest                             Status
+  Claude Code   2.1.274 (09/17 11:20)         2.1.274 (released 09/17 06:36)     ✓ up to date   channel: latest
+  Codex         0.153.4 (09/07 11:03)         0.154.0 (released 09/10 06:40)     ↑ update → codex update
+  Grok Build    1.0.34 (09/17 09:28)          1.0.34 (released ≤ 09/17 03:32*)   ✓ up to date   channel: stable
+  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)         ✓ up to date   channel: muse-stable
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
