@@ -23,9 +23,9 @@ npx skills add Jeinn-co/agent-skills@ai-cli-version
 
 ![ai-usage 報表](skills/ai-usage/images/demo.png)
 
-`/ai-cli-version` 在 Claude Code 裡執行，含按 `y` 更新的流程：
+`/ai-cli-version`，四個 CLI 都是最新版。有 CLI 過期時，報表最後會出現 `y` / `Esc` 更新選項：
 
-![ai-cli-version 在 Claude Code 裡執行](skills/ai-cli-version/images/demo-claude-code.png)
+![ai-cli-version 報表](skills/ai-cli-version/images/demo.png)
 
 ## 安裝
 

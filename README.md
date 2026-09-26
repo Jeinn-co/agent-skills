@@ -21,9 +21,10 @@ npx skills add Jeinn-co/agent-skills@ai-cli-version
 
 ![ai-usage report](skills/ai-usage/images/demo.png)
 
-`/ai-cli-version` in Claude Code, including the optional `y` update:
+`/ai-cli-version` with all four CLIs up to date. When one is outdated, the report ends
+with a `y` / `Esc` update prompt:
 
-![ai-cli-version running in Claude Code](skills/ai-cli-version/images/demo-claude-code.png)
+![ai-cli-version report](skills/ai-cli-version/images/demo.png)
 
 ## Install
 
