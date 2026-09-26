@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok and
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.4.0"
+  version: "1.5.1"
 ---
 
 # /ai-usage — unified AI usage report
@@ -36,8 +36,10 @@ report what comes back.
   still a valid run: every row prints `not installed`.
 - **Subprocess and network access.** The host must allow local process launches, and
   each installed provider CLI must be able to reach its own service. The only direct
-  HTTP request the Python code makes is one GET of the public page
-  `https://cursor.com/cursorbench` (`cursorbench.py`); no credential is sent.
+  HTTP requests the Python code makes are one GET of the public page
+  `https://cursor.com/cursorbench` (`cursorbench.py`) and, for a current model
+  CursorBench does not list, one GET of its public Artificial Analysis release page
+  (`https://artificialanalysis.ai/models/releases/<model id>`); no credential is sent.
 
 If a provider prints `not installed`, that is the whole answer for that row — say so
 and move on. Do not suggest installing it unless the user asks. If a provider is
@@ -74,6 +76,10 @@ newest local session file (no network, nothing launched): `session` (last write 
 `model`, `effort`. These are what the CLI recorded for its last turn, not config
 defaults. See the docstring in `session_info.py` for the files
 and fields. A `?` means the file did not carry that field — print `?`, never a guess.
+One exception: Muse records no effort for TUI turns unless `/effort` was used, and then
+runs at its documented default (`muse --help`: "default: high"); the probe prints
+`effort  high (default)`. Print it as `effort high (default)`; CursorBench looks it up
+as High.
 `no local session` means that CLI has never run here; print it as one row.
 
 ## Reading the output
@@ -96,8 +102,9 @@ on-demand only when any of those values is non-zero. Do not print
 5h row for it. Do not pick Grok as the tool to use just because the percent is
 missing.
 
-**Muse** — `plan: ?` (Muse reports a numeric tier id, not a plan name), a 5h window and a
-week, both with reset clocks. Show the plan as `?`; do not map the id to a plan name.
+**Muse** — `plan:` is the plan name when `muse_usage.py` knows the numeric tier id
+(`TIER_NAMES`, e.g. `High Usage`), else `?`; a 5h window and a week, both with reset
+clocks. Print the plan exactly as the probe does; never map an id by hand.
 
 **CursorBench** — after the four providers, `### CURSORBENCH` holds one `bench` line per
 CLI with a local session (the CursorBench row for that CLI's current model + effort, or
@@ -105,9 +112,18 @@ CLI with a local session (the CursorBench row for that CLI's current model + eff
 `cp` that scores at least 50%, searched across every model and effort CursorBench lists
 for that provider; when none reaches 50%, the provider's highest score. `rule cp` /
 `rule closest` says which applied. A CLI whose current model is unlisted gets `pick …
-not listed`. `cp` is score ÷ cost per task: points per US dollar at Cursor's API
+not listed` — unless Artificial Analysis has a page for it: then its `bench` and `pick`
+lines end in `(AA)` and carry `aa <index>` (the AA Intelligence Index, a different test
+set) instead of a CursorBench percent, with AA's cost and output tokens (reasoning +
+answer) per index task, and the same pick
+rule applied to that model's own efforts. Only when AA has no page either does a `ref`
+line follow, naming the newest listed same-provider row at the same effort —
+orientation only, never compared. `cp` is score ÷ cost per task: points per US dollar at Cursor's API
 prices, not the subscription price. `(mapped from …-contributor)` means the CLI runs
-Muse's contributor variant and the row is plain Muse Spark. `bench failed (...)` means
+Muse's contributor variant and the row is plain Muse Spark; it applies even when the
+effort is `?` (`bench muse  Muse Spark 1.3  ?  not listed  (mapped from …)`), so the Now
+cell shows the mapped name — `Muse Spark 1.3 ? · not listed` — never the raw
+`-contributor` id. `bench failed (...)` means
 the page could not be fetched or parsed: print that one line and keep the rest.
 
 Do not label any of these "redeem" unless the provider itself uses that concept.
@@ -118,7 +134,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.4.0
+USAGE — 09-12 01:08 · ai-usage 1.5.1
 
   Claude    pro
     5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
@@ -141,14 +157,14 @@ USAGE — 09-12 01:08 · ai-usage 1.4.0
 
   Qualified (CursorBench)
     Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score
-    Provider  Now                          Now CP  Qualified                       Qualified CP
-    Claude    Opus 5.5 High · 56.0%        14.1    Opus 5.5 Medium · 52.5%         18.0
-    ChatGPT   GPT-6 Sol High · not listed  —       —                               —
-    Grok      Grok 4.7 High · 43.9%         9.4    Grok 4.7 Extra High · 46.3% *    7.7
-    Muse      Muse Spark 1.3 Max · 41.6%   15.8    Muse Spark 1.3 Max · 41.6% *    15.8
+    Provider  Now                          Now $   Now CP  Qualified                       Qualified $  Qualified CP
+    Claude    Opus 5.5 High · 56.0%        $3.97    14.1   Opus 5.5 Medium · 52.5%         $2.91         18.0
+    ChatGPT   GPT-6 Sol High · AA 43       $0.37   114.3   GPT-6 Sol Max · AA 48 *         $1.06         45.0
+    Grok      Grok 4.7 High · 43.9%        $4.69     9.4   Grok 4.7 Extra High · 46.3% *   $6.01          7.7
+    Muse      Muse Spark 1.3 Max · 41.6%   $2.64    15.8   Muse Spark 1.3 Max · 41.6% *    $2.64         15.8
 
-  CP = score ÷ cost per task at Cursor's API prices; higher is better. * nothing from this provider reaches 50%: its highest.
-  Muse is scored as plain Muse Spark 1.3.
+  $ = cost per task at API prices (AA rows: AA's cost per index task), not subscription quota. CP = score ÷ $; higher is better. * nothing from this provider reaches 50%: its highest.
+  Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index (another test set): its score and CP are not comparable with CursorBench's.
 
   ⚠ ChatGPT week is 92% used; resets in 2h23m.
   → Use Claude right now: the highest score, and its 5h window is 21% used.
@@ -163,7 +179,7 @@ Rules:
 - Never print ChatGPT "resets available" / "Usage limit resets", including
   `unknown (web only)`.
 - Never invent a 5h row for Grok.
-- Muse's plan is always `?`; never print its numeric tier id.
+- Muse's plan is what the probe prints (a known plan name or `?`); never print its numeric tier id.
 - Never print Grok prepaid / on-demand when every value is 0.
 - One `now` row per provider from the session lines: model · effort, then the
   session age in parentheses. Never print the project folder. Omit the `now` row only when the probe printed
@@ -171,17 +187,22 @@ Rules:
 - Qualified table: exactly one row per provider, in provider order, merged from that
   provider's `bench` line (Now: model effort · score, then its CP) and `pick` line
   (Qualified: model effort · score, then its CP), all exactly as printed. Each side has
-  its own score and its own CP column, so no number reads as the other side's. No cost
-  column. The `Standard` line
+  its own score, its own `$` column (the line's `cost`, two decimals, as printed) and its
+  own CP column, so no number reads as the other side's. No tokens column. The `Standard` line
   always prints, unshortened, directly under the header (Chinese: 「合格標準：同一家任一模型 ≥ 50% 者取 CP 最高 ·
   整家都達不到 50% 則取該家最高分」). Mark a Qualified cell whose `pick` line says
   `rule closest` with `*` and keep the `*` footnote (「* 這家沒有任何模型／強度到 50%，
   取最高的一檔」). The Qualified model can differ from the Now model (e.g. Fable 5.1). Chinese labels: 「服務」, 「目前」,
-  「目前 CP」, 「合格」, 「合格 CP」, header 「合格（CursorBench）」 — never 「推薦」.
-  A `bench … not listed` shows `not listed` in Now; a `pick … not listed` shows `—` in every Qualified column. Never borrow another model's
+  「目前 $」, 「目前 CP」, 「合格」, 「合格 $」, 「合格 CP」, header 「合格（CursorBench）」 — never 「推薦」.
+  An `(AA)` line fills its cell as `<model effort> · AA <index>` with its cp, no percent
+  sign, and adds the AA clause to the footnote (Chinese: 「AA = Artificial Analysis 智力指數
+  （另一套題），分數與 CP 不能跟 CursorBench 比」). An `(AA)` row never decides the `→` line
+  on score or CP against CursorBench rows.
+  A `bench … not listed` shows `not listed` in Now; a `pick … not listed` shows `—` in every Qualified column. When a `ref` line exists for that provider, print one extra line directly under its table row: `↳ <model effort> · <score> · CP <cp> (ref)`. Never borrow another model's
   or effort's numbers. Keep the filter to the one header line and the formula to the
   one footnote line, as in the sample; the footnote says higher is better, because a
   bare "CP" reads as a cost.
+  Chinese `$` footnote: 「$ = 每題成本（API 價格；AA 列為 AA 每題成本），不是訂閱額度」.
   In Chinese never write the unit as a bare 「分」 (it also means a cent): write
   「CursorBench 分數 ÷ 美元」 or 「每 1 美元換到的分數」. A `(mapped from …)` row gets the
   short clause at the end of that footnote, not a line of its own.

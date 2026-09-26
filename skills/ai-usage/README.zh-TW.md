@@ -114,8 +114,20 @@ skill 版本後結束。
 
 ![ai-usage 報表](images/demo.png)
 
+由上往下看：
+
+1. **四家的用量區塊** —— Claude、ChatGPT、Grok、Muse。每個視窗有 10 格長條、已用百分比、
+   重置時間與剩餘時間。Grok 只有一個週視窗；其他三家是 5 小時加一週。
+2. **`now`** —— 該 CLI 最新一個本機 session 的 model 與 effort。
+3. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是
+   挑選規則選出的那一檔。兩邊各有分數、`$`（依 API 價格的每題成本）與 CP（分數 ÷ `$`）。
+   `*` 表示這家沒有任何一檔到 50%，改列它的最高分。CursorBench 沒收錄的 model（例如上圖的
+   GPT-6 Sol）改用 Artificial Analysis，顯示 `AA <指數>`。
+4. **`⚠`** —— 只有週視窗用量超過 80% 才出現。
+5. **`→`** —— 現在該用哪一個，附一句理由。
+
 它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
-的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude 和 Grok 的數字。
+的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude、Grok 和 Muse 的數字。
 
 **用量數字是即時的。** 沒有爬任何網頁，沒有驅動瀏覽器，沒有讀任何已存憑證。是直接問各家
 自己的 CLI：
@@ -143,9 +155,12 @@ model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`
 **CursorBench。** 各 provider 下方有一張表，每個你在用的 CLI 一列：該 CLI 最後一次用的
 model + effort 在 [CursorBench](https://cursor.com/cursorbench) 的分數、每題成本、每題
 tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor 的 API 價格，每 1 美元換到的 CursorBench 分數，
-越高越划算）；每家再列一個「合格」組合：同一個 model 裡，在該家所有模型與強度中，分數 ≥ 50% 裡 CP 最高的一檔；整家都達不到 50% 時，取該家最高分。CursorBench 沒收錄的 model 顯示 `not listed`，
-絕不借用相鄰那列的數字。`cursorbench.py` 每次執行抓一次這個公開頁面；這是 skill 自己的
-程式唯一發出的 HTTP 請求，不帶任何憑證。
+越高越划算）。報表的表格兩邊都列分數、`$` 與 CP；tokens 與 steps 只留在原始輸出。每家再列一個「合格」組合：同一個 model 裡，在該家所有模型與強度中，分數 ≥ 50% 裡 CP 最高的一檔；整家都達不到 50% 時，取該家最高分。CursorBench 沒收錄的 model 顯示 `not listed`，
+絕不借用相鄰那列的數字。這種 model 改用它在 [Artificial Analysis](https://artificialanalysis.ai)
+的公開 release 頁，標 `AA`：AA 智力指數、每題成本與每題 output tokens，合格規則套在該 model 自己的各強度上。AA 是
+另一套題，分數與 CP 不跟 CursorBench 比。AA 也沒有頁面時，才多一行 `ref`，標示同家最新、同強度的一列，
+僅供對照。`cursorbench.py` 每次執行抓一次 CursorBench 公開頁面，每個未收錄的 model 再抓一次 AA 頁面；
+這些是 skill 自己的程式唯一發出的 HTTP 請求，不帶任何憑證。
 
 **語言。** 報表會用你提問的語言輸出 —— 英文、中文或其他語言都可以。model 名稱、數字、
 時間不翻譯。
@@ -180,6 +195,7 @@ session 欄位）於 2026-09-24 在 Windows 11 上針對 Muse Code 1.3.0-R3401.1
 | Muse 的 `usage/read` 只回報 host 觀察到的資料 | `muse_usage.py` | turn 結束仍沒有用量時，Muse 那列會明確失敗（`no usage observed`）；絕不預設成 0% |
 | session 檔與 model 快取是各 CLI 內部格式，沒有公開文件 | `session_info.py` | 欄位改名時該值印 `?`；檔案搬家時印 `no local session`。用量那幾列不受影響 |
 | CursorBench 是網頁，靠解析它的 HTML 表格；model id 對應到它的名稱是靠規則 | `cursorbench.py` | 版面改變時印 `bench failed (...)`，用量那幾列不受影響。規則對不上、或 CursorBench 名稱拼法不同時顯示 `not listed` |
+| Artificial Analysis 備援讀的是 AA release 頁伺服器端渲染時內嵌的 model 資料，沒有公開文件 | `cursorbench.py` | 頁面不存在或資料格式改變時就沒有 AA 列，報表退回 `not listed` 加一行 `ref`；絕不猜分數 |
 
 **刻意不回報的。** 這裡報錯數字比不報更糟：
 
@@ -193,8 +209,9 @@ session 欄位）於 2026-09-24 在 Windows 11 上針對 Muse Code 1.3.0-R3401.1
 - **Grok 省略 `creditUsagePercent`** 不當成 0%。探針印 `percent omitted`，重置時間仍報。
 - **Grok prepaid / on-demand 全為 0** 時省略。數字讀得到，但印 `prepaid 0 /
   on-demand 0` 是噪音。任一值非 0 才顯示那一行。
-- **Muse 方案名稱**不回報。`usage/read` 給的是數字 tier id（`27681527378179523`），
-  不是名稱，所以方案顯示 `?`。
+- **Muse 方案名稱**來自一張已知 tier id 的對照表（`muse_usage.py` 的 `TIER_NAMES`；
+  `27681527378179523` 是 `High Usage`，已對照 Muse 的方案頁）。`usage/read` 只給數字
+  id，不在表裡的 id 一律顯示 `?`，不猜名稱。
 
 **數字是帳號層級，不是機器層級。** Claude 的 `/usage` 註明它的細項是近似值、且只涵蓋
 本機的 session；但最上層那幾個百分比是整個帳號的。

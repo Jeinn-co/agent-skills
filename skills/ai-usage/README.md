@@ -123,9 +123,23 @@ to the platform command to print the version alone and exit.
 
 ![ai-usage report](images/demo.png)
 
+Read top to bottom:
+
+1. **Four provider blocks** — Claude, ChatGPT, Grok and Muse. Each window gets a
+   10-character bar, the percent used, the reset clock and the time left. Grok has one
+   weekly window; the others have a 5-hour window and a week.
+2. **`now`** — the model and effort of that CLI's newest local session.
+3. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran
+   last; *Qualified* is the effort the pick rule chooses. Each side shows its score,
+   `$` (cost per task at API prices) and CP (score ÷ `$`). `*` marks a provider with
+   nothing at 50%, so its highest score is shown. A model CursorBench does not list, like
+   GPT-6 Sol above, falls back to Artificial Analysis and shows `AA <index>`.
+4. **`⚠`** — only when a weekly window is over 80% used.
+5. **`→`** — which tool to use right now, and why in a few words.
+
 It asks each provider's CLI rather than its own host, so it reads the same provider
-accounts wherever you install it — run it inside Codex and you still get your Claude
-and Grok numbers.
+accounts wherever you install it — run it inside Codex and you still get your Claude,
+Grok and Muse numbers.
 
 **Usage numbers are live.** Nothing is scraped from a web page, no browser is driven,
 and no stored credential is ever read. Each provider's own CLI is asked directly:
@@ -156,11 +170,19 @@ that was sent, so a model switched since then appears after the next message.
 **CursorBench.** Below the providers, one table row per CLI you use: the
 [CursorBench](https://cursor.com/cursorbench) score, cost / task, tokens / task and
 steps / task of the exact model + effort that CLI ran last, plus CP (score ÷ cost per
-task, points per dollar at Cursor's API prices — higher is better), and one qualified row per
+task, points per dollar at Cursor's API prices — higher is better). The report's table
+shows the score, `$` and CP for both sides; tokens and steps stay in the raw output. One qualified row per
 provider: across every model and effort CursorBench lists for that provider, the best CP at a
 score of 50% or more; when nothing from that provider reaches 50%, its highest score. A model CursorBench does not list shows `not listed`, never a
-neighbouring row. `cursorbench.py` fetches the public page once per run; that is the
-only HTTP request the skill's own code makes, and it sends no credential.
+neighbouring row. For such a model the row falls back to its public
+[Artificial Analysis](https://artificialanalysis.ai) release page, marked `AA`: the AA
+Intelligence Index, cost and output tokens per index task, with the same qualified rule over that
+model's own efforts. AA is a different test set, so its score and CP are never compared
+with CursorBench's. Only when AA has no page either does the report add one `ref` line
+naming the newest listed same-provider row at the same effort, for orientation only.
+`cursorbench.py` fetches the CursorBench page once per run, plus one AA page per unlisted
+model; those are the only HTTP requests the skill's own code makes, and they send no
+credential.
 
 **Language.** The report is written in the language you asked in — English, 中文 or
 anything else. Model names, numbers and times are never translated.
@@ -197,6 +219,7 @@ extension (0.154.0-alpha), and `grok` 1.0.40. Muse (probe and session fields) ve
 | Muse's `usage/read` returns only what the host has observed | `muse_usage.py` | If the turn ends with no usage, the Muse row fails visibly (`no usage observed`); it never defaults to 0% |
 | Session files and model caches are internal to each CLI and undocumented | `session_info.py` | A renamed field prints `?` for that value; a moved file prints `no local session`. The usage rows are unaffected |
 | CursorBench is a web page parsed by its HTML table, and model ids are mapped to its names by rule | `cursorbench.py` | A layout change prints `bench failed (...)` and the usage rows are unaffected. A model the rules cannot map, or a name CursorBench spells differently, shows `not listed` |
+| The Artificial Analysis fallback reads the model data embedded in AA's server-rendered release page, which is undocumented | `cursorbench.py` | A missing page or changed payload means no AA row; the report falls back to `not listed` plus a `ref` line. It never guesses a score |
 
 **Deliberately not reported.** A wrong number here is worse than no number:
 
@@ -213,8 +236,10 @@ extension (0.154.0-alpha), and `grok` 1.0.40. Muse (probe and session fields) ve
 - **Grok prepaid / on-demand at 0** is omitted. The values are readable; printing
   `prepaid 0 / on-demand 0` is noise. The line appears only when any value is
   non-zero.
-- **Muse plan name** is not reported. `usage/read` gives a numeric tier id
-  (`27681527378179523`), not a name, so the plan shows `?`.
+- **Muse plan name** comes from a small table of known tier ids (`TIER_NAMES` in
+  `muse_usage.py`; `27681527378179523` is `High Usage`, matched against Muse's plan
+  page). `usage/read` gives only the numeric id, so any id not in that table shows `?`
+  rather than a guessed name.
 
 **Numbers are per-account, not per-machine.** Claude's `/usage` notes its breakdown is
 approximate and covers local sessions on this machine only; the headline percentages

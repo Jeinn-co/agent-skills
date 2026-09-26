@@ -50,7 +50,7 @@ try:
                       if line.startswith(("model ", "effort ")))
         if "model" in fields:
             now.append("%s=%s:%s" % (cli, fields["model"].strip(),
-                                     fields.get("effort", "?").strip()))
+                                     (fields.get("effort") or "?").split()[0]))
     print()
     print("### CURSORBENCH")
     sys.stdout.flush()

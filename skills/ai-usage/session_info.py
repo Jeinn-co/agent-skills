@@ -18,7 +18,9 @@ no credentials, nothing launched. Field names found 2026-09-22 on Windows 11:
           Sessions rooted in muse_usage.PROBE_DIR are the usage probe's and are skipped.
           TUI turns log no effort, and the /model and /effort pickers write
           ~/.config/muse/settings.json (`model`, `reasoning_effort`) instead, so a
-          settings value newer than the last matching session record wins.
+          settings value newer than the last matching session record wins. When
+          neither carries one, Muse ran at its documented default (`muse --help`:
+          "default: high"), printed as `high (default)`.
 
 Every value is what the CLI recorded for its last turn, not what the config defaults to.
 A field the files do not carry prints `?` rather than a guess.
@@ -141,6 +143,9 @@ def same_dir(a, b):
     return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
 
 
+MUSE_DEFAULT_EFFORT = "high"
+
+
 def muse():
     from muse_usage import PROBE_DIR
     files = []
@@ -186,7 +191,8 @@ def muse():
                 model = settings["model"]
             if settings.get("reasoning_effort") and settings_at > effort_at:
                 effort = settings["reasoning_effort"]
-            return report(mtime, model, effort)
+            # nothing recorded -> Muse ran at its own default (`muse --help`: "default: high")
+            return report(mtime, model, effort or MUSE_DEFAULT_EFFORT + " (default)")
     print("no local session")
 
 

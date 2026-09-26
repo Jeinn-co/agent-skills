@@ -22,6 +22,9 @@ portable.stdout_utf8()
 
 # session_info.py imports this to hide the probe's own sessions.
 PROBE_DIR = os.path.join(tempfile.gettempdir(), "ai-usage-muse-probe")
+# Muse `tier` id -> plan name as Muse's plan page shows it. 27681527378179523 was the
+# account's id on 2026-09-24 while that page listed "High Usage" as the current plan.
+TIER_NAMES = {"27681527378179523": "High Usage"}
 CATALOG_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "muse", "model-catalog")
 PROMPT = "Reply with the single word: ok"
 TIMEOUT = 90
@@ -140,10 +143,11 @@ def main():
         print("usage call failed (no usage observed within %ds)" % TIMEOUT)
         return 1
     try:
-        # `tier` is a numeric product id (27681527378179523 on 2026-09-24), not a
-        # plan name; show it only when it reads like a name.
+        # `tier` is a numeric product id, not a plan name: map the ids a user has
+        # matched against Muse's plan page (TIER_NAMES); any other id prints `?`.
         tier = str(usage.get("tier") or "")
-        print("plan: %s" % (tier if tier and not tier.isdigit() else "?"))
+        name = TIER_NAMES.get(tier) or (tier if tier and not tier.isdigit() else "?")
+        print("plan: %s" % name)
         window, weekly = usage["window"], usage["weekly"]
         mins = window["windowDurationMins"]
         span = "%dh" % (mins // 60) if mins % 60 == 0 else "%dm" % mins
