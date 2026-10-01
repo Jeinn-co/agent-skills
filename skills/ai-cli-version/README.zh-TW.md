@@ -2,7 +2,7 @@
 
 > 中文版。英文版 [README.md](README.md) 為準，本檔為對照翻譯，兩邊同步更新。
 
-一份報表看你的 Claude Code、Codex、Grok Build、Muse Code CLI 是不是最新版 —— 你目前的版本和安裝時間，
+一份報表看你的 Claude Code、Codex、Grok Build、Muse Code、Antigravity（Gemini）CLI 是不是最新版 —— 你目前的版本和安裝時間，
 以及最新版本和發佈時間。
 
 版本檢查永遠是唯讀的。有任一 CLI 不是最新版時，agent 會提供兩個選項：按 `y` 更新全部
@@ -41,8 +41,9 @@ macOS 的 `/usr/bin/python3`（3.9）來自 Xcode Command Line Tools；沒裝的
 | Codex | `codex` |
 | Grok Build | `grok` |
 | Muse Code | `muse` |
+| Antigravity（Gemini） | `~/.gemini/bin/agy` |
 
-**四個不必裝滿。** 沒裝的工具會印 `not installed`，其他照常執行。讀取版本不需要登入。
+**五個不必裝滿。** 沒裝的工具會印 `not installed`，其他照常執行。讀取版本不需要登入。
 
 ### 3. 網路與 subprocess 權限
 
@@ -104,13 +105,13 @@ py -3 run.py      # Windows；沒有 `py` 就用 `python run.py`
 
 ## 輸出範例
 
-`/ai-cli-version` 在 09-27 執行，四個 CLI 都是最新版：
+`/ai-cli-version` 在 10-02 執行，五個 CLI 都檢查過，其中一個有更新：
 
 ![ai-cli-version 報表](images/demo.png)
 
 每一列顯示你裝的版本與安裝時間、最新版本與發佈時間、狀態，以及更新 channel。Grok Build
-的發佈時間來自第三方鏡像，所以加上 `≤` 和 `*` 註腳；Muse Code 的 channel 不帶日期，發佈
-時間一律是 `?`。最後一行是 `All up to date.`，或列出有更新的 CLI。
+的發佈時間來自第三方鏡像，所以加上 `≤` 和 `*` 註腳；Muse Code 和 Antigravity 的更新來源
+不帶日期，發佈時間一律是 `?`。最後一行是 `All up to date.`，或列出有更新的 CLI。
 
 有 CLI 過期時，該列會在最後附上更新指令，agent 會先問過你才執行。純文字版，一個 CLI 過期的例子：
 
@@ -122,6 +123,7 @@ CLI VERSIONS — 09-24
   Codex         0.153.4 (09/07 11:03)         0.154.0 (released 09/10 06:40)     ↑ update → codex update
   Grok Build    1.0.34 (09/17 09:28)          1.0.34 (released ≤ 09/17 03:32*)   ✓ up to date   channel: stable
   Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)         ✓ up to date   channel: muse-stable
+  Antigravity   1.2.14 (09/30 10:57)          1.2.14 (released ?)                ✓ up to date   channel: stable
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
@@ -141,6 +143,7 @@ CLI VERSIONS — 09-24
 | Codex | `codex --version` | `$CODEX_HOME/packages/standalone/releases/<本機版本>-*` | npm registry，`@openai/codex` 的 `latest` | npm 發佈時間 |
 | Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<本機版本>-*` | 同一個指令 | `timoteuszelle/x.ai-grok` 的 GitHub release（近似值） |
 | Muse Code | `muse --version` | `muse` launcher 旁邊的 `muse-bin-<本機版本>*` | `https://api.meta.ai/muse-code/channels/<channel>`（公開，就是 launcher 讀的那個檔） | 無（`?`） |
+| Antigravity（Gemini） | `~/.gemini/bin/agy --version` | `agy` 執行檔本身 | CLI 自己的 auto-updater（`antigravity-cli-auto-updater-….run.app`）上的 `Stable Version` | 無（`?`） |
 
 `settings.json` 從 `$CLAUDE_CONFIG_DIR` 讀，沒設就讀 `~/.claude`。`$CODEX_HOME` 預設是
 `~/.codex`。如果安裝時間的路徑不存在 —— 例如 npm 或 Homebrew 安裝，或是 macOS/Linux 的
@@ -162,6 +165,11 @@ Grok Build 新版時會發 GitHub release，所以官方發佈時間*不晚於*�
 **Muse 沒有發佈時間。** channel manifest 只有版本、沒有日期，所以 Muse 的發佈時間一律
 顯示 `?`。channel 取 `$MUSE_CHANNEL`，沒設就讀 launcher 旁邊的 `.muse-channel`，再沒有就是
 `muse-stable`。
+
+**Antigravity 跑的是 `~/.gemini/bin/agy`，絕不是 PATH 上的 `agy`。** Antigravity IDE
+會裝一個同名的編輯器啟動器，跑它會打開視窗，所以更新指令一律寫完整路徑
+`~/.gemini/bin/agy update`。auto-updater 只列版本、沒有日期，發佈時間一律顯示 `?`；
+註記會寫目前版本的推送進度。這個 CLI 啟動時也會自己更新。
 
 **假設原生版跟 npm 同步。** Claude Code 和 Codex 的原生安裝版不是透過 npm 發佈的。這個
 skill 假設原生版的版號跟 npm 套件一致；驗證時版號確實相同，但沒有官方文件說明這一點。
@@ -188,6 +196,9 @@ Claude Code、Codex、Grok Build 三個 agent 的 global 安裝流程皆成功�
 **已驗證** 2026-09-24 在 Windows 11（zh-TW、Python 3.12）上針對 Muse Code 1.3.0-R3401.1：
 版本、安裝時間、channel 查詢，以及更新指令在 bash 與 PowerShell 下都能執行。Muse 在
 macOS 與 Linux 尚未測試；POSIX launcher（`api.meta.ai/muse-launcher.sh`）用的是同樣的檔名與變數。
+
+**已驗證** 2026-10-02 在 macOS（arm64、Python 3.10.8）上針對 Antigravity CLI（`agy`）1.2.14：
+版本、安裝時間，以及 updater 的 stable 版本。Antigravity 在 Windows 與 Linux 尚未測試。
 
 ## 授權
 

@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex, Grok Build and Muse Code CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. Use when the user runs /ai-cli-version or /check-uu, or asks 檢查更新, CLI 有沒有新版, claude/codex/grok/muse 要不要更新, 什麼時候發佈, 我什麼時候更新的, "is my CLI up to date", "when was this released".
-compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com and api.meta.ai. Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
+description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. Use when the user runs /ai-cli-version or /check-uu, or asks 檢查更新, CLI 有沒有新版, claude/codex/grok/muse/agy/antigravity 要不要更新, 什麼時候發佈, 我什麼時候更新的, "is my CLI up to date", "when was this released".
+compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -31,6 +31,7 @@ Only the **latest** version and the **currently installed** version — no histo
 | Claude Code | `claude --version` | `~/.local/share/claude/versions/<installed>` | npm `@anthropic-ai/claude-code`, dist-tag = `autoUpdatesChannel` in `settings.json` under `$CLAUDE_CONFIG_DIR` or `~/.claude` (default `latest`) | npm publish time |
 | Codex | `codex --version` | `$CODEX_HOME` (default `~/.codex`) `/packages/standalone/releases/<installed>-*` | npm `@openai/codex`, dist-tag `latest` | npm publish time |
 | Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<installed>-*` | same call | **approximate** — see below |
+| Antigravity CLI | `~/.gemini/bin/agy --version` | the `agy` binary itself | the CLI's auto-updater: `Stable Version` on `https://antigravity-cli-auto-updater-974169037036.us-central1.run.app` | **not available** — see below |
 | Muse Code | `muse --version` with `MUSE_NO_AUTO_UPDATE=1` | `muse-bin-<installed>*` next to the `muse` launcher | `https://api.meta.ai/muse-code/channels/<channel>`, channel = `$MUSE_CHANNEL`, else `.muse-channel` next to the launcher (default `muse-stable`) | **not available** — see below |
 
 - `claude update` and `codex update` install immediately and have no check-only flag, so
@@ -57,6 +58,12 @@ Only the **latest** version and the **currently installed** version — no histo
   update command forces the launcher's own synchronous update (`MUSE_SYNC_UPDATE=1`)
   and prints the new version.
 
+- **Antigravity CLI is `~/.gemini/bin/agy`, never the `agy` on PATH.** The Antigravity IDE
+  installs an editor launcher with the same name; running it opens a window. The update
+  command is the full path, `~/.gemini/bin/agy update`. Its auto-updater lists versions
+  without dates, so `released=?` always; the note says how far the rollout has gone.
+  The CLI also updates itself when it starts.
+
 Each tool line is tab-separated:
 `name installed=… installed_at=… latest=… released=… released_note=… channel=… status=… update_cmd=…`,
 or `name<TAB>not installed`, or `name<TAB>check failed (<reason>)`. Times are local
@@ -72,6 +79,7 @@ CLI VERSIONS — 09-17
   Codex         0.153.4 (09/07 11:03)   0.154.0 (released 09/10 06:40)     ↑ update → codex update
   Grok Build    1.0.34  (09/17 09:28)   1.0.34  (released ≤ 09/17 03:32*)  ✓ up to date      channel: stable
   Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)   ✓ up to date   channel: muse-stable
+  Antigravity   1.2.14  (09/30 10:57)   1.2.14  (released ?)               ✓ up to date      channel: stable
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
@@ -85,7 +93,9 @@ Rules:
   reason; never drop a row, and never fill in a version or time from memory.
 - Show `?` for an unknown time; do not guess.
 - Grok's release time always gets `≤` and the footnote.
-- Muse's release time is always `?`; do not fill it in from anywhere else.
+- Muse's and Antigravity's release times are always `?`; do not fill them in from anywhere else.
+- Label the `agy` row `Antigravity` (it is the Gemini CLI) and print its update command
+  exactly as `update_cmd` gives it — a full path, never a bare `agy update`.
 - `↑ update` rows end with the update command.
 - `ahead of channel` means the installed build is newer than the channel tag — show it
   as-is, not as an error.

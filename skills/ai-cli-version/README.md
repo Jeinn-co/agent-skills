@@ -1,6 +1,6 @@
 # ai-cli-version
 
-One report for whether your Claude Code, Codex, Grok Build and Muse Code CLIs are up to date — the
+One report for whether your Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date — the
 version you have and when you installed it, the latest version and when it was released.
 
 The version check is always read-only. When an update is available, the agent offers two
@@ -43,8 +43,9 @@ without it every HTTPS request fails with `CERTIFICATE_VERIFY_FAILED` and each t
 | Codex | `codex` |
 | Grok Build | `grok` |
 | Muse Code | `muse` |
+| Antigravity (Gemini) | `~/.gemini/bin/agy` |
 
-**You do not need all four.** A tool that is not installed prints `not installed`; the
+**You do not need all five.** A tool that is not installed prints `not installed`; the
 others still run. Signing in is not required to read versions.
 
 ### 3. Network and subprocess access
@@ -111,14 +112,14 @@ tab-separated lines, not the formatted report.
 
 ## What it prints
 
-`/ai-cli-version` on 09-27, with all four CLIs up to date:
+`/ai-cli-version` on 10-02, with all five CLIs checked and one update available:
 
 ![ai-cli-version report](images/demo.png)
 
 Each row shows the version you have and when you installed it, the latest version and
 when it was released, the status and the update channel. Grok Build's release time
 carries `≤` and the `*` footnote because it comes from a third-party mirror; Muse Code's
-is always `?` because its channel publishes no date. The last line is `All up to date.`
+and Antigravity's are always `?` because their update sources publish no date. The last line is `All up to date.`
 or the list of CLIs that have an update.
 
 When a CLI is outdated, its row ends with the update command and the agent asks before
@@ -132,6 +133,7 @@ CLI VERSIONS — 09-24
   Codex         0.153.4 (09/07 11:03)         0.154.0 (released 09/10 06:40)     ↑ update → codex update
   Grok Build    1.0.34 (09/17 09:28)          1.0.34 (released ≤ 09/17 03:32*)   ✓ up to date   channel: stable
   Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)         ✓ up to date   channel: muse-stable
+  Antigravity   1.2.14 (09/30 10:57)          1.2.14 (released ?)                ✓ up to date   channel: stable
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
@@ -151,6 +153,7 @@ always check-only and continues to print raw report data without accepting input
 | Codex | `codex --version` | `$CODEX_HOME/packages/standalone/releases/<installed>-*` | npm registry, `@openai/codex` `latest` | npm publish time |
 | Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<installed>-*` | same call | GitHub release of `timoteuszelle/x.ai-grok` (approximate) |
 | Muse Code | `muse --version` | `muse-bin-<installed>*` next to the `muse` launcher | `https://api.meta.ai/muse-code/channels/<channel>` (public, the file the launcher reads) | not available (`?`) |
+| Antigravity (Gemini) | `~/.gemini/bin/agy --version` | the `agy` binary | `Stable Version` on the CLI's own auto-updater (`antigravity-cli-auto-updater-….run.app`) | not available (`?`) |
 
 `settings.json` is read from `$CLAUDE_CONFIG_DIR`, else `~/.claude`. `$CODEX_HOME`
 defaults to `~/.codex`. If the installed-at path does not exist — npm or Homebrew
@@ -175,6 +178,12 @@ If the mirror stops publishing, the Grok release time shows `?`.
 **Muse release time is not available.** The channel manifest carries a version and no
 date, so the Muse release time always shows `?`. The channel is `$MUSE_CHANNEL`, else
 the `.muse-channel` file next to the launcher, else `muse-stable`.
+
+**Antigravity runs `~/.gemini/bin/agy`, never the `agy` on PATH.** The Antigravity IDE
+installs an editor launcher with the same name, and running that opens a window. The
+update command is therefore the full path, `~/.gemini/bin/agy update`. The auto-updater
+lists versions without dates, so the release time always shows `?`; the note says how far
+the current version has rolled out. The CLI also updates itself when it starts.
 
 **Native builds are assumed to track npm.** The native installers of Claude Code and Codex
 are not published through npm. This skill assumes they ship the same version numbers as
@@ -208,6 +217,10 @@ Linux has not been tested yet.
 1.3.0-R3401.1: version, install time, channel lookup, and the update command from both
 bash and PowerShell. Muse on macOS and Linux has not been tested; the POSIX launcher
 (`api.meta.ai/muse-launcher.sh`) uses the same file names and variables.
+
+**Verified** 2026-10-02 on macOS (arm64, Python 3.10.8) against the Antigravity CLI
+(`agy`) 1.2.14: version, install time and the updater's stable version. Windows and Linux
+have not been tested for Antigravity.
 
 ## License
 

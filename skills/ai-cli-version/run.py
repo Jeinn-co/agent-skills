@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Report installed vs latest versions of the Claude Code, Codex, Grok Build and Muse Code CLIs.
+"""Report installed vs latest versions of the Claude Code, Codex, Grok Build, Muse Code and
+Antigravity (Gemini) CLIs.
 
 For each tool: the installed version and when it was installed on this machine, and the
 latest version and when it was released. Check only -- this script never installs or
 updates anything.
 
 Standard library only. The Python code makes HTTP requests to the npm registry, the
-GitHub API and Muse's public release channel; everything else is read from the local CLIs
-and the filesystem.
+GitHub API, Muse's public release channel and the Antigravity CLI's auto-updater;
+everything else is read from the local CLIs and the filesystem.
 """
 
 import datetime
@@ -21,7 +22,7 @@ import sys
 import urllib.request
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 TIMEOUT = 60
 HOME = os.path.expanduser("~")
@@ -67,6 +68,12 @@ def get_json(url, headers=None):
     request = urllib.request.Request(url, headers={"User-Agent": "ai-cli-version", **(headers or {})})
     with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
         return json.loads(response.read().decode("utf-8", errors="replace"))
+
+
+def get_text(url):
+    request = urllib.request.Request(url, headers={"User-Agent": "ai-cli-version"})
+    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+        return response.read().decode("utf-8", errors="replace")
 
 
 def parse_version(text):
@@ -288,6 +295,36 @@ def check_muse():
         print(f"muse	check failed ({exc})")
 
 
+# The Antigravity CLI's own auto-updater. Its root answers in plain text, e.g.
+# "Antigravity CLI auto updater is running! Stable Version: 1.2.14. Rolled out to 100%".
+# `/releases` lists versions without dates, so there is no release time.
+AGY_UPDATER = "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app"
+
+
+def check_agy():
+    # ~/.gemini/bin/agy, never `agy` on PATH: the Antigravity IDE installs an editor
+    # launcher with the same name, and running that opens a window.
+    cli = os.path.join(HOME, ".gemini", "bin", "agy.exe" if os.name == "nt" else "agy")
+    if not os.path.isfile(cli):
+        print("agy\tnot installed")
+        return
+    try:
+        installed = parse_version(run([cli, "--version"]))
+        page = get_text(AGY_UPDATER)
+        match = re.search(r"Stable Version:\s*(\d+\.\d+\.\d+)", page)
+        if not match:
+            raise RuntimeError("updater page names no stable version")
+        latest = parse_version(match.group(1))
+        rollout = re.search(r"Rolled out to\s*(\d+%)", page)
+        note = "not published: the updater lists versions without dates"
+        if rollout:
+            note += "; rolled out to " + rollout.group(1)
+        update = '"%s" update' % cli if " " in cli else "%s update" % cli
+        emit("agy", installed, install_time(cli), latest, None, note, "stable", update)
+    except Exception as exc:  # noqa: BLE001
+        print(f"agy\tcheck failed ({exc})")
+
+
 def main():
     stdout_utf8()
     if "--version" in sys.argv:
@@ -298,6 +335,7 @@ def main():
     check_codex()
     check_grok()
     check_muse()
+    check_agy()
 
 
 if __name__ == "__main__":
