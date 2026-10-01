@@ -155,8 +155,9 @@ def main():
         for label, block in ((span, window), ("week", weekly)):
             at = datetime.datetime.fromtimestamp(block["resetsAtMs"] / 1000).astimezone()
             left = at - now
-            print("%-6s %5.1f%% used  resets %s (%dd%dh)"
-                  % (label, block["usedPercent"], at.strftime("%m-%d %H:%M"), left.days, left.seconds // 3600))
+            print("%-6s %5.1f%% used  resets %s (%dd%dh)  %s"
+                  % (label, block["usedPercent"], at.strftime("%m-%d %H:%M"),
+                     left.days, left.seconds // 3600, portable.format_bar(block["usedPercent"])))
     except (KeyError, TypeError, ValueError, OverflowError) as exc:
         print("usage call failed (invalid response: %s)" % exc)
         return 1

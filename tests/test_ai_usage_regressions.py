@@ -58,6 +58,7 @@ else:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("extra usage", result.stdout.lower())
         self.assertIn("25.0% used", result.stdout)
+        self.assertIn("bar █████░░░░░░░░░░░░░░░", result.stdout)
 
     def test_claude_prints_session_when_reset_clause_is_omitted(self):
         result = self.run_probe(
@@ -366,7 +367,7 @@ for line in sys.stdin:
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("plan: ?", result.stdout)
+        self.assertIn("plan: High Usage", result.stdout)
         self.assertNotIn("27681527378179523", result.stdout)
         lines = result.stdout.splitlines()
         self.assertTrue(any(l.startswith("5h") and "5.0% used" in l for l in lines))
@@ -425,3 +426,27 @@ class CursorBenchNameTests(unittest.TestCase):
         self.assertEqual(cursorbench.pick(board, "muse", "Muse Spark 1.3")[0], "Muse Spark 1.3 Max")
         # an unlisted current model gets no pick, even though older GPT rows exist
         self.assertIs(cursorbench.pick(board, "codex", "GPT-6 Sol"), False)
+
+
+class UsageBarTests(unittest.TestCase):
+    def bar(self, percent):
+        sys.path.insert(0, str(SKILL))
+        import portable
+        return portable.usage_bar(percent)
+
+    def test_length_and_ends(self):
+        self.assertEqual(self.bar(0), "░" * 20)
+        self.assertEqual(self.bar(100), "█" * 20)
+        self.assertEqual(len(self.bar(28.4)), 20)
+
+    def test_eighths_split_percents_the_10_cell_bar_merged(self):
+        # 10 cells rounded both of these to three full blocks.
+        self.assertEqual(self.bar(28), "█████▋░░░░░░░░░░░░░░")
+        self.assertEqual(self.bar(30), "██████░░░░░░░░░░░░░░")
+        self.assertNotEqual(self.bar(28), self.bar(30))
+
+    def test_small_percents_stay_visible(self):
+        self.assertEqual(self.bar(1), "▎░░░░░░░░░░░░░░░░░░░")
+        self.assertEqual(self.bar(2), "▍░░░░░░░░░░░░░░░░░░░")
+        self.assertNotEqual(self.bar(1), self.bar(0))
+        self.assertEqual(self.bar(0.1), "▏░░░░░░░░░░░░░░░░░░░")

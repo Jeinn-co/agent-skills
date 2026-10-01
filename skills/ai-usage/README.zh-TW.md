@@ -116,7 +116,7 @@ skill 版本後結束。
 
 由上往下看：
 
-1. **四家的用量區塊** —— Claude、ChatGPT、Grok、Muse。每個視窗有 10 格長條、已用百分比、
+1. **四家的用量區塊** —— Claude、ChatGPT、Grok、Muse。每個視窗有 20 格長條（每格 5 個百分點，不足一格再切 8 段）、已用百分比、
    重置時間與剩餘時間。Grok 只有一個週視窗；其他三家是 5 小時加一週。
 2. **`now`** —— 該 CLI 最新一個本機 session 的 model 與 effort。
 3. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是

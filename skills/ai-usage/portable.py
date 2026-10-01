@@ -16,7 +16,12 @@ Neither has any effect on macOS or Linux.
 import atexit, os, shutil, sys
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.5.1"
+VERSION = "1.5.2"
+
+# 20 cells. Each cell is 5 points; the partial cell is one of 8 eighths, so the
+# scale is 0.625 points. The old 10-cell bar rounded 28% and 30% to the same glyph.
+BAR_CELLS = 20
+_BAR_EIGHTH = "▏▎▍▌▋▊▉"  # 1/8 .. 7/8, left-aligned; 8/8 is █
 
 _SHIM = (".cmd", ".bat")
 
@@ -81,3 +86,35 @@ def argv(name, *args):
     if os.name == "nt" and os.path.splitext(path)[1].lower() in _SHIM:
         return ["cmd", "/c", path, *args]
     return [path, *args]
+
+
+def usage_bar(percent):
+    """20-cell gauge for a 0–100 usage percent.
+
+    Empty track is ░, a full cell is █, and the remainder is ▏▎▍▌▋▊▉.
+    0% is twenty ░. 100% is twenty █. A non-zero percent that would round to
+    zero eighths still shows ▏, so 1% does not look unused.
+    """
+    try:
+        value = float(percent)
+    except (TypeError, ValueError):
+        value = 0.0
+    if value < 0:
+        value = 0.0
+    elif value > 100:
+        value = 100.0
+    eighths = int(round(value * BAR_CELLS * 8 / 100.0))
+    if value > 0 and eighths < 1:
+        eighths = 1
+    if eighths > BAR_CELLS * 8:
+        eighths = BAR_CELLS * 8
+    full, rem = divmod(eighths, 8)
+    body = "█" * full
+    if rem:
+        body += _BAR_EIGHTH[rem - 1]
+    return body + "░" * (BAR_CELLS - len(body))
+
+
+def format_bar(percent):
+    """Probe suffix. The report copies this string; it does not redraw the bar."""
+    return "bar %s" % usage_bar(percent)

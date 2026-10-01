@@ -113,8 +113,9 @@ print("plan: %s" % (r.get("planType") or "unknown"))
 for label, used, duration, dt in windows:
     left = dt - datetime.datetime.now()
     rel = "(%dd%dh)" % (left.days, left.seconds // 3600) if left.total_seconds() > 0 else "(expired)"
-    print("%-6s %5.1f%% used  window %dh  resets %s %s"
-          % (label, used, duration // 60, dt.strftime("%m-%d %H:%M"), rel))
+    print("%-6s %5.1f%% used  window %dh  resets %s %s  %s"
+          % (label, used, duration // 60, dt.strftime("%m-%d %H:%M"), rel,
+             portable.format_bar(used)))
 # NOT the "Usage limit resets" count. `credits` is the paid top-up balance; the reset
 # tokens shown under Settings > Usage limit resets are a separate pool and the
 # app-server exposes no way to read them -- only `account/rateLimitResetCredit/consume`,

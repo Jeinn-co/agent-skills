@@ -65,10 +65,11 @@ for m in pat.finditer(text):
     label = "5h" if m.group(1) == "session" else "week"
     used = float(m.group(2))
     reset = (m.group(3) or "").strip()
+    bar = portable.format_bar(used)
     if reset:
-        print("%-6s %5.1f%% used  resets %s" % (label, used, reset))
+        print("%-6s %5.1f%% used  resets %s  %s" % (label, used, reset, bar))
     else:
-        print("%-6s %5.1f%% used" % (label, used))
+        print("%-6s %5.1f%% used  %s" % (label, used, bar))
     found = True
 if not found:
     for line in text.splitlines():

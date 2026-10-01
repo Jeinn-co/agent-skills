@@ -126,7 +126,7 @@ to the platform command to print the version alone and exit.
 Read top to bottom:
 
 1. **Four provider blocks** — Claude, ChatGPT, Grok and Muse. Each window gets a
-   10-character bar, the percent used, the reset clock and the time left. Grok has one
+   20-cell bar (each cell is 5 points, the partial cell is one eighth), the percent used, the reset clock and the time left. Grok has one
    weekly window; the others have a 5-hour window and a week.
 2. **`now`** — the model and effort of that CLI's newest local session.
 3. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran

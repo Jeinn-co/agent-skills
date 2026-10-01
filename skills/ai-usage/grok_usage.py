@@ -118,7 +118,8 @@ window = period_type.replace("USAGE_PERIOD_TYPE_", "").lower()
 if used is None:
     print("%-6s percent omitted  window %s  resets %s" % ("week", window, when))
 else:
-    print("%-6s %5.1f%% used  window %s  resets %s" % ("week", used, window, when))
+    print("%-6s %5.1f%% used  window %s  resets %s  %s"
+          % ("week", used, window, when, portable.format_bar(used)))
 balances = [c.get(key) for key in ("prepaidBalance", "onDemandUsed", "onDemandCap")]
 if all(isinstance(item, dict) and item.get("val") is not None for item in balances):
     try:

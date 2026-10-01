@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok and
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.5.1"
+  version: "1.5.2"
 ---
 
 # /ai-usage — unified AI usage report
@@ -84,6 +84,10 @@ as High.
 
 ## Reading the output
 
+**Bar** — every `% used` line ends with `bar` and 20 cells from `portable.usage_bar`.
+Copy that glyph string. Do not redraw it from the whole-number percent. A
+`percent omitted` line has no `bar`.
+
 **Claude** — current session (5h) and current week. Claude omits the reset clock
 when a window is 0% used; still print that row, without inventing a reset time.
 
@@ -134,25 +138,25 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.5.1
+USAGE — 09-12 01:08 · ai-usage 1.5.2
 
   Claude    pro
-    5h    ███░░░░░░░  29%   resets 03:40 (2h32m)
-    week  ████░░░░░░  41%   resets Mon 17:00 (2d16h)
+    5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
+    week  ████████▎░░░░░░░░░░░  41%   resets Mon 17:00 (2d16h)
     now   claude-opus-5 · effort high   (0m ago)
 
   ChatGPT   plus
-    5h    ░░░░░░░░░░   0%   resets 05:55 (4h47m)
-    week  ░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
+    5h    ░░░░░░░░░░░░░░░░░░░░   0%   resets 05:55 (4h47m)
+    week  ░░░░░░░░░░░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
     now   gpt-5.6-sol · effort high   (3m ago)
 
   Grok      SuperGrok
-    week  ███░░░░░░░  27%   resets 09-15 09:38 (3d8h)
+    week  █████▍░░░░░░░░░░░░░░  27%   resets 09-15 09:38 (3d8h)
     now   grok-4.7 · effort high   (6m ago)
 
   Muse      ?
-    5h    █░░░░░░░░░   5%   resets 16:24 (2h20m)
-    week  ░░░░░░░░░░   1%   resets 09-28 08:00 (3d17h)
+    5h    █░░░░░░░░░░░░░░░░░░░   5%   resets 16:24 (2h20m)
+    week  ▎░░░░░░░░░░░░░░░░░░░   1%   resets 09-28 08:00 (3d17h)
     now   muse-spark-1.3 · effort high   (2m ago)
 
   Qualified (CursorBench)
@@ -171,7 +175,7 @@ USAGE — 09-12 01:08 · ai-usage 1.5.1
 ```
 
 Rules:
-- Bars 10 chars, `█` used / `░` free. Percentages are whole numbers.
+- Copy each window's `bar` exactly. It is 20 cells: each cell is 5 points, and the partial cell is one eighth (`▏▎▍▌▋▊▉`), so 28% and 30% no longer draw the same bar. Full cell `█`, empty track `░`. Do not redraw it and do not shorten it to 10 cells. The displayed percent stays a whole number.
 - Relative time next to every reset clock. If the probe omitted the reset (Claude
   5h at 0% used), omit the reset clause — do not invent a time. If the probe
   omitted the percent (Grok `percent omitted`), omit the bar and percent — do
