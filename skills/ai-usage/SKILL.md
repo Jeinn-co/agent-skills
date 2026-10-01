@@ -1,10 +1,10 @@
 ---
 name: ai-usage
-description: Check AI subscription usage limits across Claude, ChatGPT, Grok and Muse in one unified report — percent used, how much is left, when each window resets, the model / effort of each CLI's newest session, and that model's CursorBench score, cost and CP. Use when the user runs /ai-usage or /uu, or asks 額度, 用量, usage, limit, 還剩多少, 什麼時候 reset, 被限流了嗎, rate limit, quota, "am I out of Claude", "how much ChatGPT left", Muse 額度.
+description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, the model / effort of each CLI's newest session, and that model's CursorBench score, cost and CP. Use when the user runs /ai-usage or /uu, or asks 額度, 用量, usage, limit, 還剩多少, 什麼時候 reset, 被限流了嗎, rate limit, quota, "am I out of Claude", "how much ChatGPT left", Muse 額度, Gemini 額度, Antigravity quota.
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.5.2"
+  version: "1.6.0"
 ---
 
 # /ai-usage — unified AI usage report
@@ -32,7 +32,8 @@ report what comes back.
 - **Python 3.9+**. The POSIX shim selects `python3` before `python`; Windows uses the
   `py -3` launcher when available. `run.py` then re-launches every probe with that exact
   interpreter.
-- **At least one** of `claude`, `codex`, `grok`, `muse`, already signed in. Zero of them is
+- **At least one** of `claude`, `codex`, `grok`, `muse`, or the Antigravity CLI
+  (`~/.gemini/bin/agy`), already signed in. Zero of them is
   still a valid run: every row prints `not installed`.
 - **Subprocess and network access.** The host must allow local process launches, and
   each installed provider CLI must be able to reach its own service. The only direct
@@ -48,7 +49,7 @@ others; never substitute a number from memory or from an earlier run.
 
 ## Where each number comes from
 
-All four are live. No browser, no stored credentials, no cookie access.
+All five are live. No browser, no stored credentials, no cookie access.
 Verified 2026-09-12 on macOS, and 2026-09-14 on a zh-TW Windows 11 machine (PowerShell,
 Python 3.12) — that run surfaced and fixed a UnicodeDecodeError in the Claude probe
 (see Limitations in README).
@@ -59,9 +60,15 @@ Python 3.12) — that run surfaced and fixed a UnicodeDecodeError in the Claude 
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` — see `codex_usage.py` |
 | Grok | `grok agent stdio` → JSON-RPC `_x.ai/billing` — see `grok_usage.py` |
 | Muse | `muse serve` → one tiny turn, then MSP `usage/read` — see `muse_usage.py` |
+| Gemini | `~/.gemini/bin/agy -p "/usage"` — the Antigravity CLI's built-in slash command, see `agy_usage.py` |
 
-Three of the four are the CLI's own local agent server answering over stdio, so the
+Three of the five are the CLI's own local agent server answering over stdio, and the
+other two (Claude, Gemini) route the CLI's own `/usage` command in print mode, so the
 numbers are the same ones the TUI shows. Nothing is cached and nothing is scraped.
+
+**Gemini runs the Antigravity CLI at `~/.gemini/bin/agy`, never the `agy` on PATH.**
+The Antigravity IDE installs a launcher with the same name; running it opens the
+editor. `/usage` makes no model call and leaves no conversation.
 
 **Muse costs one model call per run.** Muse keeps no usage on disk and reports it only
 with a model response, so `muse_usage.py` sends `Reply with the single word: ok` at
@@ -106,11 +113,16 @@ on-demand only when any of those values is non-zero. Do not print
 5h row for it. Do not pick Grok as the tool to use just because the percent is
 missing.
 
+**Gemini** — two weekly pools from the Antigravity CLI: `gemini` (Gemini models) and
+`cl+gpt` (the Claude and GPT models Antigravity also offers), each with a reset clock.
+The CLI reports what is left; the probe prints it as used. `plan: ?` always — `/usage`
+names no plan. There is no 5h row; never invent one.
+
 **Muse** — `plan:` is the plan name when `muse_usage.py` knows the numeric tier id
 (`TIER_NAMES`, e.g. `High Usage`), else `?`; a 5h window and a week, both with reset
 clocks. Print the plan exactly as the probe does; never map an id by hand.
 
-**CursorBench** — after the four providers, `### CURSORBENCH` holds one `bench` line per
+**CursorBench** — after the five providers, `### CURSORBENCH` holds one `bench` line per
 CLI with a local session (the CursorBench row for that CLI's current model + effort, or
 `not listed`), then one `pick` line per CLI: the effort of that same model with the best
 `cp` that scores at least 50%, searched across every model and effort CursorBench lists
@@ -138,7 +150,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.5.2
+USAGE — 09-12 01:08 · ai-usage 1.6.0
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -159,6 +171,11 @@ USAGE — 09-12 01:08 · ai-usage 1.5.2
     week  ▎░░░░░░░░░░░░░░░░░░░   1%   resets 09-28 08:00 (3d17h)
     now   muse-spark-1.3 · effort high   (2m ago)
 
+  Gemini    ?
+    gemini  ██▌░░░░░░░░░░░░░░░░░  12%   resets 09-19 04:09 (6d23h)
+    cl+gpt  ░░░░░░░░░░░░░░░░░░░░   0%   resets 09-19 04:09 (6d23h)
+    now     gemini-3.8-flash · effort high   (5m ago)
+
   Qualified (CursorBench)
     Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score
     Provider  Now                          Now $   Now CP  Qualified                       Qualified $  Qualified CP
@@ -166,6 +183,7 @@ USAGE — 09-12 01:08 · ai-usage 1.5.2
     ChatGPT   GPT-6 Sol High · AA 43       $0.37   114.3   GPT-6 Sol Max · AA 48 *         $1.06         45.0
     Grok      Grok 4.7 High · 43.9%        $4.69     9.4   Grok 4.7 Extra High · 46.3% *   $6.01          7.7
     Muse      Muse Spark 1.3 Max · 41.6%   $2.64    15.8   Muse Spark 1.3 Max · 41.6% *    $2.64         15.8
+    Gemini    Gemini 3.8 Flash High · 39.6% $4.70    8.4   Gemini 3.8 Flash High · 39.6% * $4.70          8.4
 
   $ = cost per task at API prices (AA rows: AA's cost per index task), not subscription quota. CP = score ÷ $; higher is better. * nothing from this provider reaches 50%: its highest.
   Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index (another test set): its score and CP are not comparable with CursorBench's.
@@ -182,7 +200,7 @@ Rules:
   not invent 0%. Still print the reset clock.
 - Never print ChatGPT "resets available" / "Usage limit resets", including
   `unknown (web only)`.
-- Never invent a 5h row for Grok.
+- Never invent a 5h row for Grok or Gemini. Gemini's two rows are its two weekly pools, labelled `gemini` and `cl+gpt`.
 - Muse's plan is what the probe prints (a known plan name or `?`); never print its numeric tier id.
 - Never print Grok prepaid / on-demand when every value is 0.
 - One `now` row per provider from the session lines: model · effort, then the

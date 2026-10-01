@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Model and effort of the newest local session of one CLI.
 
-Usage: session_info.py claude|codex|grok|muse
+Usage: session_info.py claude|codex|grok|muse|agy
 
 Reads the session files each CLI already writes under the user's home. No network,
 no credentials, nothing launched. Field names found 2026-09-22 on Windows 11:
@@ -21,11 +21,19 @@ no credentials, nothing launched. Field names found 2026-09-22 on Windows 11:
           settings value newer than the last matching session record wins. When
           neither carries one, Muse ran at its documented default (`muse --help`:
           "default: high"), printed as `high (default)`.
+  agy     ~/.gemini/antigravity-cli/conversations/<id>.db (found 2026-10-02, agy 1.2.14):
+          one SQLite file per conversation, its mtime is the last turn. The model is not
+          stored in it readably, so it comes from the CLI log written for that run,
+          ~/.gemini/antigravity-cli/log/cli-YYYYMMDD_HHMMSS.log (local time in the name):
+          the newest log started at or before the conversation's last write, last line
+          `selected model override to backend: label="Gemini 3.8 Flash (High)"`, split
+          into model `gemini-3.8-flash` and effort `high`. Slash commands such as the
+          usage probe's `/usage` write a log but no conversation, so they never count.
 
 Every value is what the CLI recorded for its last turn, not what the config defaults to.
 A field the files do not carry prints `?` rather than a guess.
 """
-import datetime, json, os, sys
+import datetime, json, os, re, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -196,10 +204,47 @@ def muse():
     print("no local session")
 
 
-PROBES = {"claude": claude, "codex": codex, "grok": grok, "muse": muse}
+AGY_DIR = HOME / ".gemini" / "antigravity-cli"
+AGY_LABEL = re.compile(r'selected model override to backend: label="([^"]+)"')
+
+
+def agy_model_id(label):
+    """'Gemini 3.8 Flash (High)' -> ('gemini-3.8-flash', 'high'). The effort is the
+    parenthesised suffix; the rest is the model id the CLI lists in `agy models`."""
+    m = re.fullmatch(r"(.+?)\s*\(([^)]+)\)", label.strip())
+    name, effort = (m.group(1), m.group(2)) if m else (label.strip(), None)
+    return re.sub(r"\s+", "-", name.strip().lower()), effort and effort.strip().lower()
+
+
+def agy():
+    hit = newest((AGY_DIR / "conversations").glob("*.db"))
+    if not hit:
+        return print("no local session")
+    mtime = hit[0]
+    model = effort = None
+    logs = []
+    for p in (AGY_DIR / "log").glob("cli-*.log"):
+        try:
+            started = datetime.datetime.strptime(p.stem[4:], "%Y%m%d_%H%M%S").timestamp()
+        except ValueError:
+            continue
+        if started <= mtime + 1:
+            logs.append((started, p))
+    for _, path in sorted(logs, reverse=True):
+        try:
+            labels = AGY_LABEL.findall(path.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            continue
+        if labels:
+            model, effort = agy_model_id(labels[-1])
+            break
+    report(mtime, model, effort)
+
+
+PROBES = {"claude": claude, "codex": codex, "grok": grok, "muse": muse, "agy": agy}
 
 if len(sys.argv) != 2 or sys.argv[1] not in PROBES:
-    print("usage: session_info.py claude|codex|grok|muse")
+    print("usage: session_info.py claude|codex|grok|muse|agy")
     sys.exit(2)
 try:
     PROBES[sys.argv[1]]()

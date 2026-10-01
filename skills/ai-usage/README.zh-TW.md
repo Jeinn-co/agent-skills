@@ -2,7 +2,7 @@
 
 > 中文版。英文版 [README.md](README.md) 為準，本檔為對照翻譯，兩邊同步更新。
 
-一份報表看完 Claude、ChatGPT、Grok、Muse 四邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、
+一份報表看完 Claude、ChatGPT、Grok、Muse、Gemini（Antigravity CLI）五邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、
 還有多少加購額度；另外顯示每個 CLI 目前用的 model 與 effort，以及每家一組共用的
 model + effort 推薦。
 
@@ -33,8 +33,9 @@ Microsoft Store 的 stub，執行後會跳出商店頁面而不是跑程式。
 | ChatGPT | `codex` | `codex login` |
 | Grok | `grok` | 先跑 `grok`，依提示完成認證 |
 | Muse | `muse` | `muse login` |
+| Gemini | `~/.gemini/bin/agy`（Antigravity CLI） | 執行一次，依提示完成 Google 登入 |
 
-**四個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。這個 skill
+**五個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。這個 skill
 不會要求你登入、不會開瀏覽器、不會讀任何已存的憑證 —— 它問的是每個 CLI 自己的本機
 agent server，所以「裝了但沒登入」的 CLI 會回報呼叫失敗，而不是彈出登入畫面。
 
@@ -116,18 +117,19 @@ skill 版本後結束。
 
 由上往下看：
 
-1. **四家的用量區塊** —— Claude、ChatGPT、Grok、Muse。每個視窗有 20 格長條（每格 5 個百分點，不足一格再切 8 段）、已用百分比、
-   重置時間與剩餘時間。Grok 只有一個週視窗；其他三家是 5 小時加一週。
+1. **五家的用量區塊** —— Claude、ChatGPT、Grok、Muse、Gemini。每個視窗有 20 格長條（每格 5 個百分點，不足一格再切 8 段）、已用百分比、
+   重置時間與剩餘時間。Grok 只有一個週視窗；Gemini 有兩個週額度池（`gemini` 是 Gemini 模型，
+   `cl+gpt` 是 Antigravity 另外提供的 Claude 與 GPT 模型）；其他三家是 5 小時加一週。
 2. **`now`** —— 該 CLI 最新一個本機 session 的 model 與 effort。
 3. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是
    挑選規則選出的那一檔。兩邊各有分數、`$`（依 API 價格的每題成本）與 CP（分數 ÷ `$`）。
    `*` 表示這家沒有任何一檔到 50%，改列它的最高分。CursorBench 沒收錄的 model（例如上圖的
-   GPT-6 Sol）改用 Artificial Analysis，顯示 `AA <指數>`。
+   GPT-6.1 Sol）改用 Artificial Analysis，顯示 `AA <指數>`。
 4. **`⚠`** —— 只有週視窗用量超過 80% 才出現。
 5. **`→`** —— 現在該用哪一個，附一句理由。
 
 它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
-的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude、Grok 和 Muse 的數字。
+的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude、Grok、Muse 和 Gemini 的數字。
 
 **用量數字是即時的。** 沒有爬任何網頁，沒有驅動瀏覽器，沒有讀任何已存憑證。是直接問各家
 自己的 CLI：
@@ -138,12 +140,17 @@ skill 版本後結束。
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP 擴充方法 `_x.ai/billing` |
 | Muse | `muse serve` → 送一個極短的 turn，再呼叫 MSP `usage/read` |
+| Gemini | `~/.gemini/bin/agy -p "/usage"` —— Antigravity CLI 內建的 slash command |
 
 **Muse 每次會呼叫一次模型。** Muse 不把用量存在本機，只開 `session/start` 也拿不到；
 數字只會跟著模型回應一起回來。所以探針用 `minimal` effort 送
 `Reply with the single word: ok`，本機模型清單有非 contributor 版時就用那個。每次跑會用掉
 一點點 Muse 額度、約 15 秒，並在 Muse 歷史裡留下一個 session（位於
 `<temp>/ai-usage-muse-probe`），`now` 那一列會跳過它。
+
+**Gemini 用的是 `~/.gemini/bin/agy` 這支 Antigravity CLI，絕不用 PATH 上的 `agy`。**
+Antigravity IDE 會裝一個同名的編輯器啟動器，跑它會打開視窗。`/usage` 不呼叫模型、
+不花額度，也不留下對話。CLI 回報的是每個額度池「還剩多少」，報表換算成「已用」。
 
 CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。刻意不回報的項目列在
 [限制與已知問題](#限制與已知問題)。
@@ -185,7 +192,8 @@ stdout。這次實測也抓到一個這段文字之前沒提到的 bug：`subpro
 Grok 省略 `creditUsagePercent` 已於 2026-09-22 在 `grok` 1.0.40 上再確認。
 `session_info.py` 讀的 session 與 model 快取欄位，於 2026-09-22 針對 `claude` 2.1.278、
 VS Code 擴充寫出的 Codex session（0.154.0-alpha）、`grok` 1.0.40 驗證。Muse（探針與
-session 欄位）於 2026-09-24 在 Windows 11 上針對 Muse Code 1.3.0-R3401.1 驗證。
+session 欄位）於 2026-09-24 在 Windows 11 上針對 Muse Code 1.3.0-R3401.1 驗證。Gemini（探針與
+session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.2.14 驗證。
 
 | 風險 | 位置 | 壞掉時會怎樣 |
 |---|---|---|
@@ -193,9 +201,10 @@ session 欄位）於 2026-09-24 在 Windows 11 上針對 Muse Code 1.3.0-R3401.1
 | Codex 的 app-server 協定是 OpenAI 私有的，沒有任何相容性承諾 | `codex_usage.py` | 方法改名或必要欄位缺失時，ChatGPT 那列會明確失敗；絕不預設成 0% |
 | Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位（period、`billingPeriodEnd`）缺失時，Grok 那列會明確失敗。省略 `creditUsagePercent` 時印 `percent omitted`；絕不預設成 0% |
 | Muse 的 `usage/read` 只回報 host 觀察到的資料 | `muse_usage.py` | turn 結束仍沒有用量時，Muse 那列會明確失敗（`no usage observed`）；絕不預設成 0% |
+| Gemini 的 `/usage` 輸出是 Antigravity CLI 的 tab 分隔文字，沒有公開文件 | `agy_usage.py` | 格式改變時 Gemini 那列會明確失敗（`usage call failed`）；絕不預設成 0% |
 | session 檔與 model 快取是各 CLI 內部格式，沒有公開文件 | `session_info.py` | 欄位改名時該值印 `?`；檔案搬家時印 `no local session`。用量那幾列不受影響 |
 | CursorBench 是網頁，靠解析它的 HTML 表格；model id 對應到它的名稱是靠規則 | `cursorbench.py` | 版面改變時印 `bench failed (...)`，用量那幾列不受影響。規則對不上、或 CursorBench 名稱拼法不同時顯示 `not listed` |
-| Artificial Analysis 備援讀的是 AA release 頁伺服器端渲染時內嵌的 model 資料，沒有公開文件 | `cursorbench.py` | 頁面不存在或資料格式改變時就沒有 AA 列，報表退回 `not listed` 加一行 `ref`；絕不猜分數 |
+| Artificial Analysis 備援讀的是 AA release 頁伺服器端渲染時內嵌的 model 資料，沒有公開文件 | `cursorbench.py` | 每個強度各自當成一個 JSON 物件解析，只留屬於該 model 的，所以 AA 沒評分的強度直接略過，不會拿到下一個 model 的數字。頁面不存在或資料格式改變時就沒有 AA 列，報表退回 `not listed` 加一行 `ref`；絕不猜分數 |
 
 **刻意不回報的。** 這裡報錯數字比不報更糟：
 
@@ -206,6 +215,8 @@ session 欄位）於 2026-09-24 在 Windows 11 上針對 Muse Code 1.3.0-R3401.1
 - **Claude 的 extra usage** 不回報。目前 CLI 回應沒有可靠的對應欄位；
   `fast_mode_disabled_reason` 明確描述的是 fast mode。
 - **Grok 只有一個視窗，不是兩個。** 不會幫它捏造一個 5 小時的列。
+- **Gemini 只有兩個週額度池，沒有 5 小時視窗**，也不回報方案名稱：`/usage` 不提供方案，
+  所以方案顯示 `?`。
 - **Grok 省略 `creditUsagePercent`** 不當成 0%。探針印 `percent omitted`，重置時間仍報。
 - **Grok prepaid / on-demand 全為 0** 時省略。數字讀得到，但印 `prepaid 0 /
   on-demand 0` 是噪音。任一值非 0 才顯示那一行。

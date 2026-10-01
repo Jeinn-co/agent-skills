@@ -25,12 +25,14 @@ HERE = Path(__file__).resolve().parent
 # codex app-server  -> JSON-RPC account/rateLimits/read  -- live, see codex_usage.py
 # grok agent stdio  -> ACP extension _x.ai/billing       -- live, see grok_usage.py
 # muse serve        -> MSP usage/read after one tiny turn -- live, see muse_usage.py
+# agy -p "/usage"   -> Antigravity CLI quota pools (Gemini) -- live, see agy_usage.py
 # session_info.py <cli>  -> newest local session file     -- model/effort/permission
 # cursorbench.py cli=model:effort ...  -> cursor.com/cursorbench rows for those models
 PROBES = (("CLAUDE", "claude_usage.py", "claude"),
           ("CHATGPT", "codex_usage.py", "codex"),
           ("GROK", "grok_usage.py", "grok"),
-          ("MUSE", "muse_usage.py", "muse"))
+          ("MUSE", "muse_usage.py", "muse"),
+          ("GEMINI", "agy_usage.py", "agy"))
 
 try:
     print("### ai-usage %s" % portable.VERSION)

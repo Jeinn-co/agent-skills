@@ -1,6 +1,6 @@
 # ai-usage
 
-One report for how much of your Claude, ChatGPT, Grok and Muse subscription you have left —
+One report for how much of your Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) subscription you have left —
 percent used, when each window resets, and what top-up you have — plus which model
 and effort each CLI is running now, and a shared model + effort pick per provider.
 
@@ -34,8 +34,9 @@ that opens the store instead of running anything.
 | ChatGPT | `codex` | `codex login` |
 | Grok | `grok` | `grok` once, then follow the auth prompt |
 | Muse | `muse` | `muse login` |
+| Gemini | `~/.gemini/bin/agy` (Antigravity CLI) | run it once and follow the Google sign-in |
 
-**You do not need all four.** Install one and you get one row; the others print
+**You do not need all five.** Install one and you get one row; the others print
 `not installed` and nothing else breaks. The skill never prompts for a login, never
 opens a browser, and never reads a stored credential — it asks each CLI's own local
 agent server, which means a CLI that is installed but signed out reports a failed
@@ -125,21 +126,22 @@ to the platform command to print the version alone and exit.
 
 Read top to bottom:
 
-1. **Four provider blocks** — Claude, ChatGPT, Grok and Muse. Each window gets a
+1. **Five provider blocks** — Claude, ChatGPT, Grok, Muse and Gemini. Each window gets a
    20-cell bar (each cell is 5 points, the partial cell is one eighth), the percent used, the reset clock and the time left. Grok has one
-   weekly window; the others have a 5-hour window and a week.
+   weekly window; Gemini has two weekly pools (`gemini` for Gemini models, `cl+gpt` for
+   the Claude and GPT models Antigravity also offers); the others have a 5-hour window and a week.
 2. **`now`** — the model and effort of that CLI's newest local session.
 3. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran
    last; *Qualified* is the effort the pick rule chooses. Each side shows its score,
    `$` (cost per task at API prices) and CP (score ÷ `$`). `*` marks a provider with
    nothing at 50%, so its highest score is shown. A model CursorBench does not list, like
-   GPT-6 Sol above, falls back to Artificial Analysis and shows `AA <index>`.
+   GPT-6.1 Sol above, falls back to Artificial Analysis and shows `AA <index>`.
 4. **`⚠`** — only when a weekly window is over 80% used.
 5. **`→`** — which tool to use right now, and why in a few words.
 
 It asks each provider's CLI rather than its own host, so it reads the same provider
 accounts wherever you install it — run it inside Codex and you still get your Claude,
-Grok and Muse numbers.
+Grok, Muse and Gemini numbers.
 
 **Usage numbers are live.** Nothing is scraped from a web page, no browser is driven,
 and no stored credential is ever read. Each provider's own CLI is asked directly:
@@ -150,6 +152,7 @@ and no stored credential is ever read. Each provider's own CLI is asked directly
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP extension method `_x.ai/billing` |
 | Muse | `muse serve` → one tiny turn, then MSP `usage/read` |
+| Gemini | `~/.gemini/bin/agy -p "/usage"` — the Antigravity CLI's built-in slash command |
 
 **Muse costs one model call per run.** Muse keeps no usage on disk, and `session/start`
 alone does not fetch it: the numbers arrive only with a model response. So the probe
@@ -157,6 +160,11 @@ sends `Reply with the single word: ok` at `minimal` effort, on the non-contribut
 of the default model when the local catalog lists one. Each run spends a sliver of Muse
 quota, takes about 15 s, and leaves one session in Muse's history under
 `<temp>/ai-usage-muse-probe`, which the `now` row skips.
+
+**Gemini uses the Antigravity CLI at `~/.gemini/bin/agy`, never the `agy` on PATH.**
+The Antigravity IDE installs an editor launcher with the same name, and running that
+opens a window. `/usage` makes no model call, spends no quota and leaves no
+conversation. The CLI reports what is left in each pool; the report shows it as used.
 
 Providers whose CLI is not installed are reported as `not installed`; the rest still
 run. What is deliberately left out is listed under
@@ -209,7 +217,8 @@ are welcome and will be believed over this paragraph.
 `grok` 1.0.40. The session and model-cache fields read by `session_info.py` were
 verified 2026-09-22 against `claude` 2.1.278, Codex sessions written by the VS Code
 extension (0.154.0-alpha), and `grok` 1.0.40. Muse (probe and session fields) verified
-2026-09-24 against Muse Code 1.3.0-R3401.1 on Windows 11.
+2026-09-24 against Muse Code 1.3.0-R3401.1 on Windows 11. Gemini (probe and session
+fields) verified 2026-10-02 against the Antigravity CLI (`agy`) 1.2.14 on macOS.
 
 | Risk | Where | What happens if it breaks |
 |---|---|---|
@@ -217,9 +226,10 @@ extension (0.154.0-alpha), and `grok` 1.0.40. Muse (probe and session fields) ve
 | Codex's app-server protocol is private to OpenAI and carries no compatibility promise | `codex_usage.py` | A method rename or missing required field makes the ChatGPT row fail visibly; it never defaults to 0% |
 | Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field (period, `billingPeriodEnd`) makes the Grok row fail visibly. An omitted `creditUsagePercent` prints `percent omitted`; it never defaults to 0% |
 | Muse's `usage/read` returns only what the host has observed | `muse_usage.py` | If the turn ends with no usage, the Muse row fails visibly (`no usage observed`); it never defaults to 0% |
+| Gemini's `/usage` output is tab-separated text from the Antigravity CLI, which is undocumented | `agy_usage.py` | A changed layout makes the Gemini row fail visibly (`usage call failed`); it never defaults to 0% |
 | Session files and model caches are internal to each CLI and undocumented | `session_info.py` | A renamed field prints `?` for that value; a moved file prints `no local session`. The usage rows are unaffected |
 | CursorBench is a web page parsed by its HTML table, and model ids are mapped to its names by rule | `cursorbench.py` | A layout change prints `bench failed (...)` and the usage rows are unaffected. A model the rules cannot map, or a name CursorBench spells differently, shows `not listed` |
-| The Artificial Analysis fallback reads the model data embedded in AA's server-rendered release page, which is undocumented | `cursorbench.py` | A missing page or changed payload means no AA row; the report falls back to `not listed` plus a `ref` line. It never guesses a score |
+| The Artificial Analysis fallback reads the model data embedded in AA's server-rendered release page, which is undocumented | `cursorbench.py` | Each variant is decoded as its own JSON object and kept only when it belongs to the model, so an effort AA has not scored is left out rather than filled from the next model. A missing page or changed payload means no AA row; the report falls back to `not listed` plus a `ref` line. It never guesses a score |
 
 **Deliberately not reported.** A wrong number here is worse than no number:
 
@@ -231,6 +241,8 @@ extension (0.154.0-alpha), and `grok` 1.0.40. Muse (probe and session fields) ve
 - **Claude extra usage** is not reported. The current CLI response exposes no reliable
   field for it; `fast_mode_disabled_reason` is specifically about fast mode.
 - **Grok has one window, not two.** No 5-hour row is invented for it.
+- **Gemini has two weekly pools and no 5-hour window**, and its plan name is not
+  reported: `/usage` names no plan, so the plan shows `?`.
 - **Grok `creditUsagePercent` omitted** is not treated as 0%. The probe prints
   `percent omitted` and still reports the reset clock.
 - **Grok prepaid / on-demand at 0** is omitted. The values are readable; printing

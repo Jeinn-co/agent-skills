@@ -381,6 +381,122 @@ for line in sys.stdin:
         self.assertNotIn("0.0% used", result.stdout)
 
 
+@unittest.skipIf(os.name == "nt", "POSIX fake executables are used for probe tests")
+class GeminiAgyTests(unittest.TestCase):
+    """agy_usage.py runs ~/.gemini/bin/agy, never an `agy` on PATH (the IDE launcher)."""
+
+    def run_agy(self, source, on_path=None):
+        with tempfile.TemporaryDirectory() as home:
+            env = os.environ.copy()
+            env["HOME"] = home
+            if source is not None:
+                cli = Path(home) / ".gemini" / "bin" / "agy"
+                cli.parent.mkdir(parents=True)
+                cli.write_text("#!%s\n%s" % (sys.executable, textwrap.dedent(source)),
+                               encoding="utf-8")
+                cli.chmod(cli.stat().st_mode | stat.S_IXUSR)
+            if on_path is not None:
+                bin_dir = Path(home) / "ide-bin"
+                bin_dir.mkdir()
+                launcher = bin_dir / "agy"
+                launcher.write_text("#!%s\n%s" % (sys.executable, textwrap.dedent(on_path)),
+                                    encoding="utf-8")
+                launcher.chmod(launcher.stat().st_mode | stat.S_IXUSR)
+                env["PATH"] = str(bin_dir) + os.pathsep + env.get("PATH", "")
+            return subprocess.run([sys.executable, str(SKILL / "agy_usage.py")], cwd=SKILL,
+                                  env=env, capture_output=True, text=True, timeout=15)
+
+    USAGE = r'''
+import sys
+assert sys.argv[1:3] == ["-p", "/usage"], sys.argv
+print("Gemini Models\tWeekly Limit Remaining\t88%\t2099-10-08T20:09:18Z")
+print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z")
+'''
+
+    def test_prints_used_from_remaining_per_pool(self):
+        result = self.run_agy(self.USAGE)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("plan: ?", result.stdout)
+        lines = result.stdout.splitlines()
+        self.assertTrue(any(l.startswith("gemini") and "12.0% used" in l and "window weekly" in l
+                            for l in lines), result.stdout)
+        self.assertTrue(any(l.startswith("cl+gpt") and "0.0% used" in l for l in lines), result.stdout)
+        self.assertNotIn("5h", result.stdout)
+
+    def test_fails_visibly_when_usage_is_not_parsed(self):
+        result = self.run_agy('print("error: not signed in")\n')
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("usage call failed", result.stdout)
+        self.assertNotIn("% used", result.stdout)
+
+    def test_never_runs_the_ide_launcher_on_path(self):
+        result = self.run_agy(None, on_path=self.USAGE)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "agy CLI not installed")
+
+    def test_session_reads_model_from_the_run_log(self):
+        import datetime
+        with tempfile.TemporaryDirectory() as home:
+            base = Path(home) / ".gemini" / "antigravity-cli"
+            (base / "conversations").mkdir(parents=True)
+            (base / "log").mkdir()
+            started = datetime.datetime.now() - datetime.timedelta(minutes=2)
+            log = base / "log" / ("cli-%s.log" % started.strftime("%Y%m%d_%H%M%S"))
+            log.write_text('x selected model override to backend: label="Gemini 3.8 Flash (High)"\n',
+                           encoding="utf-8")
+            # a later run (e.g. the /usage probe) writes a log but no conversation
+            later = base / "log" / ("cli-%s.log" % (datetime.datetime.now()
+                                                     + datetime.timedelta(minutes=5)).strftime("%Y%m%d_%H%M%S"))
+            later.write_text('x selected model override to backend: label="Gemini 3.1 Pro (Low)"\n',
+                             encoding="utf-8")
+            (base / "conversations" / "c1.db").write_bytes(b"")
+            env = os.environ.copy()
+            env["HOME"] = home
+            result = subprocess.run([sys.executable, str(SKILL / "session_info.py"), "agy"],
+                                    cwd=SKILL, env=env, capture_output=True, text=True, timeout=15)
+        self.assertIn("model   gemini-3.8-flash", result.stdout)
+        self.assertIn("effort  high", result.stdout)
+
+
+class ArtificialAnalysisTests(unittest.TestCase):
+    def test_variant_without_cost_is_left_out_not_borrowed(self):
+        sys.path.insert(0, str(SKILL))
+        import cursorbench
+        from unittest import mock
+
+        def variant(slug, release, level, score, cost):
+            data = {"id": "0f0f0f0f-0000-0000-0000-000000000000", "slug": slug,
+                    "release": {"slug": release}, "effort": {"level": level},
+                    "intelligenceIndex": score}
+            if cost is not None:
+                data["intelligenceIndexCostPerTask"] = {"cost": {"total": cost}}
+            return json.dumps(data, separators=(",", ":"))
+
+        page = "<script>" + ",".join([
+            variant("gemini-3-8-flash", "gemini-3-8-flash", 40, 40.9, 1.24),
+            variant("gemini-3-8-flash-low", "gemini-3-8-flash", 20, 33.5, None),
+            variant("claude-opus-5-5", "claude-opus-5-5", 60, 57.6, 5.98),
+        ]) + "</script>"
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return page.encode("utf-8")
+
+        with mock.patch.object(cursorbench.urllib.request, "urlopen", return_value=Response()):
+            rows = cursorbench.aa_rows("gemini-3.8-flash")
+        self.assertEqual(set(rows), {"high"})
+        self.assertEqual(rows["high"][:2], (40.9, 1.24))
+
+
 class CursorBenchNameTests(unittest.TestCase):
     def test_maps_cli_model_ids_to_leaderboard_names(self):
         sys.path.insert(0, str(SKILL))
@@ -397,6 +513,10 @@ class CursorBenchNameTests(unittest.TestCase):
             ("grok", "grok-4.7-build-fast"): None,
             ("muse", "muse-spark-1.3-contributor"): "Muse Spark 1.3",
             ("muse", "muse-spark-1.3"): "Muse Spark 1.3",
+            ("agy", "gemini-3.8-flash"): "Gemini 3.8 Flash",
+            ("agy", "gemini-3.1-pro"): "Gemini 3.1 Pro",
+            ("agy", "claude-opus-4.6"): "Opus 4.6",
+            ("agy", "gpt-oss-120b"): None,
         }
         for (cli, model), expected in cases.items():
             self.assertEqual(cursorbench.name(cli, model) or None, expected, (cli, model))

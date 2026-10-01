@@ -1,6 +1,6 @@
 # Why each provider works the way it does
 
-All four services compute usage server-side and return it in API response headers.
+All five services compute usage server-side and return it in API response headers.
 The difference is entirely what each CLI does with that after receiving it.
 
 ## Claude — works, live
@@ -97,3 +97,30 @@ Dead ends, do not retry (checked 2026-09-24, Muse Code 1.3.0-R3401.1):
    prompt (and ran this very skill). `/usage` in the TUI shows session tokens, not quota.
 4. **A usage endpoint** — the binary's only `api.meta.ai/v1` paths besides the model API
    are metrics, logs and ASR.
+
+## Gemini (Antigravity CLI) — works, live
+
+`~/.gemini/bin/agy -p "/usage"` prints one tab-separated line per quota pool (found
+2026-10-02, agy 1.2.14):
+
+    Gemini Models<TAB>Weekly Limit Remaining<TAB>100%<TAB>2026-10-08T20:09:18Z
+    Claude and GPT models<TAB>Weekly Limit Remaining<TAB>100%<TAB>2026-10-08T20:09:18Z
+
+Print mode routes the slash command (`/usage`, alias `/quota`), like Claude's: no model
+call, no quota spent, no conversation written. `agy -p "/help"` lists the commands.
+
+**Two binaries are named `agy`.** The Antigravity IDE puts an editor launcher on PATH
+(`~/.antigravity/antigravity/bin/agy`, prints the VS Code style `--diff`/`--goto`
+options); the CLI agent is `~/.gemini/bin/agy`. The probe only ever runs the latter.
+
+Session model: conversations are `~/.gemini/antigravity-cli/conversations/<id>.db`
+(SQLite; the model is not stored readably). Each CLI run writes
+`~/.gemini/antigravity-cli/log/cli-YYYYMMDD_HHMMSS.log`, which logs
+`selected model override to backend: label="Gemini 3.8 Flash (High)"`. Slash-command
+runs write a log too, so the log is matched to the newest conversation by start time.
+
+Dead ends (checked 2026-10-02):
+1. **`agy models`** — lists model ids and labels, no quota.
+2. **`/credits`** — paid G1 credits only; on a free account it errors `no credits info found`.
+3. **`--output-format json`** on a real turn — carries token counts, not the model id.
+4. **IDE conversation files** under `~/.gemini/antigravity/conversations/*.pb` — encrypted.

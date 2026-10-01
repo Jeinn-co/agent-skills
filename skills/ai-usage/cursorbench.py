@@ -28,7 +28,7 @@ different test set, so an `(AA)` score or cp is never compared with a CursorBenc
 Only when AA has no page for the model either does a `ref` line follow: the newest
 same-provider CursorBench row at the same effort. Orientation only -- never a pick.
 """
-import html, re, sys, urllib.request
+import html, json, re, sys, urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -42,7 +42,7 @@ EFFORT = {"minimal": "Minimal", "low": "Low", "medium": "Medium", "high": "High"
 TARGET = 50.0  # CursorBench score, percent, to reach whenever the provider can
 # Leaderboard names each CLI can run.
 FAMILY = {"claude": r"(Opus|Sonnet|Fable|Haiku) ", "codex": r"GPT-", "grok": r"Grok ",
-          "muse": r"Muse "}
+          "muse": r"Muse ", "agy": r"Gemini "}
 
 
 def score_cost(cells):
@@ -116,6 +116,13 @@ def name(cli, model):
     if cli == "grok":
         hit = re.fullmatch(r"grok-([\d.]+)", m)
         return hit and "Grok %s" % hit[1]
+    if cli == "agy":
+        # gemini-3.8-flash -> Gemini 3.8 Flash. Antigravity also offers Claude models;
+        # those map by the Claude rule (claude-opus-4.6 -> Opus 4.6).
+        if m.startswith("claude-"):
+            return name("claude", m.replace(".", "-"))
+        hit = re.fullmatch(r"gemini-([\d.]+)-([a-z]+)", m)
+        return hit and "Gemini %s %s" % (hit[1], hit[2].title())
     if cli == "muse":
         # CursorBench lists no -contributor variant; the catalog gives both the same specs
         hit = re.fullmatch(r"muse-([a-z]+)-([\d.]+)(-contributor)?", m)
@@ -124,38 +131,46 @@ def name(cli, model):
 
 
 AA_URL = "https://artificialanalysis.ai/models/releases/%s"
-# AA slugs: <model> is the top effort, <model>-<effort> the others.
+# AA effort.level on each variant -> the effort key used here.
 AA_EFFORT = ("minimal", "low", "medium", "high", "xhigh", "max")
+AA_LEVEL = {10: "minimal", 20: "low", 30: "medium", 40: "high", 50: "xhigh", 60: "max"}
 
 
 def aa_rows(model):
     """{effort: (score, cost, output tokens per task)} for one CLI model id from its Artificial
-    Analysis release page, or {} when AA has no page or no scored row for it. The page
-    is server-rendered; each model object carries slug, name ("GPT-6 Sol (high)"),
-    intelligenceIndex, intelligenceIndexCostPerTask.cost.total and
-    intelligenceIndexOutputTokensPerTask.output (reasoning + answer; 0 when absent)."""
+    Analysis release page, or {} when AA has no page or no scored row for it.
+
+    The page is server-rendered and embeds every variant as a JSON object
+    ({"id":..., "slug":..., "release": {"slug": ...}, "effort": {"level": 40},
+    "intelligenceIndex", "intelligenceIndexCostPerTask": {"cost": {"total"}},
+    "intelligenceIndexOutputTokensPerTask": {"output"}}). Each object is decoded on its
+    own and kept only when its `release.slug` is this model, so a variant AA has not
+    scored is left out -- never filled from the next model on the page (found
+    2026-10-02: the old fixed-width text scan gave Gemini 3.8 Flash Low Opus's cost)."""
     slug = re.sub(r"-contributor$", "", model.lower()).replace(".", "-")
     request = urllib.request.Request(AA_URL % slug,
                                      headers={"User-Agent": "Mozilla/5.0 (ai-usage)"})
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
-            page = response.read().decode("utf-8", errors="replace").replace('\\"', '"')
+            page = response.read().decode("utf-8", errors="replace")
     except Exception:  # noqa: BLE001 -- no AA page means no AA row, nothing more
         return {}
+    page = page.replace('\\"', '"').replace("\\\\", "\\")
+    decoder = json.JSONDecoder()
     out = {}
-    for m in re.finditer(r'"slug":"([a-z0-9-]+)","name":"([^"]+)"', page):
-        tail = m.group(1)[len(slug):].lstrip("-")
-        if not m.group(1).startswith(slug) or (tail and tail not in AA_EFFORT):
+    for m in re.finditer(r'\{"id":"[0-9a-f-]+","slug":"', page):
+        try:
+            variant, _ = decoder.raw_decode(page, m.start())
+        except ValueError:
             continue
-        effort = tail or next((e for e in reversed(AA_EFFORT)
-                               if re.search(r"\b%s\b" % e, m.group(2), re.I)), None)
-        seg = page[m.end():m.end() + 6000]
-        score = re.search(r'"intelligenceIndex":([\d.]+)', seg)
-        cost = re.search(r'"intelligenceIndexCostPerTask":\{"cost":\{"total":([\d.]+)', seg)
-        tokens = re.search(r'"intelligenceIndexOutputTokensPerTask":\{[^}]*"output":([\d.]+)', seg)
-        if effort and score and cost and float(cost.group(1)) > 0:
-            out.setdefault(effort, (float(score.group(1)), float(cost.group(1)),
-                                    float(tokens.group(1)) if tokens else 0.0))
+        if (variant.get("release") or {}).get("slug") != slug:
+            continue
+        effort = AA_LEVEL.get((variant.get("effort") or {}).get("level"))
+        score = variant.get("intelligenceIndex")
+        cost = ((variant.get("intelligenceIndexCostPerTask") or {}).get("cost") or {}).get("total")
+        tokens = (variant.get("intelligenceIndexOutputTokensPerTask") or {}).get("output") or 0.0
+        if effort and score is not None and cost and cost > 0:
+            out.setdefault(effort, (float(score), float(cost), float(tokens)))
     return out
 
 
