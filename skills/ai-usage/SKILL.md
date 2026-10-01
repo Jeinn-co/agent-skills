@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.7.0"
+  version: "1.7.1"
 ---
 
 # /ai-usage — unified AI usage report
@@ -68,7 +68,11 @@ numbers are the same ones the TUI shows. Nothing is cached and nothing is scrape
 
 **Gemini runs the Antigravity CLI at `~/.gemini/bin/agy`, never the `agy` on PATH.**
 The Antigravity IDE installs a launcher with the same name; running it opens the
-editor. `/usage` makes no model call and leaves no conversation.
+editor. `/usage` makes no model call and leaves no conversation. A signed-out agy opens
+the Google sign-in page in a browser, so the probe only starts agy when the CLI's own log
+shows a signed-in run; otherwise it prints `agy not signed in here … skipped so no
+browser opens`. Report that row as not signed in; do not suggest a fix unless asked. The
+probe sets `AGY_CLI_DISABLE_AUTO_UPDATE=1` so the CLI does not update itself.
 
 **Muse costs one model call per run.** Muse keeps no usage on disk and reports it only
 with a model response, so `muse_usage.py` sends `Reply with the single word: ok` at
@@ -153,7 +157,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.7.0
+USAGE — 09-12 01:08 · ai-usage 1.7.1
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)

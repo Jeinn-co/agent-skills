@@ -165,6 +165,10 @@ quota, takes about 15 s, and leaves one session in Muse's history under
 The Antigravity IDE installs an editor launcher with the same name, and running that
 opens a window. `/usage` makes no model call, spends no quota and leaves no
 conversation. The CLI reports what is left in each pool; the report shows it as used.
+A signed-out agy opens the Google sign-in page in a browser, so the probe starts agy only
+when the CLI's own log (`~/.gemini/antigravity-cli/log`) shows a signed-in run, and
+otherwise reports the row as not signed in. No credential file is read. The probe also
+sets `AGY_CLI_DISABLE_AUTO_UPDATE=1`, so agy does not update itself mid-report.
 
 Providers whose CLI is not installed are reported as `not installed`; the rest still
 run. What is deliberately left out is listed under

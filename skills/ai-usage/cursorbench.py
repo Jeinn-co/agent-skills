@@ -284,7 +284,10 @@ def main():
     for i, (cli, base, hit) in enumerate(picks):
         if hit and hit[3] == "cp":
             continue
-        extra = extra_pick(cli)
+        try:
+            extra = extra_pick(cli)
+        except Exception:  # noqa: BLE001 -- an optional extra must never take the table down
+            extra = None
         if extra:
             sources.append(AA_URL % extra[5])
             picks[i] = (cli, base, extra[:5])

@@ -385,13 +385,19 @@ for line in sys.stdin:
 class GeminiAgyTests(unittest.TestCase):
     """agy_usage.py runs ~/.gemini/bin/agy, never an `agy` on PATH (the IDE launcher)."""
 
-    def run_agy(self, source, on_path=None):
+    def run_agy(self, source, on_path=None, signed_in=True):
         with tempfile.TemporaryDirectory() as home:
             env = os.environ.copy()
             env["HOME"] = home
+            logs = Path(home) / ".gemini" / "antigravity-cli" / "log"
+            logs.mkdir(parents=True)
+            (logs / "cli-20260101_000000.log").write_text(
+                "URL: https://example/v1internal:loadCodeAssist\n" if signed_in
+                else "Authentication required. Please visit the URL to log in\n",
+                encoding="utf-8")
             if source is not None:
                 cli = Path(home) / ".gemini" / "bin" / "agy"
-                cli.parent.mkdir(parents=True)
+                cli.parent.mkdir(parents=True, exist_ok=True)
                 cli.write_text("#!%s\n%s" % (sys.executable, textwrap.dedent(source)),
                                encoding="utf-8")
                 cli.chmod(cli.stat().st_mode | stat.S_IXUSR)
@@ -407,8 +413,9 @@ class GeminiAgyTests(unittest.TestCase):
                                   env=env, capture_output=True, text=True, timeout=15)
 
     USAGE = r'''
-import sys
+import os, sys
 assert sys.argv[1:3] == ["-p", "/usage"], sys.argv
+assert os.environ.get("AGY_CLI_DISABLE_AUTO_UPDATE") == "1"
 print("Gemini Models\tWeekly Limit Remaining\t88%\t2099-10-08T20:09:18Z")
 print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z")
 '''
@@ -436,6 +443,16 @@ print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout.strip(), "agy CLI not installed")
+
+    def test_signed_out_agy_is_never_started(self):
+        # a signed-out agy opens the Google sign-in page in a browser; the probe must not run it
+        result = self.run_agy('import sys; open(sys.argv[0] + ".ran", "w").close(); print("x")\n',
+                              signed_in=False)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("not signed in", result.stdout)
+        self.assertNotIn("% used", result.stdout)
+        self.assertNotIn("usage call failed", result.stdout)
 
     def test_session_reads_model_from_the_run_log(self):
         import datetime
@@ -511,6 +528,24 @@ class AAExtraPickTests(unittest.TestCase):
         boards = {"gemini-4-argon": {"high": (45.0, 1.99, 0.0)}}
         with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda slug: boards.get(slug, {})):
             self.assertIsNone(cursorbench.extra_pick("agy"))
+
+
+class AAExtraFailureTests(unittest.TestCase):
+    def test_pick_table_survives_a_failing_extra(self):
+        sys.path.insert(0, str(SKILL))
+        import cursorbench
+        from unittest import mock
+
+        board = {"Gemini 3.8 Flash High": ["39.6%", "$4.70", "162,565", "324"]}
+        with mock.patch.object(cursorbench, "rows", return_value=board), \
+                mock.patch.object(cursorbench, "aa_rows", side_effect=RuntimeError("AA down")), \
+                mock.patch.object(sys, "argv", ["cursorbench.py", "agy=gemini-3.8-flash:high"]):
+            import io, contextlib
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = cursorbench.main()
+        self.assertEqual(code, 0)
+        self.assertIn("pick    agy  Gemini 3.8 Flash High  score 39.6%", out.getvalue())
 
 
 class CursorBenchNameTests(unittest.TestCase):

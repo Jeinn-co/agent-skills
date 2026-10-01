@@ -119,6 +119,13 @@ Session model: conversations are `~/.gemini/antigravity-cli/conversations/<id>.d
 `selected model override to backend: label="Gemini 3.8 Flash (High)"`. Slash-command
 runs write a log too, so the log is matched to the newest conversation by start time.
 
+**Signed out, agy opens a browser.** With an empty HOME, `agy -p "/usage"` printed
+`Authentication required. Please visit the URL to log in` and opened the Google sign-in
+page. The probe therefore launches agy only when the newest CLI logs contain an
+authenticated `v1internal:loadCodeAssist` call, which every signed-in run makes.
+`AGY_CLI_DISABLE_AUTO_UPDATE=1` (named in the binary: "Auto-update disabled via
+environment variable") stops the self-update on start.
+
 Dead ends (checked 2026-10-02):
 1. **`agy models`** — lists model ids and labels, no quota.
 2. **`/credits`** — paid G1 credits only; on a free account it errors `no credits info found`.

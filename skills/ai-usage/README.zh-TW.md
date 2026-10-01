@@ -151,6 +151,9 @@ skill 版本後結束。
 **Gemini 用的是 `~/.gemini/bin/agy` 這支 Antigravity CLI，絕不用 PATH 上的 `agy`。**
 Antigravity IDE 會裝一個同名的編輯器啟動器，跑它會打開視窗。`/usage` 不呼叫模型、
 不花額度，也不留下對話。CLI 回報的是每個額度池「還剩多少」，報表換算成「已用」。
+沒登入的 agy 會自動打開瀏覽器到 Google 登入頁，所以探針只在 CLI 自己的 log
+（`~/.gemini/antigravity-cli/log`）顯示登入過時才啟動 agy，否則那列回報「沒登入」。
+不讀任何憑證檔。探針也會設 `AGY_CLI_DISABLE_AUTO_UPDATE=1`，agy 不會在跑報表時自我更新。
 
 CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。刻意不回報的項目列在
 [限制與已知問題](#限制與已知問題)。

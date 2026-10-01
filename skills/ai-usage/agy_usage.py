@@ -13,6 +13,16 @@ The percent is what is LEFT; this prints it as used (100 - left) like the other 
 The CLI is ~/.gemini/bin/agy, not the `agy` on PATH: the Antigravity IDE installs a
 launcher of the same name (`agy --help` prints the editor's options), so PATH is never
 used to find it. It runs from the temp directory so no project folder is touched.
+
+A signed-out agy does not fail quietly: print mode answers "Authentication required"
+and opens the Google sign-in page in a browser (checked 2026-10-02 with an empty HOME).
+The skill promises never to open a browser, so agy is only launched when its own log
+shows it has signed in here: every signed-in run logs an authenticated
+`v1internal:loadCodeAssist` call in ~/.gemini/antigravity-cli/log/cli-*.log. No log with
+that call means `not signed in`, without starting agy. No credential file is read.
+BROWSER is also pointed at a no-op on POSIX, in case agy honours it.
+
+AGY_CLI_DISABLE_AUTO_UPDATE=1 keeps the CLI from updating itself during the probe.
 """
 import datetime, os, re, subprocess, sys, tempfile
 from pathlib import Path
@@ -22,18 +32,47 @@ import portable
 
 portable.stdout_utf8()
 
-CLI = Path.home() / ".gemini" / "bin" / ("agy.exe" if os.name == "nt" else "agy")
+HOME = Path.home()
+CLI = HOME / ".gemini" / "bin" / ("agy.exe" if os.name == "nt" else "agy")
+LOGS = HOME / ".gemini" / "antigravity-cli" / "log"
+SIGNED_IN_MARK = "v1internal:loadCodeAssist"
 
 if not CLI.is_file():
     print("agy CLI not installed")
     sys.exit(0)
 
+
+def signed_in():
+    """True when the newest agy log that made any backend call made an authenticated one."""
+    try:
+        logs = sorted(LOGS.glob("cli-*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+    except OSError:
+        return False
+    for path in logs[:10]:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if SIGNED_IN_MARK in text:
+            return True
+        if "authentication required" in text.lower():
+            return False
+    return False
+
+
+if not signed_in():
+    print("agy not signed in here (run `%s` once and sign in); skipped so no browser opens" % CLI)
+    sys.exit(0)
+
 FAIL = "usage call failed"
+env = dict(os.environ, AGY_CLI_DISABLE_AUTO_UPDATE="1")
+if os.name != "nt":
+    env["BROWSER"] = "true"
 
 try:
     proc = subprocess.run([str(CLI), "-p", "/usage", "--print-timeout", "60s"],
                           capture_output=True, timeout=90, stdin=subprocess.DEVNULL,
-                          cwd=tempfile.gettempdir(), **portable.text_kwargs())
+                          cwd=tempfile.gettempdir(), env=env, **portable.text_kwargs())
     text = proc.stdout
 except Exception as e:
     print("%s (%s)" % (FAIL, e))
@@ -64,7 +103,7 @@ for line in text.splitlines():
     m = re.match(r"(\d+(?:\.\d+)?)%", cells[2])
     if not m:
         continue
-    used = 100.0 - float(m.group(1))
+    used = max(0.0, min(100.0, 100.0 - float(m.group(1))))
     window = "weekly" if "week" in cells[1].lower() else cells[1]
     label = POOL.get(cells[0].lower(), cells[0])
     print("%-6s %5.1f%% used  window %s  pool %s  resets %s  %s"
@@ -72,6 +111,6 @@ for line in text.splitlines():
     found = True
 
 if not found:
-    first = (text.strip().splitlines() or [proc.stderr.strip() or "no output"])[0]
-    print("%s (%s; signed in? try `%s`)" % (FAIL, first[:120], CLI))
+    first = (text.strip().splitlines() or [(proc.stderr or "").strip() or "no output"])[0]
+    print("%s (%s)" % (FAIL, first[:120]))
     sys.exit(1)
