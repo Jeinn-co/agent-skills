@@ -165,7 +165,7 @@ tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor
 越高越划算）。報表的表格兩邊都列分數、`$` 與 CP；tokens 與 steps 只留在原始輸出。每家再列一個「合格」組合：同一個 model 裡，在該家所有模型與強度中，分數 ≥ 50% 裡 CP 最高的一檔；整家都達不到 50% 時，取該家最高分。CursorBench 沒收錄的 model 顯示 `not listed`，
 絕不借用相鄰那列的數字。這種 model 改用它在 [Artificial Analysis](https://artificialanalysis.ai)
 的公開 release 頁，標 `AA`：AA 智力指數、每題成本與每題 output tokens，合格規則套在該 model 自己的各強度上。AA 是
-另一套題，分數與 CP 不跟 CursorBench 比。AA 也沒有頁面時，才多一行 `ref`，標示同家最新、同強度的一列，
+另一套題，分數與 CP 不跟 CursorBench 比。唯一例外（依使用者要求）：某家在 CursorBench 上沒有任何模型到 50% 時，`AA_EXTRA` 裡列的 model 若在 AA 上有一檔到 50，就放進合格欄並標 `AA`。Gemini 的例子是 Gemini 4 Argon（AA 52.6）取代 Gemini 3.8 Flash（39.6%）；Argon 仍在限量開放，CLI 裡可能還選不到。AA 也沒有頁面時，才多一行 `ref`，標示同家最新、同強度的一列，
 僅供對照。`cursorbench.py` 每次執行抓一次 CursorBench 公開頁面，每個未收錄的 model 再抓一次 AA 頁面；
 這些是 skill 自己的程式唯一發出的 HTTP 請求，不帶任何憑證。
 

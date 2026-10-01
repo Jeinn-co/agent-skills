@@ -186,7 +186,10 @@ neighbouring row. For such a model the row falls back to its public
 [Artificial Analysis](https://artificialanalysis.ai) release page, marked `AA`: the AA
 Intelligence Index, cost and output tokens per index task, with the same qualified rule over that
 model's own efforts. AA is a different test set, so its score and CP are never compared
-with CursorBench's. Only when AA has no page either does the report add one `ref` line
+with CursorBench's. One exception, on request: when nothing a provider has on CursorBench
+reaches 50%, a model listed in `AA_EXTRA` whose AA pick does reach 50 fills the qualified
+cell, marked `AA`. For Gemini that is Gemini 4 Argon (AA 52.6) over Gemini 3.8 Flash
+(39.6%). Argon is in a limited rollout, so it may not be selectable in the CLI yet. Only when AA has no page either does the report add one `ref` line
 naming the newest listed same-provider row at the same effort, for orientation only.
 `cursorbench.py` fetches the CursorBench page once per run, plus one AA page per unlisted
 model; those are the only HTTP requests the skill's own code makes, and they send no

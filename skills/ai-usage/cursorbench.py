@@ -27,6 +27,10 @@ index task, and the same pick rule applied to that model's own efforts only. AA 
 different test set, so an `(AA)` score or cp is never compared with a CursorBench one.
 Only when AA has no page for the model either does a `ref` line follow: the newest
 same-provider CursorBench row at the same effort. Orientation only -- never a pick.
+
+AA_EXTRA lists models a provider is gaining that CursorBench does not list yet (Gemini 4
+Argon for agy). When the provider's own pick only reached `rule closest`, an extra whose
+AA pick reaches TARGET takes the pick line instead, marked `(AA)`.
 """
 import html, json, re, sys, urllib.request
 from pathlib import Path
@@ -174,6 +178,29 @@ def aa_rows(model):
     return out
 
 
+# Models a provider's CLI line-up is expected to gain that CursorBench does not list yet,
+# scored on Artificial Analysis instead (AA release slug -> display name). When none of the
+# provider's CursorBench rows reaches TARGET, an extra whose own AA pick does reaches the
+# Qualified cell, marked (AA). Added 2026-10-02 at the user's request for Gemini 4 Argon,
+# which AA scores at 52.6 while the best CursorBench Gemini row is 39.6%. It mixes test
+# sets on purpose; the (AA) mark and footnote say so.
+AA_EXTRA = {"agy": {"gemini-4-argon": "Gemini 4 Argon"}}
+
+
+def extra_pick(cli):
+    """(label, score, cost, "cp", "aa", slug) for the best AA extra of `cli` whose own
+    pick reaches TARGET, or None."""
+    best = None
+    for slug, display in AA_EXTRA.get(cli, {}).items():
+        board = aa_rows(slug)
+        if not board:
+            continue
+        e, s, c, rule = aa_pick(board)
+        if rule == "cp" and (best is None or s / c > best[1] / best[2]):
+            best = ("%s %s" % (display, EFFORT[e]), s, c, rule, "aa", slug)
+    return best
+
+
 def aa_pick(board):
     """(effort, score, cost, rule) over one model's AA efforts, same rule as pick()."""
     ok = [(s / c, e, s, c) for e, (s, c, _) in board.items() if s >= TARGET]
@@ -254,6 +281,13 @@ def main():
             cp = None
         print("bench   %s  %s  score %s  cost %s  tokens %s  steps %s  cp %s%s"
               % (cli, label, score, cost, tokens, steps, "%.1f" % cp if cp else "?", note))
+    for i, (cli, base, hit) in enumerate(picks):
+        if hit and hit[3] == "cp":
+            continue
+        extra = extra_pick(cli)
+        if extra:
+            sources.append(AA_URL % extra[5])
+            picks[i] = (cli, base, extra[:5])
     for cli, base, hit in picks:
         if hit and len(hit) == 5:
             label, score, cost, rule, _ = hit

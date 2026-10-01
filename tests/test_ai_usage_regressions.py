@@ -497,6 +497,22 @@ class ArtificialAnalysisTests(unittest.TestCase):
         self.assertEqual(rows["high"][:2], (40.9, 1.24))
 
 
+class AAExtraPickTests(unittest.TestCase):
+    def test_extra_qualifies_only_when_it_reaches_target(self):
+        sys.path.insert(0, str(SKILL))
+        import cursorbench
+        from unittest import mock
+
+        boards = {"gemini-4-argon": {"high": (52.6, 1.99, 0.0)}}
+        with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda slug: boards.get(slug, {})):
+            hit = cursorbench.extra_pick("agy")
+            self.assertEqual(hit[:4], ("Gemini 4 Argon High", 52.6, 1.99, "cp"))
+            self.assertIsNone(cursorbench.extra_pick("grok"))
+        boards = {"gemini-4-argon": {"high": (45.0, 1.99, 0.0)}}
+        with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda slug: boards.get(slug, {})):
+            self.assertIsNone(cursorbench.extra_pick("agy"))
+
+
 class CursorBenchNameTests(unittest.TestCase):
     def test_maps_cli_model_ids_to_leaderboard_names(self):
         sys.path.insert(0, str(SKILL))

@@ -16,7 +16,7 @@ Neither has any effect on macOS or Linux.
 import atexit, os, shutil, sys
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.6.0"
+VERSION = "1.7.0"
 
 # 20 cells. Each cell is 5 points; the partial cell is one of 8 eighths, so the
 # scale is 0.625 points. The old 10-cell bar rounded 28% and 30% to the same glyph.

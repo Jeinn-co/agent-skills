@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.6.0"
+  version: "1.7.0"
 ---
 
 # /ai-usage — unified AI usage report
@@ -132,7 +132,10 @@ not listed` — unless Artificial Analysis has a page for it: then its `bench` a
 lines end in `(AA)` and carry `aa <index>` (the AA Intelligence Index, a different test
 set) instead of a CursorBench percent, with AA's cost and output tokens (reasoning +
 answer) per index task, and the same pick
-rule applied to that model's own efforts. Only when AA has no page either does a `ref`
+rule applied to that model's own efforts. When a provider's own pick is only `rule
+closest`, a model listed in `AA_EXTRA` (`cursorbench.py`; Gemini 4 Argon for Gemini) whose
+own AA pick reaches 50 takes the `pick` line, marked `(AA)` and `rule cp`, even though the
+Now side is a CursorBench row — the user asked for it. Only when AA has no page either does a `ref`
 line follow, naming the newest listed same-provider row at the same effort —
 orientation only, never compared. `cp` is score ÷ cost per task: points per US dollar at Cursor's API
 prices, not the subscription price. `(mapped from …-contributor)` means the CLI runs
@@ -150,7 +153,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.6.0
+USAGE — 09-12 01:08 · ai-usage 1.7.0
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -183,7 +186,7 @@ USAGE — 09-12 01:08 · ai-usage 1.6.0
     ChatGPT   GPT-6 Sol High · AA 43       $0.37   114.3   GPT-6 Sol Max · AA 48 *         $1.06         45.0
     Grok      Grok 4.7 High · 43.9%        $4.69     9.4   Grok 4.7 Extra High · 46.3% *   $6.01          7.7
     Muse      Muse Spark 1.3 Max · 41.6%   $2.64    15.8   Muse Spark 1.3 Max · 41.6% *    $2.64         15.8
-    Gemini    Gemini 3.8 Flash High · 39.6% $4.70    8.4   Gemini 3.8 Flash High · 39.6% * $4.70          8.4
+    Gemini    Gemini 3.8 Flash High · 39.6% $4.70    8.4   Gemini 4 Argon High · AA 53     $1.99         26.4
 
   $ = cost per task at API prices (AA rows: AA's cost per index task), not subscription quota. CP = score ÷ $; higher is better. * nothing from this provider reaches 50%: its highest.
   Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index (another test set): its score and CP are not comparable with CursorBench's.
