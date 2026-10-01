@@ -22,7 +22,7 @@ import sys
 import urllib.request
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 
 TIMEOUT = 60
 HOME = os.path.expanduser("~")
@@ -309,7 +309,10 @@ def check_agy():
         print("agy\tnot installed")
         return
     try:
-        installed = parse_version(run([cli, "--version"]))
+        # The CLI updates itself on start; this keeps the check read-only.
+        installed = parse_version(run([cli, "--version"], {"AGY_CLI_DISABLE_AUTO_UPDATE": "1"}))
+        if installed is None:
+            raise RuntimeError("unrecognised `agy --version` output")
         page = get_text(AGY_UPDATER)
         match = re.search(r"Stable Version:\s*(\d+\.\d+\.\d+)", page)
         if not match:

@@ -169,7 +169,8 @@ Grok Build 新版時會發 GitHub release，所以官方發佈時間*不晚於*�
 **Antigravity 跑的是 `~/.gemini/bin/agy`，絕不是 PATH 上的 `agy`。** Antigravity IDE
 會裝一個同名的編輯器啟動器，跑它會打開視窗，所以更新指令一律寫完整路徑
 `~/.gemini/bin/agy update`。auto-updater 只列版本、沒有日期，發佈時間一律顯示 `?`；
-註記會寫目前版本的推送進度。這個 CLI 啟動時也會自己更新。
+註記會寫目前版本的推送進度。這個 CLI 啟動時也會自己更新，所以檢查時用
+`AGY_CLI_DISABLE_AUTO_UPDATE=1` 執行 `agy --version`，保持唯讀。
 
 **假設原生版跟 npm 同步。** Claude Code 和 Codex 的原生安裝版不是透過 npm 發佈的。這個
 skill 假設原生版的版號跟 npm 套件一致；驗證時版號確實相同，但沒有官方文件說明這一點。

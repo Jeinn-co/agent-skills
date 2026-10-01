@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -62,7 +62,8 @@ Only the **latest** version and the **currently installed** version — no histo
   installs an editor launcher with the same name; running it opens a window. The update
   command is the full path, `~/.gemini/bin/agy update`. Its auto-updater lists versions
   without dates, so `released=?` always; the note says how far the rollout has gone.
-  The CLI also updates itself when it starts.
+  The CLI also updates itself when it starts, so the check runs `agy --version` with
+  `AGY_CLI_DISABLE_AUTO_UPDATE=1` to stay read-only.
 
 Each tool line is tab-separated:
 `name installed=… installed_at=… latest=… released=… released_note=… channel=… status=… update_cmd=…`,

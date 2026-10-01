@@ -183,7 +183,8 @@ the `.muse-channel` file next to the launcher, else `muse-stable`.
 installs an editor launcher with the same name, and running that opens a window. The
 update command is therefore the full path, `~/.gemini/bin/agy update`. The auto-updater
 lists versions without dates, so the release time always shows `?`; the note says how far
-the current version has rolled out. The CLI also updates itself when it starts.
+the current version has rolled out. The CLI also updates itself when it starts, so the
+check runs `agy --version` with `AGY_CLI_DISABLE_AUTO_UPDATE=1` to stay read-only.
 
 **Native builds are assumed to track npm.** The native installers of Claude Code and Codex
 are not published through npm. This skill assumes they ship the same version numbers as
