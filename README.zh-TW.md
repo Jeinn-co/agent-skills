@@ -71,7 +71,7 @@ npx skills update ai-usage -p -y          # project 安裝（ai-cli-version 同�
 在 repository 根目錄執行回歸測試：
 
 ```bash
-python3 -m unittest -v tests/test_ai_usage_regressions.py
+python3 -m unittest discover -v -s tests
 ```
 
 ## 慣例

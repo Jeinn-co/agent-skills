@@ -73,7 +73,7 @@ Manually copied skills are not tracked; copy the directory again to update them.
 Run the regression suite from the repository root:
 
 ```bash
-python3 -m unittest -v tests/test_ai_usage_regressions.py
+python3 -m unittest discover -v -s tests
 ```
 
 ## Conventions
