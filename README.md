@@ -8,7 +8,7 @@ npx skills add Jeinn-co/agent-skills@ai-usage
 npx skills add Jeinn-co/agent-skills@ai-cli-version
 ```
 
-[Browse on skills.sh](https://skills.sh/jeinn-co/agent-skills) · 繁體中文：[README.zh-TW.md](README.zh-TW.md)
+[Browse on skills.sh](https://skills.sh/jeinn-co/agent-skills) · [Traditional Chinese](README.zh-TW.md)
 
 > Read the skill's own README first — it lists what must already be on your machine.
 
@@ -16,8 +16,8 @@ npx skills add Jeinn-co/agent-skills@ai-cli-version
 
 | Skill | What it does | Docs |
 |---|---|---|
-| [`ai-usage`](skills/ai-usage/) | One report for how much of your Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) subscription is left — percent used, when each window resets, what top-up you have, which model and effort each CLI is on now, and the CursorBench score, cost and CP of the model each CLI runs. | [README](skills/ai-usage/README.md) · [中文](skills/ai-usage/README.zh-TW.md) |
-| [`ai-cli-version`](skills/ai-cli-version/) | Whether your Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date — installed version and when you installed it, latest version and when it was released. When updates are available, choose `y` to update all or `Esc` to skip. Tested on Windows and macOS; Linux not yet tested. | [README](skills/ai-cli-version/README.md) · [中文](skills/ai-cli-version/README.zh-TW.md) |
+| [`ai-usage`](skills/ai-usage/) | One report for how much of your Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) subscription is left — percent used, when each window resets, what top-up you have, which model and effort each CLI is on now, and the CursorBench score, cost and CP of the model each CLI runs. | [README](skills/ai-usage/README.md) · [Traditional Chinese](skills/ai-usage/README.zh-TW.md) |
+| [`ai-cli-version`](skills/ai-cli-version/) | Whether your Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date — installed version and when you installed it, latest version and when it was released. When updates are available, choose `y` to update all or `Esc` to skip. Tested on Windows and macOS; Linux not yet tested. | [README](skills/ai-cli-version/README.md) · [Traditional Chinese](skills/ai-cli-version/README.zh-TW.md) |
 
 ![ai-usage report](skills/ai-usage/images/demo.png)
 
@@ -80,6 +80,10 @@ python3 -m unittest discover -v -s tests
 
 - **English is canonical.** A `.zh-TW.md` beside a doc is a mirror; when one changes,
   the other changes in the same commit.
+- **English output by default.** Scripts emit English data and status messages. An
+  agent can localize its report using the computer's preferred language when the
+  host provides it, or a language the user explicitly requests. Without that
+  information, use English; do not infer a language from earlier conversation.
 - **Docs live with the skill.** Anything a user needs after installing goes inside
   `skills/<name>/`, not here. This page is an index.
 - **Versions are by hand.** `SKILL.md` frontmatter carries `metadata.version`; the skill

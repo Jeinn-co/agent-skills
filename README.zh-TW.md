@@ -77,6 +77,8 @@ python3 -m unittest discover -v -s tests
 ## 慣例
 
 - **英文為準。** 文件旁邊的 `.zh-TW.md` 是鏡像；一邊改動，另一邊在同一個 commit 裡跟著改。
+- **預設英文輸出。** 腳本輸出的資料與狀態訊息使用英文。Agent 可依 host 提供的電腦偏好語言，
+  或使用者明確指定的語言翻譯報表；沒有這些資訊時用英文，不從先前對話猜語言。
 - **說明跟著 skill 走。** 使用者裝完之後會需要的內容，一律放在 `skills/<name>/` 裡面，
   不放在這裡。這一頁只是索引。
 - **版本靠手動維護。** `SKILL.md` frontmatter 裡有 `metadata.version`，skill 執行時也會

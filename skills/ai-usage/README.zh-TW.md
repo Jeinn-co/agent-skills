@@ -42,8 +42,8 @@ agent server，所以「裝了但沒登入」的 CLI 會回報呼叫失敗，而
 ### 3. 網路與 subprocess 權限
 
 Agent host 必須允許這個 skill 啟動本機 subprocess。每個 provider CLI 也必須能連上自己的
-網路服務。Python 程式不會直接發送 HTTP request；認證與網路連線都留在 provider CLI
-內部處理。
+網路服務。用量探針把認證與服務請求留在 provider CLI 內部處理；benchmark 輔助程式另外
+會讀取 CursorBench 與 Artificial Analysis 的公開網頁，不帶憑證。
 
 ### 4. 平台
 
@@ -172,8 +172,10 @@ tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor
 僅供對照。`cursorbench.py` 每次執行抓一次 CursorBench 公開頁面，每個未收錄的 model 再抓一次 AA 頁面；
 這些是 skill 自己的程式唯一發出的 HTTP 請求，不帶任何憑證。
 
-**語言。** 報表會用你提問的語言輸出 —— 英文、中文或其他語言都可以。model 名稱、數字、
-時間不翻譯。
+**語言。** 公開說明以英文為準，腳本的資料與狀態訊息使用英文。在 agent 裡，使用者明確指定
+報表語言時優先採用該語言；否則可依 host 提供的電腦偏好語言輸出，沒有資訊時用英文。
+單獨輸入 `/ai-usage` 不沿用先前對話語言。腳本本身不偵測作業系統顯示語言，也不翻譯原始輸出。
+Model ID、數字、日期、時間、指令及錯誤代碼不翻譯。
 
 每個用量方法是怎麼找到的（包含走過的死路，讓後人不用再走一次），見
 [`references/providers.md`](references/providers.md)。

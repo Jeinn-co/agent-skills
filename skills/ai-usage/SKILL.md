@@ -1,10 +1,10 @@
 ---
 name: ai-usage
-description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, the model / effort of each CLI's newest session, and that model's CursorBench score, cost and CP. Use when the user runs /ai-usage or /uu, or asks 額度, 用量, usage, limit, 還剩多少, 什麼時候 reset, 被限流了嗎, rate limit, quota, "am I out of Claude", "how much ChatGPT left", Muse 額度, Gemini 額度, Antigravity quota.
+description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, the model / effort of each CLI's newest session, and that model's CursorBench score, cost and CP. Use when the user runs /ai-usage or /uu, or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.7.2"
+  version: "1.7.3"
 ---
 
 # /ai-usage — unified AI usage report
@@ -158,7 +158,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.7.2
+USAGE — 09-12 01:08 · ai-usage 1.7.3
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -196,8 +196,7 @@ USAGE — 09-12 01:08 · ai-usage 1.7.2
   $ = cost per task at API prices (AA rows: AA's cost per index task), not subscription quota. CP = score ÷ $; higher is better. * nothing from this provider reaches 50%: its highest.
   Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index (another test set): its score and CP are not comparable with CursorBench's.
 
-  ⚠ ChatGPT week is 92% used; resets in 2h23m.
-  → Use Claude right now: the highest score, and its 5h window is 21% used.
+  → Use Claude right now: the highest CursorBench score, and its 5h window is 29% used.
 ```
 
 Rules:
@@ -219,25 +218,28 @@ Rules:
   (Qualified: model effort · score, then its CP), all exactly as printed. Each side has
   its own score, its own `$` column (the line's `cost`, two decimals, as printed) and its
   own CP column, so no number reads as the other side's. No tokens column. The `Standard` line
-  always prints, unshortened, directly under the header (Chinese: 「合格標準：同一家任一模型 ≥ 50% 者取 CP 最高 ·
-  整家都達不到 50% 則取該家最高分」). Mark a Qualified cell whose `pick` line says
-  `rule closest` with `*` and keep the `*` footnote (「* 這家沒有任何模型／強度到 50%，
-  取最高的一檔」). The Qualified model can differ from the Now model (e.g. Fable 5.1). Chinese labels: 「服務」, 「目前」,
-  「目前 $」, 「目前 CP」, 「合格」, 「合格 $」, 「合格 CP」, header 「合格（CursorBench）」 — never 「推薦」.
+  always prints, unshortened, directly under the header. Mark a Qualified cell whose
+  `pick` line says `rule closest` with `*` and keep the `*` footnote explaining that
+  this provider has no model or effort at 50%, so its highest score is shown.
+  The Qualified model can differ from the Now model (e.g. Fable 5.1). Use the labels
+  Provider, Now, Now $, Now CP, Qualified, Qualified $, Qualified CP and the header
+  Qualified (CursorBench). When localizing, preserve the meaning of Qualified;
+  do not relabel it as Recommended.
   An `(AA)` line fills its Now cell as `<model effort> · AA <index> · <speed> · <verbosity> · <latency>`
   (the five AA model-page figures: index, cost in the `$` column, speed, verbosity, latency)
   and its Qualified cell as `<model effort> · AA <index>`, no percent sign, and adds the AA
-  clause to the footnote (Chinese: 「AA = Artificial Analysis 智力指數
-  （另一套題），分數與 CP 不能跟 CursorBench 比」). Copy `speed` / `verbosity` / `latency`
+  clause to the footnote explaining that AA is the Artificial Analysis Intelligence
+  Index, a different test set whose scores and CP cannot be compared with CursorBench.
+  Copy `speed` / `verbosity` / `latency`
   from the `bench` line onto Now only; a missing one is `?`. An `(AA)` row never decides the `→` line
   on score or CP against CursorBench rows.
   A `bench … not listed` shows `not listed` in Now; a `pick … not listed` shows `—` in every Qualified column. When a `ref` line exists for that provider, print one extra line directly under its table row: `↳ <model effort> · <score> · CP <cp> (ref)`. Never borrow another model's
   or effort's numbers. Keep the filter to the one header line and the formula to the
   one footnote line, as in the sample; the footnote says higher is better, because a
   bare "CP" reads as a cost.
-  Chinese `$` footnote: 「$ = 每題成本（API 價格；AA 列為 AA 每題成本），不是訂閱額度」.
-  In Chinese never write the unit as a bare 「分」 (it also means a cent): write
-  「CursorBench 分數 ÷ 美元」 or 「每 1 美元換到的分數」. A `(mapped from …)` row gets the
+  The `$` footnote states cost per task at API prices (AA rows: AA's cost per index
+  task), not subscription quota. When localizing CP's unit, spell out score points
+  per US dollar so it cannot be mistaken for cents. A `(mapped from …)` row gets the
   short clause at the end of that footnote, not a line of its own.
   Omit the table only for `bench failed`, and say it failed.
 - The pick rule lives in `cursorbench.py` (across the provider's listed models: ≥ 50% →
@@ -249,8 +251,21 @@ Rules:
 - A provider whose CLI is not installed prints `not installed` and is shown as one
   greyed row. Never drop it silently.
 - No preamble, no recap, no closing offer.
-- Write the whole report in the language the user wrote their request in: labels,
-  the Qualified header and footnote, the `⚠` and `→` lines. The sample above is English only as a template. Translate the
-  English text that comes from the probes; never translate model
-  ids, numbers, dates or times. With no user text to go by (a bare `/ai-usage`), use
-  the language of the conversation so far, else English.
+- Use the report language resolved below for every label, the Qualified header and
+  footnotes, the `⚠` and `→` lines, and readable status or error explanations.
+
+## Language
+
+The canonical documentation, examples and scripts' own data and status messages are
+English. Resolve the agent-rendered report language in this order:
+
+1. A language explicitly requested by the user for this report.
+2. The computer's OS display or preferred language, only when the host provides it.
+3. English when neither is available.
+
+Do not infer a language from the current or earlier conversation, the timezone,
+country, an encoding such as cp950, or a regional date/number format. A bare
+`/ai-usage` follows the same order. The scripts do not detect the OS display language
+or localize raw output. Translate readable prose only; keep model IDs, numbers,
+dates, times, commands and error codes unchanged. Preserve provider diagnostics
+verbatim when needed to explain a failure, even if a provider supplied localized text.

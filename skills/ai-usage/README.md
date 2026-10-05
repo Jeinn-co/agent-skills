@@ -7,7 +7,7 @@ and effort each CLI is running now, and a shared model + effort pick per provide
 Works in Claude Code, Codex CLI, Grok Build, and anything else that reads the `SKILL.md`
 convention. Nothing here depends on a particular host.
 
-繁體中文說明：[README.zh-TW.md](README.zh-TW.md)
+[Traditional Chinese documentation](README.zh-TW.md)
 
 ## Before you install
 
@@ -45,8 +45,9 @@ call, not a login screen.
 ### 3. Network and subprocess access
 
 The agent host must allow this skill to launch local subprocesses. Each provider CLI
-must also be able to reach its own service over the internet. The Python code makes no
-direct HTTP requests; authentication and network access stay inside the provider CLIs.
+must also be able to reach its own service over the internet. Usage probes leave
+authentication and service requests inside the provider CLIs. The benchmark helper
+also fetches public CursorBench and Artificial Analysis pages without credentials.
 
 ### 4. Platform
 
@@ -200,8 +201,13 @@ naming the newest listed same-provider row at the same effort, for orientation o
 model; those are the only HTTP requests the skill's own code makes, and they send no
 credential.
 
-**Language.** The report is written in the language you asked in — English, 中文 or
-anything else. Model names, numbers and times are never translated.
+**Language.** Documentation and the scripts' data and status messages are in English.
+Inside an agent, an explicit request for a report language takes priority. Otherwise,
+the agent may use the computer's preferred language if its host provides that
+information; when it is unavailable, the report is in English. A bare `/ai-usage`
+does not inherit the language of earlier conversation. The scripts do not detect the
+OS display language or translate their raw output. Model IDs, numbers, dates, times,
+commands and error codes are never translated.
 
 See [`references/providers.md`](references/providers.md) for how each usage method
 was found, including the dead ends, so nobody has to re-walk them.

@@ -47,8 +47,9 @@ macOS 的 `/usr/bin/python3`（3.9）來自 Xcode Command Line Tools；沒裝的
 
 ### 3. 網路與 subprocess 權限
 
-這個 skill 會執行上面的 CLI，並對 `registry.npmjs.org` 和 `api.github.com` 發 HTTPS
-請求。**不需要 npm 或 Node.js** —— 直接查 npm registry。
+這個 skill 會執行上面的 CLI，並對 `registry.npmjs.org`、`api.github.com`、`api.meta.ai`
+以及 `run.app` 上的 Antigravity CLI auto-updater 發 HTTPS 請求。
+**不需要 npm 或 Node.js** —— 直接查 npm registry。
 
 ## 安裝
 
@@ -102,6 +103,11 @@ py -3 run.py      # Windows；沒有 `py` 就用 `python run.py`
 
 加上 `--version` 會只印出 skill 版本。在 agent 外面執行時看到的是原始的 tab 分隔輸出，
 不是排好版的報表。
+
+**語言。** 公開說明以英文為準，腳本的資料與狀態訊息使用英文。在 agent 裡，使用者明確指定
+報表語言時優先採用該語言；否則可依 host 提供的電腦偏好語言輸出，沒有資訊時報表與更新選項
+使用英文。單獨輸入 `/ai-cli-version` 不沿用先前對話語言。腳本本身不偵測作業系統顯示語言，
+也不翻譯原始輸出。工具名稱、版本、日期、指令及錯誤代碼維持原樣，更新按鍵仍是 `y` 和 `Esc`。
 
 ## 輸出範例
 

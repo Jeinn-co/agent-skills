@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. Use when the user runs /ai-cli-version or /check-uu, or asks 檢查更新, CLI 有沒有新版, claude/codex/grok/muse/agy/antigravity 要不要更新, 什麼時候發佈, 我什麼時候更新的, "is my CLI up to date", "when was this released".
+description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. Use when the user runs /ai-cli-version or /check-uu, or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.3.1"
+  version: "1.3.2"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -101,12 +101,30 @@ Rules:
 - `ahead of channel` means the installed build is newer than the channel tag — show it
   as-is, not as an error.
 - Last report line: how many updates are available and for which tools, or `All up to date.`
-- Match the user's language for labels.
+- Use the report language resolved below for labels, readable status and error
+  explanations, and update results.
+
+## Language
+
+The canonical documentation, examples and scripts' own data and status messages are
+English. Resolve the agent-rendered report language in this order:
+
+1. A language explicitly requested by the user for this report.
+2. The computer's OS display or preferred language, only when the host provides it.
+3. English when neither is available.
+
+Do not infer a language from the current or earlier conversation, the timezone,
+country, an encoding such as cp950, or a regional date/number format. A bare
+`/ai-cli-version` follows the same order. The script does not detect the OS display
+language or localize raw output. Translate readable prose only; keep tool names,
+versions, dates, commands and error codes unchanged. Preserve provider diagnostics
+verbatim when needed to explain a failure, even if a provider supplied localized text.
+Use the same resolved language for the report, update prompt and update results.
 
 ## Optional update
 
 Only when one or more rows have `status=update available`, append a two-choice prompt in
-the user's language and stop. Keep the keys exactly `y` and `Esc`:
+the report's resolved language and stop. Keep the keys exactly `y` and `Esc`:
 
 ```
 Update the N outdated CLIs now?

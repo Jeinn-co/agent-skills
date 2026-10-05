@@ -14,7 +14,7 @@ convention. Nothing here depends on a particular host.
 > it has never been run there. If it fails, please open an issue with the output of
 > `./run.sh`.
 
-繁體中文說明：[README.zh-TW.md](README.zh-TW.md)
+[Traditional Chinese documentation](README.zh-TW.md)
 
 ## Before you install
 
@@ -50,8 +50,9 @@ others still run. Signing in is not required to read versions.
 
 ### 3. Network and subprocess access
 
-The skill launches the CLIs above and makes HTTPS requests to `registry.npmjs.org` and
-`api.github.com`. **npm and Node.js are not required** — the registry is queried directly.
+The skill launches the CLIs above and makes HTTPS requests to `registry.npmjs.org`,
+`api.github.com`, `api.meta.ai` and the Antigravity CLI auto-updater on `run.app`.
+**npm and Node.js are not required** — the registry is queried directly.
 
 ## Install
 
@@ -94,7 +95,7 @@ Type the skill name as a slash command:
 
     /ai-cli-version
 
-Or just ask — "is my CLI up to date?", "檢查更新", "when was this Codex released?". It reads
+Or just ask — "is my CLI up to date?", "check for updates", "when was this Codex released?". It reads
 live every time; there is no cache or flag. If one or more versions are outdated, it
 shows the report and waits for an explicit `y` before running their update commands.
 Choose `Esc` to leave every CLI unchanged.
@@ -109,6 +110,15 @@ py -3 run.py      # Windows; use `python run.py` if `py` is unavailable
 
 Add `--version` to print the skill version and exit. Outside an agent you get the raw
 tab-separated lines, not the formatted report.
+
+**Language.** Documentation and the scripts' data and status messages are in English.
+Inside an agent, an explicit request for a report language takes priority. Otherwise,
+the agent may use the computer's preferred language if its host provides that
+information; when it is unavailable, the report and update prompt are in English.
+A bare `/ai-cli-version` does not inherit the language of earlier conversation.
+The script does not detect the OS display language or translate its raw output.
+Tool names, versions, dates, commands and error codes stay unchanged, as do the
+update choices `y` and `Esc`.
 
 ## What it prints
 
