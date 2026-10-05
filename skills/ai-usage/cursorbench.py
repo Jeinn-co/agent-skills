@@ -22,15 +22,17 @@ listed gets no pick: an unlisted model cannot be compared with a listed one.
 
 When the current model is not listed, its `bench` and `pick` lines come from Artificial
 Analysis instead (one GET of https://artificialanalysis.ai/models/releases/<model id>,
-no credentials), marked `(AA)`: the AA Intelligence Index score, AA's weighted cost per
-index task, and the same pick rule applied to that model's own efforts only. AA is a
+no credentials), marked `(AA)`: the AA Intelligence Index and AA's four other model-page
+figures (cost per index task, median output speed, index verbosity, time to first
+answer token), with the same pick rule applied to that model's own efforts only. AA is a
 different test set, so an `(AA)` score or cp is never compared with a CursorBench one.
 Only when AA has no page for the model either does a `ref` line follow: the newest
 same-provider CursorBench row at the same effort. Orientation only -- never a pick.
 
 AA_EXTRA lists models a provider is gaining that CursorBench does not list yet (Gemini 4
-Argon for agy). When the provider's own pick only reached `rule closest`, an extra whose
-AA pick reaches TARGET takes the pick line instead, marked `(AA)`.
+Argon for agy, GPT-6.1 Sol for Codex). When the provider's own pick only reached
+`rule closest`, an extra whose AA pick reaches TARGET takes the pick line instead,
+marked `(AA)`.
 """
 import html, json, re, sys, urllib.request
 from pathlib import Path
@@ -141,16 +143,21 @@ AA_LEVEL = {10: "minimal", 20: "low", 30: "medium", 40: "high", 50: "xhigh", 60:
 
 
 def aa_rows(model):
-    """{effort: (score, cost, output tokens per task)} for one CLI model id from its Artificial
-    Analysis release page, or {} when AA has no page or no scored row for it.
+    """{effort: (score, cost, tokens, speed, verbosity, latency)} for one CLI model id
+    from its Artificial Analysis release page, or {} when AA has no page or no scored
+    row for it.
 
     The page is server-rendered and embeds every variant as a JSON object
     ({"id":..., "slug":..., "release": {"slug": ...}, "effort": {"level": 40},
     "intelligenceIndex", "intelligenceIndexCostPerTask": {"cost": {"total"}},
-    "intelligenceIndexOutputTokensPerTask": {"output"}}). Each object is decoded on its
+    "intelligenceIndexOutputTokensPerTask": {"output"}, "medianOutputSpeed",
+    "canonicalIntelligenceIndexTokenCount": {"output"},
+    "timeToFirstAnswerToken": {"total"}}). Each object is decoded on its
     own and kept only when its `release.slug` is this model, so a variant AA has not
     scored is left out -- never filled from the next model on the page (found
-    2026-10-02: the old fixed-width text scan gave Gemini 3.8 Flash Low Opus's cost)."""
+    2026-10-02: the old fixed-width text scan gave Gemini 3.8 Flash Low Opus's cost).
+    Speed / verbosity / latency are the other three model-summary cards plus TTFT
+    (the five figures on AA's model page); missing ones stay 0 and print as `?`."""
     slug = re.sub(r"-contributor$", "", model.lower()).replace(".", "-")
     request = urllib.request.Request(AA_URL % slug,
                                      headers={"User-Agent": "Mozilla/5.0 (ai-usage)"})
@@ -173,18 +180,23 @@ def aa_rows(model):
         score = variant.get("intelligenceIndex")
         cost = ((variant.get("intelligenceIndexCostPerTask") or {}).get("cost") or {}).get("total")
         tokens = (variant.get("intelligenceIndexOutputTokensPerTask") or {}).get("output") or 0.0
+        speed = variant.get("medianOutputSpeed") or 0.0
+        verbosity = (variant.get("canonicalIntelligenceIndexTokenCount") or {}).get("output") or 0.0
+        latency = (variant.get("timeToFirstAnswerToken") or {}).get("total") or 0.0
         if effort and score is not None and cost and cost > 0:
-            out.setdefault(effort, (float(score), float(cost), float(tokens)))
+            out.setdefault(effort, (float(score), float(cost), float(tokens),
+                                    float(speed), float(verbosity), float(latency)))
     return out
 
 
 # Models a provider's CLI line-up is expected to gain that CursorBench does not list yet,
 # scored on Artificial Analysis instead (AA release slug -> display name). When none of the
 # provider's CursorBench rows reaches TARGET, an extra whose own AA pick does reaches the
-# Qualified cell, marked (AA). Added 2026-10-02 at the user's request for Gemini 4 Argon,
-# which AA scores at 52.6 while the best CursorBench Gemini row is 39.6%. It mixes test
-# sets on purpose; the (AA) mark and footnote say so.
-AA_EXTRA = {"agy": {"gemini-4-argon": "Gemini 4 Argon"}}
+# Qualified cell, marked (AA). It mixes test sets on purpose; the (AA) mark and footnote
+# say so. Added 2026-10-02 for Gemini 4 Argon (AA 52.6 vs CursorBench Gemini 39.6%);
+# GPT-6.1 Sol 2026-10-05 (AA 50 vs CursorBench GPT-5.6 Sol Max 41.7%).
+AA_EXTRA = {"agy": {"gemini-4-argon": "Gemini 4 Argon"},
+            "codex": {"gpt-6.1-sol": "GPT-6.1 Sol"}}
 
 
 def extra_pick(cli):
@@ -203,11 +215,35 @@ def extra_pick(cli):
 
 def aa_pick(board):
     """(effort, score, cost, rule) over one model's AA efforts, same rule as pick()."""
-    ok = [(s / c, e, s, c) for e, (s, c, _) in board.items() if s >= TARGET]
+    ok, best = [], None
+    for e, row in board.items():
+        s, c = row[0], row[1]
+        if best is None or s > best[1]:
+            best = (e, s, c)
+        if s >= TARGET:
+            ok.append((s / c, e, s, c))
     if ok:
         return max(ok)[1:] + ("cp",)
-    e, (s, c, _) = max(board.items(), key=lambda kv: kv[1][0])
+    e, s, c = best
     return e, s, c, "closest"
+
+
+def _aa_speed(v):
+    return "?" if not v else "%.1f/s" % v
+
+
+def _aa_verbosity(v):
+    if not v:
+        return "?"
+    if v >= 1e6:
+        return "%.0fM" % round(v / 1e6)
+    if v >= 1e3:
+        return "%.0fK" % round(v / 1e3)
+    return "%.0f" % v
+
+
+def _aa_latency(v):
+    return "?" if not v else "%.1fs" % v
 
 
 def rows():
@@ -258,9 +294,11 @@ def main():
             sources.append(AA_URL % re.sub(r"-contributor$", "", model.lower()).replace(".", "-"))
             now = aa.get(effort.lower())
             if now:
-                print("bench   %s  %s  aa %.0f  cost $%.2f  output tokens %s  cp %.1f  (AA)"
-                      % (cli, label, now[0], now[1], "{:,.0f}".format(now[2]) if now[2] else "?",
-                         now[0] / now[1]))
+                score, cost = now[0], now[1]
+                extra = tuple(now) + (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                print("bench   %s  %s  aa %.0f  cost $%.2f  speed %s  verbosity %s  latency %s  cp %.1f  (AA)"
+                      % (cli, label, score, cost, _aa_speed(extra[3]),
+                         _aa_verbosity(extra[4]), _aa_latency(extra[5]), score / cost))
             else:
                 print("bench   %s  %s  not listed  (AA)" % (cli, label))
             e, s, c, rule = aa_pick(aa)

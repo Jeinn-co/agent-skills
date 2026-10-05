@@ -512,6 +512,44 @@ class ArtificialAnalysisTests(unittest.TestCase):
             rows = cursorbench.aa_rows("gemini-3.8-flash")
         self.assertEqual(set(rows), {"high"})
         self.assertEqual(rows["high"][:2], (40.9, 1.24))
+        self.assertEqual(rows["high"][3:], (0.0, 0.0, 0.0))
+
+    def test_aa_rows_reads_speed_verbosity_latency(self):
+        sys.path.insert(0, str(SKILL))
+        import cursorbench
+        from unittest import mock
+
+        data = {
+            "id": "0f0f0f0f-0000-0000-0000-000000000000",
+            "slug": "gpt-6-1-sol-high",
+            "release": {"slug": "gpt-6-1-sol"},
+            "effort": {"level": 40},
+            "intelligenceIndex": 50.237,
+            "intelligenceIndexCostPerTask": {"cost": {"total": 0.319}},
+            "intelligenceIndexOutputTokensPerTask": {"output": 13191.8},
+            "medianOutputSpeed": 50.854,
+            "canonicalIntelligenceIndexTokenCount": {"output": 25376903},
+            "timeToFirstAnswerToken": {"total": 46.5526},
+        }
+        page = "<script>" + json.dumps(data, separators=(",", ":")) + "</script>"
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return page.encode("utf-8")
+
+        with mock.patch.object(cursorbench.urllib.request, "urlopen", return_value=Response()):
+            rows = cursorbench.aa_rows("gpt-6.1-sol")
+        self.assertEqual(rows["high"][:2], (50.237, 0.319))
+        self.assertEqual(rows["high"][3:], (50.854, 25376903.0, 46.5526))
+        self.assertEqual(cursorbench._aa_speed(50.854), "50.9/s")
+        self.assertEqual(cursorbench._aa_verbosity(25376903), "25M")
+        self.assertEqual(cursorbench._aa_latency(46.5526), "46.6s")
 
 
 class AAExtraPickTests(unittest.TestCase):
@@ -520,14 +558,19 @@ class AAExtraPickTests(unittest.TestCase):
         import cursorbench
         from unittest import mock
 
-        boards = {"gemini-4-argon": {"high": (52.6, 1.99, 0.0)}}
+        boards = {"gemini-4-argon": {"high": (52.6, 1.99, 0.0)},
+                  "gpt-6.1-sol": {"high": (50.237, 0.319, 0.0)}}
         with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda slug: boards.get(slug, {})):
             hit = cursorbench.extra_pick("agy")
             self.assertEqual(hit[:4], ("Gemini 4 Argon High", 52.6, 1.99, "cp"))
+            hit = cursorbench.extra_pick("codex")
+            self.assertEqual(hit[:4], ("GPT-6.1 Sol High", 50.237, 0.319, "cp"))
             self.assertIsNone(cursorbench.extra_pick("grok"))
-        boards = {"gemini-4-argon": {"high": (45.0, 1.99, 0.0)}}
+        boards = {"gemini-4-argon": {"high": (45.0, 1.99, 0.0)},
+                  "gpt-6.1-sol": {"high": (45.0, 0.32, 0.0)}}
         with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda slug: boards.get(slug, {})):
             self.assertIsNone(cursorbench.extra_pick("agy"))
+            self.assertIsNone(cursorbench.extra_pick("codex"))
 
 
 class AAExtraFailureTests(unittest.TestCase):
@@ -547,6 +590,30 @@ class AAExtraFailureTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("pick    agy  Gemini 3.8 Flash High  score 39.6%", out.getvalue())
 
+    def test_aa_bench_line_prints_speed_verbosity_latency(self):
+        sys.path.insert(0, str(SKILL))
+        import cursorbench
+        from unittest import mock
+        import io, contextlib
+
+        board = {}
+        aa = {"high": (50.237, 0.319, 13191.8, 50.854, 25376903.0, 46.5526)}
+        with mock.patch.object(cursorbench, "rows", return_value=board), \
+                mock.patch.object(cursorbench, "aa_rows", return_value=aa), \
+                mock.patch.object(sys, "argv", ["cursorbench.py", "codex=gpt-6.1-sol:high"]):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = cursorbench.main()
+        self.assertEqual(code, 0)
+        line = [ln for ln in out.getvalue().splitlines() if ln.startswith("bench")][0]
+        self.assertIn("aa 50", line)
+        self.assertIn("cost $0.32", line)
+        self.assertIn("speed 50.9/s", line)
+        self.assertIn("verbosity 25M", line)
+        self.assertIn("latency 46.6s", line)
+        self.assertIn("(AA)", line)
+        self.assertNotIn("output tokens", line)
+
 
 class CursorBenchNameTests(unittest.TestCase):
     def test_maps_cli_model_ids_to_leaderboard_names(self):
@@ -559,6 +626,7 @@ class CursorBenchNameTests(unittest.TestCase):
             ("claude", "claude-sonnet-5"): "Sonnet 5",
             ("claude", "opus"): None,
             ("codex", "gpt-6-sol"): "GPT-6 Sol",
+            ("codex", "gpt-6.1-sol"): "GPT-6.1 Sol",
             ("codex", "gpt-5.6-terra"): "GPT-5.6 Terra",
             ("grok", "grok-4.7"): "Grok 4.7",
             ("grok", "grok-4.7-build-fast"): None,

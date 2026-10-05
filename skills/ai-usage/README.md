@@ -188,12 +188,13 @@ provider: across every model and effort CursorBench lists for that provider, the
 score of 50% or more; when nothing from that provider reaches 50%, its highest score. A model CursorBench does not list shows `not listed`, never a
 neighbouring row. For such a model the row falls back to its public
 [Artificial Analysis](https://artificialanalysis.ai) release page, marked `AA`: the AA
-Intelligence Index, cost and output tokens per index task, with the same qualified rule over that
+Intelligence Index, cost per index task, speed, verbosity and latency (the five figures
+on AA's model page), with the same qualified rule over that
 model's own efforts. AA is a different test set, so its score and CP are never compared
 with CursorBench's. One exception, on request: when nothing a provider has on CursorBench
 reaches 50%, a model listed in `AA_EXTRA` whose AA pick does reach 50 fills the qualified
 cell, marked `AA`. For Gemini that is Gemini 4 Argon (AA 52.6) over Gemini 3.8 Flash
-(39.6%). Argon is in a limited rollout, so it may not be selectable in the CLI yet. Only when AA has no page either does the report add one `ref` line
+(39.6%). For ChatGPT that is GPT-6.1 Sol (AA 50) over GPT-5.6 Sol Max (41.7%). Argon is in a limited rollout, so it may not be selectable in the CLI yet. Only when AA has no page either does the report add one `ref` line
 naming the newest listed same-provider row at the same effort, for orientation only.
 `cursorbench.py` fetches the CursorBench page once per run, plus one AA page per unlisted
 model; those are the only HTTP requests the skill's own code makes, and they send no

@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.7.1"
+  version: "1.7.2"
 ---
 
 # /ai-usage — unified AI usage report
@@ -134,10 +134,11 @@ for that provider; when none reaches 50%, the provider's highest score. `rule cp
 `rule closest` says which applied. A CLI whose current model is unlisted gets `pick …
 not listed` — unless Artificial Analysis has a page for it: then its `bench` and `pick`
 lines end in `(AA)` and carry `aa <index>` (the AA Intelligence Index, a different test
-set) instead of a CursorBench percent, with AA's cost and output tokens (reasoning +
-answer) per index task, and the same pick
+set) instead of a CursorBench percent, with AA's cost, speed (median output tok/s),
+verbosity (index output tokens, e.g. `25M`) and latency (time to first answer token),
+and the same pick
 rule applied to that model's own efforts. When a provider's own pick is only `rule
-closest`, a model listed in `AA_EXTRA` (`cursorbench.py`; Gemini 4 Argon for Gemini) whose
+closest`, a model listed in `AA_EXTRA` (`cursorbench.py`; Gemini 4 Argon for Gemini, GPT-6.1 Sol for ChatGPT) whose
 own AA pick reaches 50 takes the `pick` line, marked `(AA)` and `rule cp`, even though the
 Now side is a CursorBench row — the user asked for it. Only when AA has no page either does a `ref`
 line follow, naming the newest listed same-provider row at the same effort —
@@ -157,7 +158,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.7.1
+USAGE — 09-12 01:08 · ai-usage 1.7.2
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -167,7 +168,7 @@ USAGE — 09-12 01:08 · ai-usage 1.7.1
   ChatGPT   plus
     5h    ░░░░░░░░░░░░░░░░░░░░   0%   resets 05:55 (4h47m)
     week  ░░░░░░░░░░░░░░░░░░░░   0%   resets 09-18 17:07 (6d15h)
-    now   gpt-5.6-sol · effort high   (3m ago)
+    now   gpt-6.1-sol · effort high   (3m ago)
 
   Grok      SuperGrok
     week  █████▍░░░░░░░░░░░░░░  27%   resets 09-15 09:38 (3d8h)
@@ -187,7 +188,7 @@ USAGE — 09-12 01:08 · ai-usage 1.7.1
     Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score
     Provider  Now                          Now $   Now CP  Qualified                       Qualified $  Qualified CP
     Claude    Opus 5.5 High · 56.0%        $3.97    14.1   Opus 5.5 Medium · 52.5%         $2.91         18.0
-    ChatGPT   GPT-6 Sol High · AA 43       $0.37   114.3   GPT-6 Sol Max · AA 48 *         $1.06         45.0
+    ChatGPT   GPT-6.1 Sol High · AA 50 · 50.9/s · 25M · 46.6s  $0.32   157.4   GPT-6.1 Sol High · AA 50        $0.32        157.4
     Grok      Grok 4.7 High · 43.9%        $4.69     9.4   Grok 4.7 Extra High · 46.3% *   $6.01          7.7
     Muse      Muse Spark 1.3 Max · 41.6%   $2.64    15.8   Muse Spark 1.3 Max · 41.6% *    $2.64         15.8
     Gemini    Gemini 3.8 Flash High · 39.6% $4.70    8.4   Gemini 4 Argon High · AA 53     $1.99         26.4
@@ -223,9 +224,12 @@ Rules:
   `rule closest` with `*` and keep the `*` footnote (「* 這家沒有任何模型／強度到 50%，
   取最高的一檔」). The Qualified model can differ from the Now model (e.g. Fable 5.1). Chinese labels: 「服務」, 「目前」,
   「目前 $」, 「目前 CP」, 「合格」, 「合格 $」, 「合格 CP」, header 「合格（CursorBench）」 — never 「推薦」.
-  An `(AA)` line fills its cell as `<model effort> · AA <index>` with its cp, no percent
-  sign, and adds the AA clause to the footnote (Chinese: 「AA = Artificial Analysis 智力指數
-  （另一套題），分數與 CP 不能跟 CursorBench 比」). An `(AA)` row never decides the `→` line
+  An `(AA)` line fills its Now cell as `<model effort> · AA <index> · <speed> · <verbosity> · <latency>`
+  (the five AA model-page figures: index, cost in the `$` column, speed, verbosity, latency)
+  and its Qualified cell as `<model effort> · AA <index>`, no percent sign, and adds the AA
+  clause to the footnote (Chinese: 「AA = Artificial Analysis 智力指數
+  （另一套題），分數與 CP 不能跟 CursorBench 比」). Copy `speed` / `verbosity` / `latency`
+  from the `bench` line onto Now only; a missing one is `?`. An `(AA)` row never decides the `→` line
   on score or CP against CursorBench rows.
   A `bench … not listed` shows `not listed` in Now; a `pick … not listed` shows `—` in every Qualified column. When a `ref` line exists for that provider, print one extra line directly under its table row: `↳ <model effort> · <score> · CP <cp> (ref)`. Never borrow another model's
   or effort's numbers. Keep the filter to the one header line and the formula to the
