@@ -54,10 +54,10 @@ Send `initialize`, then call `_x.ai/billing` with empty params:
            "onDemandCap":{"val":0},"onDemandUsed":{"val":0},"prepaidBalance":{"val":0}}}
 ```
 
-`creditUsagePercent` is optional. grok 1.0.40 omitted it after the weekly reset on
-2026-09-22 (period, `billingPeriodEnd`, and `subscription_tier` still present). It
-was also absent in some 1.0.25 fetches mid-period on 2026-09-10, so a missing field
-is not 0%. The probe prints `percent omitted` and still reports the reset clock.
+`creditUsagePercent` is a whole number and is omitted while it is 0. Every reading
+logged 2026-09-14..10-06 was integral (1.0 .. 66.0). On 2026-10-06 (grok 1.0.46) it
+was omitted ~2h after the weekly reset; minutes later the same call returned 1.0
+and grok.com Settings -> Usage showed "1% used". The probe prints `<1% used`.
 
 Two traps that cost time:
 - The method name in the binary is `x.ai/billing`, but the **wire name has a leading

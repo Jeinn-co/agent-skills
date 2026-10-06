@@ -238,7 +238,7 @@ fields) verified 2026-10-02 against the Antigravity CLI (`agy`) 1.2.14 on macOS.
 |---|---|---|
 | Claude's two usage lines are free text and are regex-parsed | `claude_usage.py` | Falls back to printing the raw line; never prints a wrong number |
 | Codex's app-server protocol is private to OpenAI and carries no compatibility promise | `codex_usage.py` | A method rename or missing required field makes the ChatGPT row fail visibly; it never defaults to 0% |
-| Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field (period, `billingPeriodEnd`) makes the Grok row fail visibly. An omitted `creditUsagePercent` prints `percent omitted`; it never defaults to 0% |
+| Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field (period, `billingPeriodEnd`) makes the Grok row fail visibly. An omitted `creditUsagePercent` means a whole-percent 0 and prints `<1% used` |
 | Muse's `usage/read` returns only what the host has observed | `muse_usage.py` | If the turn ends with no usage, the Muse row fails visibly (`no usage observed`); it never defaults to 0% |
 | Gemini's `/usage` output is tab-separated text from the Antigravity CLI, which is undocumented | `agy_usage.py` | A changed layout makes the Gemini row fail visibly (`usage call failed`); it never defaults to 0% |
 | Session files and model caches are internal to each CLI and undocumented | `session_info.py` | A renamed field prints `?` for that value; a moved file prints `no local session`. The usage rows are unaffected |
@@ -257,8 +257,8 @@ fields) verified 2026-10-02 against the Antigravity CLI (`agy`) 1.2.14 on macOS.
 - **Grok has one window, not two.** No 5-hour row is invented for it.
 - **Gemini has two weekly pools and no 5-hour window**, and its plan name is not
   reported: `/usage` names no plan, so the plan shows `?`.
-- **Grok `creditUsagePercent` omitted** is not treated as 0%. The probe prints
-  `percent omitted` and still reports the reset clock.
+- **Grok `creditUsagePercent` omitted** means under 1%: the API sends whole percents
+  and drops a 0. The probe prints `<1% used` with an empty bar.
 - **Grok prepaid / on-demand at 0** is omitted. The values are readable; printing
   `prepaid 0 / on-demand 0` is noise. The line appears only when any value is
   non-zero.

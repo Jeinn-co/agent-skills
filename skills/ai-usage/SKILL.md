@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.7.3"
+  version: "1.7.4"
 ---
 
 # /ai-usage — unified AI usage report
@@ -96,8 +96,7 @@ as High.
 ## Reading the output
 
 **Bar** — every `% used` line ends with `bar` and 20 cells from `portable.usage_bar`.
-Copy that glyph string. Do not redraw it from the whole-number percent. A
-`percent omitted` line has no `bar`.
+Copy that glyph string. Do not redraw it from the whole-number percent.
 
 **Claude** — current session (5h) and current week. Claude omits the reset clock
 when a window is 0% used; still print that row, without inventing a reset time.
@@ -109,13 +108,13 @@ no read counterpart). Do not print `unknown (web only)` either. `credits.balance
 is a different pool (paid top-ups) and is never that reset count.
 
 **Grok** — weekly `creditUsagePercent` and the billing period end when the
-percent is present. `_x.ai/billing` sometimes omits `creditUsagePercent`; the
-probe then prints `percent omitted`. Print that week row without a bar or
-percent, still print the reset clock, and do not invent 0%. Print prepaid /
+percent is present. `_x.ai/billing` reports whole percents and omits
+`creditUsagePercent` while it is 0 (e.g. right after the weekly reset); the
+probe then prints `<1% used` with an empty bar. Show it as `<1%`, never `0%`
+and never "no percent". Print prepaid /
 on-demand only when any of those values is non-zero. Do not print
 `prepaid 0 / on-demand 0`. Grok has only one window, not two — do not invent a
-5h row for it. Do not pick Grok as the tool to use just because the percent is
-missing.
+5h row for it.
 
 **Gemini** — two weekly pools from the Antigravity CLI: `gemini` (Gemini models) and
 `cl+gpt` (the Claude and GPT models Antigravity also offers), each with a reset clock.
@@ -158,7 +157,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.7.3
+USAGE — 09-12 01:08 · ai-usage 1.7.4
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -202,9 +201,8 @@ USAGE — 09-12 01:08 · ai-usage 1.7.3
 Rules:
 - Copy each window's `bar` exactly. It is 20 cells: each cell is 5 points, and the partial cell is one eighth (`▏▎▍▌▋▊▉`), so 28% and 30% no longer draw the same bar. Full cell `█`, empty track `░`. Do not redraw it and do not shorten it to 10 cells. The displayed percent stays a whole number.
 - Relative time next to every reset clock. If the probe omitted the reset (Claude
-  5h at 0% used), omit the reset clause — do not invent a time. If the probe
-  omitted the percent (Grok `percent omitted`), omit the bar and percent — do
-  not invent 0%. Still print the reset clock.
+  5h at 0% used), omit the reset clause — do not invent a time. Grok `<1% used`
+  prints as `<1%` with the probe's empty bar.
 - Never print ChatGPT "resets available" / "Usage limit resets", including
   `unknown (web only)`.
 - Never invent a 5h row for Grok or Gemini. Gemini's two rows are its two weekly pools, labelled `gemini` and `cl+gpt`.

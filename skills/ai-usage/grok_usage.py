@@ -116,7 +116,9 @@ except (ValueError, TypeError, OverflowError) as e:
 print("plan: %s" % (res.get("subscription_tier") or "unknown"))
 window = period_type.replace("USAGE_PERIOD_TYPE_", "").lower()
 if used is None:
-    print("%-6s percent omitted  window %s  resets %s" % ("week", window, when))
+    # The API sends whole percents and drops a zero value: omitted means under 1%.
+    print("%-6s    <1%% used  window %s  resets %s  %s"
+          % ("week", window, when, portable.format_bar(0)))
 else:
     print("%-6s %5.1f%% used  window %s  resets %s  %s"
           % ("week", used, window, when, portable.format_bar(used)))

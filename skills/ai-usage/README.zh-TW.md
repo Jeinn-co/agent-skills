@@ -204,7 +204,7 @@ session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.
 |---|---|---|
 | Claude 那兩行用量是自由文字，靠 regex 解析 | `claude_usage.py` | 退回直接印原始那行；絕不會印出錯的數字 |
 | Codex 的 app-server 協定是 OpenAI 私有的，沒有任何相容性承諾 | `codex_usage.py` | 方法改名或必要欄位缺失時，ChatGPT 那列會明確失敗；絕不預設成 0% |
-| Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位（period、`billingPeriodEnd`）缺失時，Grok 那列會明確失敗。省略 `creditUsagePercent` 時印 `percent omitted`；絕不預設成 0% |
+| Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位（period、`billingPeriodEnd`）缺失時，Grok 那列會明確失敗。省略 `creditUsagePercent` 代表整數 0，印 `<1% used` |
 | Muse 的 `usage/read` 只回報 host 觀察到的資料 | `muse_usage.py` | turn 結束仍沒有用量時，Muse 那列會明確失敗（`no usage observed`）；絕不預設成 0% |
 | Gemini 的 `/usage` 輸出是 Antigravity CLI 的 tab 分隔文字，沒有公開文件 | `agy_usage.py` | 格式改變時 Gemini 那列會明確失敗（`usage call failed`）；絕不預設成 0% |
 | session 檔與 model 快取是各 CLI 內部格式，沒有公開文件 | `session_info.py` | 欄位改名時該值印 `?`；檔案搬家時印 `no local session`。用量那幾列不受影響 |
@@ -222,7 +222,7 @@ session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.
 - **Grok 只有一個視窗，不是兩個。** 不會幫它捏造一個 5 小時的列。
 - **Gemini 只有兩個週額度池，沒有 5 小時視窗**，也不回報方案名稱：`/usage` 不提供方案，
   所以方案顯示 `?`。
-- **Grok 省略 `creditUsagePercent`** 不當成 0%。探針印 `percent omitted`，重置時間仍報。
+- **Grok 省略 `creditUsagePercent`** 代表不到 1%：API 只回整數百分比，0 會被省略。探針印 `<1% used` 加空 bar。
 - **Grok prepaid / on-demand 全為 0** 時省略。數字讀得到，但印 `prepaid 0 /
   on-demand 0` 是噪音。任一值非 0 才顯示那一行。
 - **Muse 方案名稱**來自一張已知 tier id 的對照表（`muse_usage.py` 的 `TIER_NAMES`；

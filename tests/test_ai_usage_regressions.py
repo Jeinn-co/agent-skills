@@ -196,9 +196,9 @@ for line in sys.stdin:
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("billing call failed (invalid response:", result.stdout)
         self.assertNotIn("0.0% used", result.stdout)
-        self.assertNotIn("percent omitted", result.stdout)
+        self.assertNotIn("<1% used", result.stdout)
 
-    def test_grok_omits_percent_when_field_absent(self):
+    def test_grok_absent_percent_reads_as_under_one(self):
         result = self.run_probe(
             "grok_usage.py",
             "grok",
@@ -231,7 +231,7 @@ for line in sys.stdin:
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("plan: SuperGrok", result.stdout)
-        self.assertIn("percent omitted", result.stdout)
+        self.assertIn("<1% used", result.stdout)
         self.assertNotIn("0.0% used", result.stdout)
         week_line = [
             line for line in result.stdout.splitlines() if line.startswith("week")
@@ -270,7 +270,7 @@ for line in sys.stdin:
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("billing call failed (invalid response:", result.stdout)
         self.assertNotIn("0.0% used", result.stdout)
-        self.assertNotIn("percent omitted", result.stdout)
+        self.assertNotIn("<1% used", result.stdout)
 
     def _grok_billing_cli(self, prepaid, on_demand_used, on_demand_cap):
         return r'''
