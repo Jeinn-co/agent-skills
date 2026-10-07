@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.7.4"
+  version: "1.7.5"
 ---
 
 # /ai-usage — unified AI usage report
@@ -42,8 +42,9 @@ report what comes back.
   CursorBench does not list, one GET of its public Artificial Analysis release page
   (`https://artificialanalysis.ai/models/releases/<model id>`); no credential is sent.
 
-If a provider prints `not installed`, that is the whole answer for that row — say so
-and move on. Do not suggest installing it unless the user asks. If a provider is
+If a provider prints `not installed`, show that status in its usage block and Now
+cell, but still show its Qualified model, cost and CP from the public benchmarks.
+Do not suggest installing it unless the user asks. If a provider is
 installed but its call fails, report the failure for that row and still print the
 others; never substitute a number from memory or from an earlier run.
 
@@ -127,9 +128,13 @@ clocks. Print the plan exactly as the probe does; never map an id by hand.
 
 **CursorBench** — after the five providers, `### CURSORBENCH` holds one `bench` line per
 CLI with a local session (the CursorBench row for that CLI's current model + effort, or
-`not listed`), then one `pick` line per CLI: the effort of that same model with the best
-`cp` that scores at least 50%, searched across every model and effort CursorBench lists
-for that provider; when none reaches 50%, the provider's highest score. `rule cp` /
+`not listed`), or `bench <cli> no local session` when there is none, then one `pick`
+line per provider, including providers without an installed CLI or a local session.
+Their Qualified model is selected from that provider's public benchmark rows using
+the same rule and AA extras; never invent a current model or quota for them.
+The `pick` line selects the best `cp` among rows scoring at least 50%, searched
+across every model and effort CursorBench lists for that provider; when none
+reaches 50%, it selects the provider's highest score. `rule cp` /
 `rule closest` says which applied. A CLI whose current model is unlisted gets `pick …
 not listed` — unless Artificial Analysis has a page for it: then its `bench` and `pick`
 lines end in `(AA)` and carry `aa <index>` (the AA Intelligence Index, a different test
@@ -157,7 +162,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.7.4
+USAGE — 09-12 01:08 · ai-usage 1.7.5
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -246,8 +251,11 @@ Rules:
 - The `→` line is the last line: which tool to use right now, and why in a few words.
 - If any week row is over 80%, put a `⚠` line above the arrow saying how long until it
   resets.
-- A provider whose CLI is not installed prints `not installed` and is shown as one
-  greyed row. Never drop it silently.
+- A provider whose CLI is not installed prints `not installed` in its usage block
+  and Now cell, with `—` for Now $ and Now CP. Keep its Qualified model, Qualified $
+  and Qualified CP populated from its `pick` line. A provider with no local session
+  uses `no local session` in Now unless its usage block says `not installed`.
+  Never drop it silently or select an unavailable CLI for the final `→` action.
 - No preamble, no recap, no closing offer.
 - Use the report language resolved below for every label, the Qualified header and
   footnotes, the `⚠` and `→` lines, and readable status or error explanations.

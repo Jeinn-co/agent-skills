@@ -19,6 +19,8 @@ for that provider (FAMILY): the highest cp that scores at least TARGET; when not
 from that provider reaches TARGET, its highest score, the closest it gets. The line
 says which rule applied (`rule cp` / `rule closest`). A CLI whose current model is not
 listed gets no pick: an unlisted model cannot be compared with a listed one.
+An empty model means no local session: print that status and still select the
+provider's Qualified model, independently of whether its CLI is installed.
 
 When the current model is not listed, its `bench` and `pick` lines come from Artificial
 Analysis instead (one GET of https://artificialanalysis.ai/models/releases/<model id>,
@@ -59,11 +61,12 @@ def score_cost(cells):
         return None
 
 
-def pick(board, cli, base):
+def pick(board, cli, base=None):
     """(label, score, cost, rule) across the provider's listed models: best cp at or
     above TARGET, else the highest score. False when `base` (the CLI's current model) is
-    not listed at any effort, or the provider has no listed row at all."""
-    if not any("%s %s" % (base, suffix) in board for suffix in EFFORT.values()):
+    not listed at any effort, or the provider has no listed row at all. With no
+    `base`, select across the provider without requiring a current model."""
+    if base and not any("%s %s" % (base, suffix) in board for suffix in EFFORT.values()):
         return False
     rows = []
     for label, cells in board.items():
@@ -278,6 +281,10 @@ def main():
     picks = []
     sources = [URL]
     for cli, model, effort in wanted:
+        if not model:
+            print("bench   %s  no local session" % cli)
+            picks.append((cli, "?", pick(board, cli)))
+            continue
         base = name(cli, model) if model and model != "?" else None
         suffix = EFFORT.get(effort.lower()) if effort else None
         if base:

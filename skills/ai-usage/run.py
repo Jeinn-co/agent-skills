@@ -37,7 +37,7 @@ PROBES = (("CLAUDE", "claude_usage.py", "claude"),
 try:
     print("### ai-usage %s" % portable.VERSION)
     print()
-    now = []  # cli=model:effort for each CLI with a local session
+    now = []  # Every provider; an empty model means no local session.
     for i, (header, script, cli) in enumerate(PROBES):
         if i:
             print()
@@ -53,6 +53,8 @@ try:
         if "model" in fields:
             now.append("%s=%s:%s" % (cli, fields["model"].strip(),
                                      (fields.get("effort") or "?").split()[0]))
+        else:
+            now.append("%s=:" % cli)
     print()
     print("### CURSORBENCH")
     sys.stdout.flush()
