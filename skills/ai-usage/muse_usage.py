@@ -27,7 +27,7 @@ PROBE_DIR = os.path.join(tempfile.gettempdir(), "ai-usage-muse-probe")
 TIER_NAMES = {"27681527378179523": "High Usage"}
 CATALOG_DIR = os.path.join(os.path.expanduser("~"), ".local", "share", "muse", "model-catalog")
 PROMPT = "Reply with the single word: ok"
-TIMEOUT = 90
+TIMEOUT = portable.CALL_TIMEOUT
 
 
 def uuid7():
@@ -99,7 +99,7 @@ def main():
         except (BrokenPipeError, OSError, ValueError):
             raise RuntimeError("muse exited before answering; signed in? try `muse`")
 
-    def call(i, method, params=None, wait=30):
+    def call(i, method, params=None, wait=TIMEOUT):
         body = {"jsonrpc": "2.0", "id": i, "method": method}
         if params is not None:
             body["params"] = params
@@ -128,7 +128,8 @@ def main():
         call(3, "turn/start", {"commandId": uuid7(), "sessionId": session,
                                "input": [{"type": "text", "text": PROMPT}],
                                "reasoningEffort": "minimal"})
-        settled.wait(TIMEOUT)
+        if not settled.wait(TIMEOUT):
+            raise RuntimeError("no usage update or completed turn within %ds" % TIMEOUT)
         usage = call(4, "usage/read").get("usage")
     except RuntimeError as exc:
         print("usage call failed (%s)" % exc)
@@ -140,7 +141,7 @@ def main():
             pass
 
     if not usage:
-        print("usage call failed (no usage observed within %ds)" % TIMEOUT)
+        print("usage call failed (no usage data returned)")
         return 1
     try:
         # `tier` is a numeric product id, not a plan name: map the ids a user has

@@ -121,6 +121,13 @@ py -3 run.py      # Windows; use `python run.py` if `py` is unavailable
 The report's title line ends with the skill version that produced it. Add `--version`
 to the platform command to print the version alone and exit.
 
+Each provider lookup has a **10-second total budget**, including CLI startup and
+all requests in that probe. A timeout stops the probe and its CLI children, reports
+that provider as timed out, and continues with the others without retrying. The
+benchmark lookup has its own 10-second budget; if it times out, usage is still shown
+and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
+report for 90 seconds.
+
 ## What it prints
 
 ![ai-usage report](images/demo.png)
@@ -159,8 +166,10 @@ and no stored credential is ever read. Each provider's own CLI is asked directly
 alone does not fetch it: the numbers arrive only with a model response. So the probe
 sends `Reply with the single word: ok` at `minimal` effort, on the non-contributor twin
 of the default model when the local catalog lists one. Each run spends a sliver of Muse
-quota, takes about 15 s, and leaves one session in Muse's history under
+quota and leaves one session in Muse's history under
 `<temp>/ai-usage-muse-probe`, which the `now` row skips.
+If startup and the model response take more than 10 seconds, the launcher stops
+the probe and reports a timeout instead of waiting longer.
 
 **Gemini uses the Antigravity CLI at `~/.gemini/bin/agy`, never the `agy` on PATH.**
 The Antigravity IDE installs an editor launcher with the same name, and running that

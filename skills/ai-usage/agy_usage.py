@@ -70,8 +70,10 @@ if os.name != "nt":
     env["BROWSER"] = "true"
 
 try:
-    proc = subprocess.run([str(CLI), "-p", "/usage", "--print-timeout", "60s"],
-                          capture_output=True, timeout=90, stdin=subprocess.DEVNULL,
+    proc = subprocess.run([str(CLI), "-p", "/usage", "--print-timeout",
+                           "%gs" % portable.CALL_TIMEOUT],
+                          capture_output=True, timeout=portable.CALL_TIMEOUT,
+                          stdin=subprocess.DEVNULL,
                           cwd=tempfile.gettempdir(), env=env, **portable.text_kwargs())
     text = proc.stdout
 except Exception as e:

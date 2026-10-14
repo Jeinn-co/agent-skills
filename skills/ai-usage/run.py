@@ -43,7 +43,11 @@ try:
             print()
         print("### %s" % header)
         sys.stdout.flush()
-        subprocess.run([sys.executable, str(HERE / script)])
+        try:
+            portable.run_bounded([sys.executable, "-u", str(HERE / script)],
+                                 timeout=portable.CALL_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            print("usage call timed out after %gs; skipped" % portable.CALL_TIMEOUT)
         sys.stdout.flush()
         info = subprocess.run([sys.executable, str(HERE / "session_info.py"), cli],
                               capture_output=True, **portable.text_kwargs()).stdout
@@ -58,7 +62,15 @@ try:
     print()
     print("### CURSORBENCH")
     sys.stdout.flush()
-    subprocess.run([sys.executable, str(HERE / "cursorbench.py"), *now])
+    try:
+        # Buffer the table: a timed-out lookup must not leave half a set of picks.
+        bench = portable.run_bounded(
+            [sys.executable, str(HERE / "cursorbench.py"), *now],
+            timeout=portable.CALL_TIMEOUT, stdout=subprocess.PIPE,
+            **portable.text_kwargs())
+        print(bench.stdout, end="")
+    except subprocess.TimeoutExpired:
+        print("bench failed (lookup timed out after %gs; skipped)" % portable.CALL_TIMEOUT)
 except BrokenPipeError:
     # someone piped us into `head` and walked away. Point the fd at devnull so the
     # interpreter's shutdown flush does not print a second traceback on top.

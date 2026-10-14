@@ -165,7 +165,7 @@ def aa_rows(model):
     request = urllib.request.Request(AA_URL % slug,
                                      headers={"User-Agent": "Mozilla/5.0 (ai-usage)"})
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
             page = response.read().decode("utf-8", errors="replace")
     except Exception:  # noqa: BLE001 -- no AA page means no AA row, nothing more
         return {}
@@ -251,7 +251,7 @@ def _aa_latency(v):
 
 def rows():
     request = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0 (ai-usage)"})
-    with urllib.request.urlopen(request, timeout=30) as response:
+    with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
         page = response.read().decode("utf-8", errors="replace")
     table = re.search(r"<table.*?</table>", page, re.S)
     if not table:

@@ -111,6 +111,11 @@ py -3 run.py      # Windows；如果沒有 `py`，改用 `python run.py`
 報表標題列最後會顯示產生這份報表的 skill 版本。在對應平台指令後加 `--version`，就會只印出
 skill 版本後結束。
 
+每家供應商的查詢都有 **10 秒總上限**，包含 CLI 啟動及該探針的全部請求。
+超時會停止探針與它啟動的 CLI 子程序，回報該家超時，直接繼續其他供應商，不重試。
+Benchmark 查詢另有 10 秒上限；超時仍顯示用量，但省略 benchmark 表格。
+沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
+
 ## 輸出長什麼樣
 
 ![ai-usage 報表](images/demo.png)
@@ -145,8 +150,9 @@ skill 版本後結束。
 **Muse 每次會呼叫一次模型。** Muse 不把用量存在本機，只開 `session/start` 也拿不到；
 數字只會跟著模型回應一起回來。所以探針用 `minimal` effort 送
 `Reply with the single word: ok`，本機模型清單有非 contributor 版時就用那個。每次跑會用掉
-一點點 Muse 額度、約 15 秒，並在 Muse 歷史裡留下一個 session（位於
+一點點 Muse 額度，並在 Muse 歷史裡留下一個 session（位於
 `<temp>/ai-usage-muse-probe`），`now` 那一列會跳過它。
+啟動與模型回應若超過 10 秒，launcher 會停止探針並回報超時，不再繼續等待。
 
 **Gemini 用的是 `~/.gemini/bin/agy` 這支 Antigravity CLI，絕不用 PATH 上的 `agy`。**
 Antigravity IDE 會裝一個同名的編輯器啟動器，跑它會打開視窗。`/usage` 不呼叫模型、

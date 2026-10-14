@@ -29,7 +29,7 @@ if portable.argv("claude") is None:
 def run(*args):
     args = portable.argv("claude", *args)
     try:
-        return subprocess.run(args, capture_output=True, timeout=90,
+        return subprocess.run(args, capture_output=True, timeout=portable.CALL_TIMEOUT,
                               stdin=subprocess.DEVNULL, **portable.text_kwargs()).stdout
     except Exception:
         return ""

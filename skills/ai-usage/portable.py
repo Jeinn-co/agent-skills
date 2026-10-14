@@ -13,10 +13,11 @@ Windows needs two things POSIX does not:
 
 Neither has any effect on macOS or Linux.
 """
-import atexit, os, shutil, sys
+import atexit, os, shutil, signal, subprocess, sys
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.7.5"
+VERSION = "1.7.6"
+CALL_TIMEOUT = 10
 
 # 20 cells. Each cell is 5 points; the partial cell is one of 8 eighths, so the
 # scale is 0.625 points. The old 10-cell bar rounded 28% and 30% to the same glyph.
@@ -72,6 +73,39 @@ def text_kwargs():
     preferred encoding is already UTF-8, so pinning it here changes nothing there.
     """
     return dict(encoding="utf-8", errors="replace")
+
+
+def run_bounded(args, *, timeout=CALL_TIMEOUT, **kwargs):
+    """Run one lookup with a total deadline, including CLI startup.
+
+    Probes launch CLI children. On timeout, stop the whole tree rather than
+    leaving an unsubscribed CLI or a Muse turn running after its row is skipped.
+    """
+    if os.name != "nt":
+        kwargs["start_new_session"] = True
+    proc = subprocess.Popen(args, **kwargs)
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        if os.name == "nt":
+            try:
+                subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                               timeout=3)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        else:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        proc.kill()
+        proc.wait()
+        for stream in (proc.stdout, proc.stderr):
+            if stream is not None:
+                stream.close()
+        raise
+    return subprocess.CompletedProcess(args, proc.returncode, stdout, stderr)
 
 
 def argv(name, *args):
