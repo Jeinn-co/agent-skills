@@ -5,6 +5,7 @@ import os
 import stat
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -19,6 +20,24 @@ def load():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+class ParallelCheckTests(unittest.TestCase):
+    def test_all_tools_start_together_and_output_stays_in_tool_order(self):
+        run = load()
+        barrier = threading.Barrier(5, timeout=3)
+
+        def check(name):
+            barrier.wait()
+            return name + "\tchecked\n"
+
+        out = io.StringIO()
+        with mock.patch.object(run, "check_tool", side_effect=check), \
+                mock.patch.object(sys, "argv", [str(SCRIPT)]), \
+                contextlib.redirect_stdout(out):
+            run.main()
+        rows = out.getvalue().splitlines()[1:]
+        self.assertEqual(rows, [name + "\tchecked" for name in run.CHECKS])
 
 
 @unittest.skipIf(os.name == "nt", "POSIX fake executables are used")

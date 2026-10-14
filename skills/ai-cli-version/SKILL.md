@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.3.2"
+  version: "1.3.3"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -13,6 +13,10 @@ Run the platform launcher from this skill's directory: `./run.sh` on macOS or Li
 (`sh run.sh` if it is not executable);
 `py -3 run.py` on Windows, falling back to `python run.py` if `py` is unavailable.
 Reformat its output into the report below, then follow the optional update flow.
+
+All five checks start concurrently. Each tool has a **10-second total budget** for
+CLI startup and every network request; a timeout stops that check and its CLI
+children without retrying or delaying the other tools. Output stays in tool order.
 
 The launcher is check-only and must never install anything. During the check phase, do
 not run `claude update`, `codex update`, or `grok update` without `--check`, and do not

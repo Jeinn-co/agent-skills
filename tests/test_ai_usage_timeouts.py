@@ -46,7 +46,7 @@ class LookupTimeoutTests(unittest.TestCase):
             time.sleep(0.2)
             self.assertEqual(heartbeat.read_text(), before)
 
-    def run_launcher(self, slow_provider=False, slow_bench=False):
+    def run_launcher(self, slow_provider=False, slow_bench=False, require_parallel=False):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
             for name in ("run.py", "portable.py"):
@@ -54,6 +54,16 @@ class LookupTimeoutTests(unittest.TestCase):
             for name in ("claude_usage.py", "codex_usage.py", "grok_usage.py",
                          "muse_usage.py", "agy_usage.py"):
                 body = "print('live ' + __file__, flush=True)\n"
+                if require_parallel:
+                    body += (
+                        "import time; from pathlib import Path\n"
+                        "Path(__file__ + '.started').touch()\n"
+                        "end = time.monotonic() + 0.4\n"
+                        "while len(list(Path('.').glob('*.started'))) < 5:\n"
+                        " if time.monotonic() > end: raise SystemExit(1)\n"
+                        " time.sleep(0.01)\n"
+                        "print('all providers started', flush=True)\n"
+                    )
                 if slow_provider and name == "muse_usage.py":
                     body += "import time; time.sleep(60)\n"
                 (target / name).write_text(body, encoding="utf-8")
@@ -75,6 +85,12 @@ class LookupTimeoutTests(unittest.TestCase):
         self.assertIn("usage call timed out after 0.5s; skipped", result.stdout)
         self.assertIn("agy_usage.py", result.stdout)
         self.assertIn("benchmark complete", result.stdout)
+
+    def test_all_five_providers_start_before_any_waits_for_another(self):
+        result = self.run_launcher(require_parallel=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.count("all providers started"), 5)
+        self.assertNotIn("timed out", result.stdout)
 
     def test_timed_out_benchmark_keeps_usage_without_a_partial_table(self):
         result = self.run_launcher(slow_bench=True)

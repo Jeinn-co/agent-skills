@@ -17,14 +17,16 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.3.2"
+VERSION = "1.3.3"
 
-TIMEOUT = 60
+TIMEOUT = 10
 HOME = os.path.expanduser("~")
 # Both CLIs let the user move their home directory; the installers honour these variables.
 CLAUDE_DIR = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(HOME, ".claude")
@@ -328,17 +330,58 @@ def check_agy():
         print(f"agy\tcheck failed ({exc})")
 
 
+CHECKS = {"claude": check_claude, "codex": check_codex, "grok": check_grok,
+          "muse": check_muse, "agy": check_agy}
+
+
+def check_tool(name):
+    """Isolate each check so its total deadline can stop CLI descendants too."""
+    kwargs = {"start_new_session": True} if os.name != "nt" else {}
+    proc = subprocess.Popen([sys.executable, __file__, "--probe", name],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            encoding="utf-8", errors="replace",
+                            **kwargs)
+    try:
+        out, err = proc.communicate(timeout=TIMEOUT)
+    except subprocess.TimeoutExpired:
+        if os.name == "nt":
+            try:
+                subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                               timeout=3)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        else:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        proc.kill()
+        proc.wait()
+        proc.stdout.close()
+        proc.stderr.close()
+        return "%s\tcheck failed (lookup timed out after %gs; skipped)\n" % (name, TIMEOUT)
+    if proc.returncode:
+        reason = err.strip().splitlines()
+        return "%s\tcheck failed (%s)\n" % (name, reason[-1] if reason else "no result")
+    return out
+
+
 def main():
     stdout_utf8()
     if "--version" in sys.argv:
         print(VERSION)
         return
+    if len(sys.argv) == 3 and sys.argv[1] == "--probe":
+        CHECKS[sys.argv[2]]()
+        return
     print(f"### ai-cli-version {VERSION}")
-    check_claude()
-    check_codex()
-    check_grok()
-    check_muse()
-    check_agy()
+    sys.stdout.flush()
+    with ThreadPoolExecutor(max_workers=len(CHECKS)) as pool:
+        # Submit all five before collecting; keep the report's provider order.
+        results = [pool.submit(check_tool, name) for name in CHECKS]
+        for result in results:
+            print(result.result(), end="", flush=True)
 
 
 if __name__ == "__main__":

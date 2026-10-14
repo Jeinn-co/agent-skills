@@ -121,6 +121,9 @@ py -3 run.py      # Windows; use `python run.py` if `py` is unavailable
 The report's title line ends with the skill version that produced it. Add `--version`
 to the platform command to print the version alone and exit.
 
+The five provider lookups and local session reads start **in parallel**. Benchmark
+requests also overlap the usage lookups once model/effort is known. The report keeps
+its provider order; waiting times are no longer added one provider at a time.
 Each provider lookup has a **10-second total budget**, including CLI startup and
 all requests in that probe. A timeout stops the probe and its CLI children, reports
 that provider as timed out, and continues with the others without retrying. The

@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.7.6"
+  version: "1.7.7"
 ---
 
 # /ai-usage — unified AI usage report
@@ -14,7 +14,10 @@ Run the platform launcher from this skill's directory: `./run.sh` on macOS or Li
 Reformat its output into the table below. Nothing else. No browser, no stored
 credentials, and no direct HTTP calls of your own.
 
-The launcher gives each provider lookup at most **10 seconds total**, including
+The launcher starts all five providers and their local session reads concurrently.
+Benchmark requests start as soon as model/effort is known, overlapping the usage
+lookups. Results are printed in provider order without mixing output.
+Each provider lookup gets at most **10 seconds total**, including
 CLI startup and every request in that probe. On timeout it stops the probe and its
 CLI children, prints a timeout for that provider, and continues without retrying.
 The benchmark lookup has the same 10-second budget; if it times out, report its
@@ -169,7 +172,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.7.6
+USAGE — 09-12 01:08 · ai-usage 1.7.7
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
