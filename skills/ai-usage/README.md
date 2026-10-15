@@ -124,10 +124,10 @@ to the platform command to print the version alone and exit.
 The five provider lookups and local session reads start **in parallel**. Benchmark
 requests also overlap the usage lookups once model/effort is known. The report keeps
 its provider order; waiting times are no longer added one provider at a time.
-Each provider lookup has a **10-second total budget**, including CLI startup and
+Each provider lookup has a **20-second total budget**, including CLI startup and
 all requests in that probe. A timeout stops the probe and its CLI children, reports
 that provider as timed out, and continues with the others without retrying. The
-benchmark lookup has its own 10-second budget; if it times out, usage is still shown
+benchmark lookup has its own 20-second budget; if it times out, usage is still shown
 and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
 report for 90 seconds.
 
@@ -171,7 +171,7 @@ sends `Reply with the single word: ok` at `minimal` effort, on the non-contribut
 of the default model when the local catalog lists one. Each run spends a sliver of Muse
 quota and leaves one session in Muse's history under
 `<temp>/ai-usage-muse-probe`, which the `now` row skips.
-If startup and the model response take more than 10 seconds, the launcher stops
+If startup and the model response take more than 20 seconds, the launcher stops
 the probe and reports a timeout instead of waiting longer.
 
 **Gemini uses the Antigravity CLI at `~/.gemini/bin/agy`, never the `agy` on PATH.**

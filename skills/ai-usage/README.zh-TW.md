@@ -113,9 +113,9 @@ skill 版本後結束。
 
 五家供應商查詢與本機 session 讀取會**並行啟動**；取得 model／effort 後，
 benchmark 也與用量查詢同時進行。報表仍維持固定順序，等待時間不再逐家累加。
-每家供應商的查詢都有 **10 秒總上限**，包含 CLI 啟動及該探針的全部請求。
+每家供應商的查詢都有 **20 秒總上限**，包含 CLI 啟動及該探針的全部請求。
 超時會停止探針與它啟動的 CLI 子程序，回報該家超時，直接繼續其他供應商，不重試。
-Benchmark 查詢另有 10 秒上限；超時仍顯示用量，但省略 benchmark 表格。
+Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmark 表格。
 沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
 
 ## 輸出長什麼樣
@@ -154,7 +154,7 @@ Benchmark 查詢另有 10 秒上限；超時仍顯示用量，但省略 benchmar
 `Reply with the single word: ok`，本機模型清單有非 contributor 版時就用那個。每次跑會用掉
 一點點 Muse 額度，並在 Muse 歷史裡留下一個 session（位於
 `<temp>/ai-usage-muse-probe`），`now` 那一列會跳過它。
-啟動與模型回應若超過 10 秒，launcher 會停止探針並回報超時，不再繼續等待。
+啟動與模型回應若超過 20 秒，launcher 會停止探針並回報超時，不再繼續等待。
 
 **Gemini 用的是 `~/.gemini/bin/agy` 這支 Antigravity CLI，絕不用 PATH 上的 `agy`。**
 Antigravity IDE 會裝一個同名的編輯器啟動器，跑它會打開視窗。`/usage` 不呼叫模型、

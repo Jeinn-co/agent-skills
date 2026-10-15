@@ -16,8 +16,8 @@ Neither has any effect on macOS or Linux.
 import atexit, os, shutil, signal, subprocess, sys
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.7.7"
-CALL_TIMEOUT = 10
+VERSION = "1.7.8"
+CALL_TIMEOUT = 20
 
 # 20 cells. Each cell is 5 points; the partial cell is one of 8 eighths, so the
 # scale is 0.625 points. The old 10-cell bar rounded 28% and 30% to the same glyph.

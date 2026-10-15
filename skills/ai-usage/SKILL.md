@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.7.7"
+  version: "1.7.8"
 ---
 
 # /ai-usage — unified AI usage report
@@ -17,10 +17,10 @@ credentials, and no direct HTTP calls of your own.
 The launcher starts all five providers and their local session reads concurrently.
 Benchmark requests start as soon as model/effort is known, overlapping the usage
 lookups. Results are printed in provider order without mixing output.
-Each provider lookup gets at most **10 seconds total**, including
+Each provider lookup gets at most **20 seconds total**, including
 CLI startup and every request in that probe. On timeout it stops the probe and its
 CLI children, prints a timeout for that provider, and continues without retrying.
-The benchmark lookup has the same 10-second budget; if it times out, report its
+The benchmark lookup has the same 20-second budget; if it times out, report its
 failure and keep the usage blocks. Never extend a timeout for a missing subscription.
 
 `/ai-usage fresh` — same thing; the script always reads live. The flag only means "do not
@@ -89,7 +89,7 @@ with a model response, so `muse_usage.py` sends `Reply with the single word: ok`
 `minimal` effort, using the non-contributor twin of the default model when the catalog
 lists one. That spends a sliver of Muse quota and leaves one session in Muse's history,
 rooted in `<temp>/ai-usage-muse-probe`; `session_info.py muse` skips those sessions.
-It is skipped if the model response does not arrive within the launcher's 10-second
+It is skipped if the model response does not arrive within the launcher's 20-second
 budget. It runs with `MUSE_NO_AUTO_UPDATE=1` so the launcher does not
 self-update.
 
@@ -172,7 +172,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.7.7
+USAGE — 09-12 01:08 · ai-usage 1.7.8
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
