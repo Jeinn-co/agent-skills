@@ -111,7 +111,7 @@ py -3 run.py      # Windows; use `python run.py` if `py` is unavailable
 Add `--version` to print the skill version and exit. Outside an agent you get the raw
 tab-separated lines, not the formatted report.
 
-All five tools are checked **in parallel**, with a **10-second total budget per
+All selected tools (every tool unless `setup` narrowed them) are checked **in parallel**, with a **10-second total budget per
 tool** covering CLI startup and all network requests. A timed-out check and its
 CLI children are stopped without retrying; other checks continue independently.
 Rows stay in tool order. The check never runs an updater.
@@ -164,10 +164,25 @@ When every checked CLI is current, the agent prints a short form instead: one
 
     /ai-cli-version setup
 
-The agent shows the five tools, lets you choose which to check, and saves the choice in
+The agent asks one multi-select question listing only the CLIs installed on this
+machine (Claude Code shows it as a single checkbox page; with all five installed, or in
+hosts without a picker, it asks for numbers instead). The choice is saved in
 `~/.config/ai-cli-version/config.json`, so updating the skill keeps it. Later checks skip
-the others and end with a `Not checked (setup): …` line. Choose all tools to go back to the
-default. Outside an agent: `run.py --show-tools`, `run.py --set-tools claude,codex,grok`,
+the other tools and add a `Not checked (setup): …` line under the summary:
+
+```
+  Tool          Installed               Latest                             Status
+  Claude Code   2.1.303 (10/19 16:13)   2.1.304 (released 10/20 03:47)     ↑ update → claude update      channel: latest
+  Codex         0.163.0 (10/19 16:14)   0.163.0 (released 10/16 05:37)     ✓ up to date      channel: latest
+
+  → 1 update available: Claude Code.
+  Not checked (setup): Grok Build, Muse Code, Antigravity
+
+  Update the 1 outdated CLI now?
+  [y] Update all    [Esc] Skip
+```
+
+Choose every tool to go back to the default. Outside an agent: `run.py --show-tools`, `run.py --set-tools claude,codex,grok`,
 `run.py --set-tools all`.
 
 The prompt appears only inside an agent. The standalone `run.py` / `run.sh` launcher is

@@ -104,7 +104,7 @@ py -3 run.py      # Windows；沒有 `py` 就用 `python run.py`
 加上 `--version` 會只印出 skill 版本。在 agent 外面執行時看到的是原始的 tab 分隔輸出，
 不是排好版的報表。
 
-五家工具會**並行查詢**，每家有 **10 秒總上限**，包含 CLI 啟動與所有網路請求。
+選定的工具（沒用 `setup` 縮小範圍時就是全部）會**並行查詢**，每家有 **10 秒總上限**，包含 CLI 啟動與所有網路請求。
 超時會停止該查詢與它啟動的 CLI 子程序，不重試、不拖住其他家；報表仍維持固定順序。
 查詢階段不會執行更新程式。
 
@@ -148,9 +148,23 @@ CLI VERSIONS — 09-24
 
     /ai-cli-version setup
 
-agent 會列出五個工具讓你挑要檢查哪些，存在 `~/.config/ai-cli-version/config.json`，更新 skill
-也不會被蓋掉。之後的檢查會跳過沒選的，並在最後加一行 `Not checked (setup): …`。全選就回到
-預設。在 agent 外面：`run.py --show-tools`、`run.py --set-tools claude,codex,grok`、
+agent 只列出這台電腦有安裝的 CLI，用一題多選讓你勾（Claude Code 裡是單頁勾選框；五個都有裝、
+或 host 沒有選單時，改成輸入編號）。選擇存在 `~/.config/ai-cli-version/config.json`，更新 skill
+也不會被蓋掉。之後的檢查會跳過沒選的，並在摘要下方加一行 `Not checked (setup): …`：
+
+```
+  Tool          Installed               Latest                             Status
+  Claude Code   2.1.303 (10/19 16:13)   2.1.304 (released 10/20 03:47)     ↑ update → claude update      channel: latest
+  Codex         0.163.0 (10/19 16:14)   0.163.0 (released 10/16 05:37)     ✓ up to date      channel: latest
+
+  → 1 update available: Claude Code.
+  Not checked (setup): Grok Build, Muse Code, Antigravity
+
+  現在更新 1 個過期的 CLI？
+  [y] 全部更新    [Esc] 跳過
+```
+
+全部勾選就回到預設。在 agent 外面：`run.py --show-tools`、`run.py --set-tools claude,codex,grok`、
 `run.py --set-tools all`。
 
 這個選項只會在 agent 裡出現。單獨執行 `run.py` / `run.sh` 永遠只檢查，仍會輸出原始報表資料，

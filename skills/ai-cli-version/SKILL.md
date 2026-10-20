@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.6.1"
+  version: "1.6.2"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -112,8 +112,22 @@ reason. As soon as one tool is outdated, print the full table above.
 
 **Skipped tools.** When setup has narrowed the list, the launcher prints
 `### skipped <ids>` after the version line and no row for those tools. Do not show a
-row for them; add one line at the end of the report (full or short form):
-`Not checked (setup): Muse Code, Antigravity`.
+row for them; add one line directly under the `→` / `All up to date.` line, before any
+update prompt: `Not checked (setup): Grok Build, Muse Code, Antigravity`.
+
+```
+CLI VERSIONS — 10-20
+
+  Tool          Installed               Latest                             Status
+  Claude Code   2.1.303 (10/19 16:13)   2.1.304 (released 10/20 03:47)     ↑ update → claude update      channel: latest
+  Codex         0.163.0 (10/19 16:14)   0.163.0 (released 10/16 05:37)     ✓ up to date      channel: latest
+
+  → 1 update available: Claude Code.
+  Not checked (setup): Grok Build, Muse Code, Antigravity
+
+  Update the 1 outdated CLI now?
+  [y] Update all    [Esc] Skip
+```
 
 Rules:
 - Show every tool the launcher printed. `not installed` and `check failed (...)` get their own row with the
