@@ -24,7 +24,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.5.1"
+VERSION = "1.6.0"
 
 TIMEOUT = 10
 HOME = os.path.expanduser("~")
@@ -334,6 +334,39 @@ CHECKS = {"claude": check_claude, "codex": check_codex, "grok": check_grok,
           "muse": check_muse, "agy": check_agy}
 
 
+CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".config"),
+                      "ai-cli-version", "config.json")
+
+
+def selected_tools():
+    """Tools chosen with --set-tools; every tool when there is no valid config."""
+    try:
+        with open(CONFIG, encoding="utf-8") as fh:
+            tools = json.load(fh).get("tools")
+    except (OSError, ValueError, AttributeError):
+        return list(CHECKS)
+    picked = [name for name in CHECKS if isinstance(tools, list) and name in tools]
+    return picked or list(CHECKS)
+
+
+def set_tools(arg):
+    """Save the tools to check; `all` removes the config so every tool is checked."""
+    if arg.strip().lower() == "all":
+        if os.path.exists(CONFIG):
+            os.remove(CONFIG)
+        return list(CHECKS)
+    names = [n.strip().lower() for n in arg.split(",") if n.strip()]
+    unknown = [n for n in names if n not in CHECKS]
+    if unknown or not names:
+        raise SystemExit("unknown tool(s): %s; choose from %s or all"
+                         % (", ".join(unknown) or "none given", ",".join(CHECKS)))
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    picked = [name for name in CHECKS if name in names]
+    with open(CONFIG, "w", encoding="utf-8") as fh:
+        json.dump({"tools": picked}, fh)
+    return picked
+
+
 def check_tool(name):
     """Isolate each check so its total deadline can stop CLI descendants too."""
     kwargs = {"start_new_session": True} if os.name != "nt" else {}
@@ -375,11 +408,21 @@ def main():
     if len(sys.argv) == 3 and sys.argv[1] == "--probe":
         CHECKS[sys.argv[2]]()
         return
+    if "--show-tools" in sys.argv:
+        print("tools=" + ",".join(selected_tools()))
+        return
+    if len(sys.argv) == 3 and sys.argv[1] == "--set-tools":
+        print("tools=" + ",".join(set_tools(sys.argv[2])))
+        return
+    tools = selected_tools()
     print(f"### ai-cli-version {VERSION}")
+    skipped = [name for name in CHECKS if name not in tools]
+    if skipped:
+        print("### skipped " + ",".join(skipped))
     sys.stdout.flush()
-    with ThreadPoolExecutor(max_workers=len(CHECKS)) as pool:
-        # Submit all five before collecting; keep the report's provider order.
-        results = [pool.submit(check_tool, name) for name in CHECKS]
+    with ThreadPoolExecutor(max_workers=len(tools)) as pool:
+        # Submit every selected check before collecting; keep the report's tool order.
+        results = [pool.submit(check_tool, name) for name in tools]
         for result in results:
             print(result.result(), end="", flush=True)
 

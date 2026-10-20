@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update all or some outdated CLIs, chosen with checkboxes when the host supports them or a y / number / Esc reply. Use when the user runs /ai-cli-version or /check-uu, or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
+description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. `setup` chooses which CLIs to check. Use when the user runs /ai-cli-version or /check-uu (with or without `setup`), or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.5.1"
+  version: "1.6.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -93,17 +93,9 @@ CLI VERSIONS — 09-17
   [y] Update all    [Esc] Skip
 ```
 
-With two or more outdated CLIs, the prompt numbers them so the user can pick some:
-
-```
-  Update the 2 outdated CLIs now?
-  1. Claude Code    2. Muse Code
-  [y] Update all    [1-2] Pick, e.g. 1 or 1,2    [Esc] Skip
-```
-
 **When no row has `status=update available`, print the short form instead of the table**
-and no prompt or picker — one line saying everything is current, then one line per tool
-with its installed version:
+and no prompt — one line saying everything is current, then one line per tool with its
+installed version:
 
 ```
 CLI VERSIONS — 10-20 · All up to date.
@@ -118,8 +110,13 @@ CLI VERSIONS — 10-20 · All up to date.
 `not installed` and `check failed (...)` rows still appear in the short form, with their
 reason. As soon as one tool is outdated, print the full table above.
 
+**Skipped tools.** When setup has narrowed the list, the launcher prints
+`### skipped <ids>` after the version line and no row for those tools. Do not show a
+row for them; add one line at the end of the report (full or short form):
+`Not checked (setup): Muse Code, Antigravity`.
+
 Rules:
-- Show every tool. `not installed` and `check failed (...)` get their own row with the
+- Show every tool the launcher printed. `not installed` and `check failed (...)` get their own row with the
   reason; never drop a row, and never fill in a version or time from memory.
 - Show `?` for an unknown time; do not guess.
 - Grok's release time always gets `≤` and the footnote.
@@ -150,58 +147,48 @@ versions, dates, commands and error codes unchanged. Preserve provider diagnosti
 verbatim when needed to explain a failure, even if a provider supplied localized text.
 Use the same resolved language for the report, update prompt and update results.
 
+## Setup — choose which tools to check
+
+`/ai-cli-version setup` (alias `/check-uu setup`) changes which tools the check runs. It
+does not run the check or any updater. Tool ids: `claude`, `codex`, `grok`, `muse`, `agy`.
+
+1. Run the platform launcher with `--show-tools`; it prints `tools=<ids>`, the current
+   selection (every tool when nothing is saved).
+2. Ask which tools to check, marking each currently checked tool in its description.
+   - With a multi-select choice tool (Claude Code: `AskUserQuestion`, which allows at
+     most 4 options per question), ask once with two `multiSelect: true` questions:
+     header `Check` with Claude Code, Codex, Grok Build; header `Check (more)` with Muse
+     Code, Antigravity. The selection is the union of both answers.
+   - Otherwise list the five tools numbered 1–5 and ask for numbers (`1,2,3`) or `all`.
+3. Save with `--set-tools <ids>` (comma-separated, e.g. `--set-tools claude,codex,grok`),
+   or `--set-tools all` when every tool is chosen. It prints the saved `tools=<ids>`.
+   Nothing chosen, a dismissed picker, or an invalid reply saves nothing: say the
+   selection is unchanged.
+4. Report one line: `Checking: <names> · Not checked: <names>`, or `Checking all tools.`
+
+The selection is saved in `~/.config/ai-cli-version/config.json` (`$XDG_CONFIG_HOME`
+when set), outside the skill folder, so reinstalling or updating the skill keeps it.
+
 ## Optional update
 
-Only when one or more rows have `status=update available`, offer the update choice.
-
-**Checkbox picker first.** When the host gives the agent a structured multiple-choice
-tool that supports multi-select (Claude Code: `AskUserQuestion` with
-`multiSelect: true`), show the report, then ask through that tool instead of printing a
-text prompt:
-
-- Question: `Which outdated CLIs should be updated?` (in the resolved language);
-  header `Update`; `multiSelect: true`.
-- One option per outdated tool, in report order: label = the tool name, description =
-  `<installed> → <latest>`. The tool allows at most 4 options; with 5 outdated tools,
-  use the text prompt below instead.
-- Checking every option means update all; checking some means update only those. An
-  empty selection, a dismissed picker, or a free-text "Other" answer that does not name
-  outdated tools means skip: confirm that no updates were run.
-- The picker answer is the user's explicit reply, so the selected `update_cmd`s run in
-  the same turn, under the same rules as a text pick below.
-
-**Text prompt otherwise.** When no such tool exists (Codex, Grok Build, a plain
-terminal), append the text prompt in the report's resolved language and stop. Keep the keys exactly `y`, the numbers, and `Esc`.
-
-With one outdated CLI, offer `y` and `Esc` only:
-
-```
-Update the 1 outdated CLI now?
-[y] Update all    [Esc] Skip
-```
-
-With two or more, number the outdated tools in report order and add a pick choice:
+Only when one or more rows have `status=update available`, append a two-choice prompt in
+the report's resolved language and stop. Keep the keys exactly `y` and `Esc`:
 
 ```
 Update the N outdated CLIs now?
-1. Claude Code    2. Muse Code
-[y] Update all    [1-N] Pick, e.g. 1 or 1,2    [Esc] Skip
+[y] Update all    [Esc] Skip
 ```
 
-- `/ai-cli-version` authorizes the check, not an update. Do not run any updater until the
-  user has chosen, either through the checkbox picker or in a later text reply.
+- `/ai-cli-version` authorizes the check, not an update. Do not run any updater in the
+  same turn as the initial report.
 - A subsequent exact `y` or `Y` authorizes every `update_cmd` from the immediately
-  preceding report whose status was `update available`.
-- A reply made only of numbers from that prompt's list, separated by commas and/or
-  spaces (`1`, `1,2`, `2 1`), authorizes exactly those tools' `update_cmd`. Ignore
-  duplicates. A number outside the list makes the whole reply invalid: update nothing.
-- Run the selected commands separately, so one failure does not prevent the remaining
-  updates. Never run an update for a tool that was not selected.
+  preceding report whose status was `update available`. Run those commands separately,
+  so one failure does not prevent the remaining updates.
 - `Esc` or `Escape` skips all updates. Confirm that no updates were run.
-- Any other reply is not authorization. Repeat the valid choices without updating.
-- After `y` or a pick, show success or failure for every selected tool, then run the check-only
+- Any other reply is not authorization. Repeat the two valid choices without updating.
+- After `y`, show success or failure for every selected tool, then run the check-only
   launcher again and show the refreshed report. Do not show another prompt for a tool
   whose updater failed during that same update attempt.
 - If all tools are current, or the user explicitly asked for check-only behavior, do not
-  show the prompt or the picker.
+  show the prompt.
 - No preamble, recap, or closing offer outside the report, prompt, and update results.
