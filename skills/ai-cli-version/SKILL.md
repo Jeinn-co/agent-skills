@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.5.0"
+  version: "1.5.1"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -101,6 +101,23 @@ With two or more outdated CLIs, the prompt numbers them so the user can pick som
   [y] Update all    [1-2] Pick, e.g. 1 or 1,2    [Esc] Skip
 ```
 
+**When no row has `status=update available`, print the short form instead of the table**
+and no prompt or picker — one line saying everything is current, then one line per tool
+with its installed version:
+
+```
+CLI VERSIONS — 10-20 · All up to date.
+
+  Claude Code   2.1.304
+  Codex         0.163.0
+  Grok Build    1.0.62
+  Muse Code     1.4.11-R6667.1
+  Antigravity   not installed
+```
+
+`not installed` and `check failed (...)` rows still appear in the short form, with their
+reason. As soon as one tool is outdated, print the full table above.
+
 Rules:
 - Show every tool. `not installed` and `check failed (...)` get their own row with the
   reason; never drop a row, and never fill in a version or time from memory.
@@ -186,5 +203,5 @@ Update the N outdated CLIs now?
   launcher again and show the refreshed report. Do not show another prompt for a tool
   whose updater failed during that same update attempt.
 - If all tools are current, or the user explicitly asked for check-only behavior, do not
-  show the prompt.
+  show the prompt or the picker.
 - No preamble, recap, or closing offer outside the report, prompt, and update results.

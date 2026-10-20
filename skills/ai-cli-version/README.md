@@ -168,6 +168,9 @@ the text prompt. With two or more outdated CLIs it numbers them, so you can upda
   [y] Update all    [1-2] Pick, e.g. 1 or 1,2    [Esc] Skip
 ```
 
+When every installed CLI is current, the agent prints a short form instead: one
+`All up to date.` line and each tool's installed version, with no prompt.
+
 The prompt appears only inside an agent. The standalone `run.py` / `run.sh` launcher is
 always check-only and continues to print raw report data without accepting input.
 
