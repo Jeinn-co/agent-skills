@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.6.0"
+  version: "1.6.1"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -153,15 +153,21 @@ Use the same resolved language for the report, update prompt and update results.
 does not run the check or any updater. Tool ids: `claude`, `codex`, `grok`, `muse`, `agy`.
 
 1. Run the platform launcher with `--show-tools`; it prints `tools=<ids>`, the current
-   selection (every tool when nothing is saved).
-2. Ask which tools to check, marking each currently checked tool in its description.
-   - With a multi-select choice tool (Claude Code: `AskUserQuestion`, which allows at
-     most 4 options per question), ask once with two `multiSelect: true` questions:
-     header `Check` with Claude Code, Codex, Grok Build; header `Check (more)` with Muse
-     Code, Antigravity. The selection is the union of both answers.
-   - Otherwise list the five tools numbered 1–5 and ask for numbers (`1,2,3`) or `all`.
+   selection (every tool when nothing is saved), and `installed=<ids>`, the tools whose
+   CLI is present. Offer only installed tools; a tool that is not installed is never
+   saved, so it drops out of later checks.
+2. Ask which tools to check — **one question on one page**, never split across several
+   questions or tabs.
+   - With a multi-select choice tool and no more than 4 installed tools (Claude Code:
+     `AskUserQuestion` allows at most 4 options), ask one `multiSelect: true` question,
+     header `Check`, one option per installed tool. Boxes cannot start ticked, so put
+     the current selection in the question text (`Now checking: Claude Code, Codex. Tick
+     every CLI to check.`) and give each option a plain description such as `checked now`
+     or `skipped now`.
+   - Otherwise (no such tool, or 5 installed tools) list the installed tools numbered
+     and ask for numbers (`1,2,3`) or `all`.
 3. Save with `--set-tools <ids>` (comma-separated, e.g. `--set-tools claude,codex,grok`),
-   or `--set-tools all` when every tool is chosen. It prints the saved `tools=<ids>`.
+   or `--set-tools all` when every tool is chosen and every tool is installed. It prints the saved `tools=<ids>`.
    Nothing chosen, a dismissed picker, or an invalid reply saves nothing: say the
    selection is unchanged.
 4. Report one line: `Checking: <names> · Not checked: <names>`, or `Checking all tools.`

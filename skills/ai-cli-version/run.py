@@ -24,7 +24,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.6.0"
+VERSION = "1.6.1"
 
 TIMEOUT = 10
 HOME = os.path.expanduser("~")
@@ -349,6 +349,14 @@ def selected_tools():
     return picked or list(CHECKS)
 
 
+def installed_tools():
+    """Tools whose CLI is present, using the same lookups as the checks."""
+    agy = os.path.join(HOME, ".gemini", "bin", "agy.exe" if os.name == "nt" else "agy")
+    found = {name: shutil.which(name) is not None for name in ("claude", "codex", "grok", "muse")}
+    found["agy"] = os.path.isfile(agy)
+    return [name for name in CHECKS if found[name]]
+
+
 def set_tools(arg):
     """Save the tools to check; `all` removes the config so every tool is checked."""
     if arg.strip().lower() == "all":
@@ -410,6 +418,7 @@ def main():
         return
     if "--show-tools" in sys.argv:
         print("tools=" + ",".join(selected_tools()))
+        print("installed=" + ",".join(installed_tools()))
         return
     if len(sys.argv) == 3 and sys.argv[1] == "--set-tools":
         print("tools=" + ",".join(set_tools(sys.argv[2])))
