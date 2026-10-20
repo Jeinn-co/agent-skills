@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.8.0"
+  version: "1.8.1"
 ---
 
 # /ai-usage — unified AI usage report
@@ -171,8 +171,10 @@ usage.
 
 ## Output
 
+<!-- Keep every dollar amount in this file from starting with a dollar sign then the digit zero: Claude Code replaces that token with the first skill argument (for example /ai-usage setup). -->
+
 ```
-USAGE — 09-12 01:08 · ai-usage 1.8.0
+USAGE — 09-12 01:08 · ai-usage 1.8.1
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -202,7 +204,7 @@ USAGE — 09-12 01:08 · ai-usage 1.8.0
     Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score
     Provider  Now                          Now $   Now CP  Qualified                       Qualified $  Qualified CP
     Claude    Opus 5.5 High · 56.0%        $3.97    14.1   Opus 5.5 Medium · 52.5%         $2.91         18.0
-    ChatGPT   GPT-6.1 Sol High · AA 50 · 50.9/s · 25M · 46.6s  $0.32   157.4   GPT-6.1 Sol High · AA 50        $0.32        157.4
+    ChatGPT   GPT-6.1 Sol High · AA 50 · 50.9/s · 25M · 46.6s  $1.32    37.9   GPT-6.1 Sol High · AA 50        $1.32         37.9
     Grok      Grok 4.7 High · 43.9%        $4.69     9.4   Grok 4.7 Extra High · 46.3% *   $6.01          7.7
     Muse      Muse Spark 1.3 Max · 41.6%   $2.64    15.8   Muse Spark 1.3 Max · 41.6% *    $2.64         15.8
     Gemini    Gemini 3.8 Flash High · 39.6% $4.70    8.4   Gemini 4 Argon High · AA 53     $1.99         26.4
