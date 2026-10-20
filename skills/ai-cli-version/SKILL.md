@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. Use when the user runs /ai-cli-version or /check-uu, or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
+description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update all or some outdated CLIs after a y / number / Esc choice. Use when the user runs /ai-cli-version or /check-uu, or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.3.3"
+  version: "1.4.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -93,6 +93,14 @@ CLI VERSIONS — 09-17
   [y] Update all    [Esc] Skip
 ```
 
+With two or more outdated CLIs, the prompt numbers them so the user can pick some:
+
+```
+  Update the 2 outdated CLIs now?
+  1. Claude Code    2. Muse Code
+  [y] Update all    [1-2] Pick, e.g. 1 or 1,2    [Esc] Skip
+```
+
 Rules:
 - Show every tool. `not installed` and `check failed (...)` get their own row with the
   reason; never drop a row, and never fill in a version or time from memory.
@@ -127,22 +135,36 @@ Use the same resolved language for the report, update prompt and update results.
 
 ## Optional update
 
-Only when one or more rows have `status=update available`, append a two-choice prompt in
-the report's resolved language and stop. Keep the keys exactly `y` and `Esc`:
+Only when one or more rows have `status=update available`, append the update prompt in
+the report's resolved language and stop. Keep the keys exactly `y`, the numbers, and `Esc`.
+
+With one outdated CLI, offer `y` and `Esc` only:
+
+```
+Update the 1 outdated CLI now?
+[y] Update all    [Esc] Skip
+```
+
+With two or more, number the outdated tools in report order and add a pick choice:
 
 ```
 Update the N outdated CLIs now?
-[y] Update all    [Esc] Skip
+1. Claude Code    2. Muse Code
+[y] Update all    [1-N] Pick, e.g. 1 or 1,2    [Esc] Skip
 ```
 
 - `/ai-cli-version` authorizes the check, not an update. Do not run any updater in the
   same turn as the initial report.
 - A subsequent exact `y` or `Y` authorizes every `update_cmd` from the immediately
-  preceding report whose status was `update available`. Run those commands separately,
-  so one failure does not prevent the remaining updates.
+  preceding report whose status was `update available`.
+- A reply made only of numbers from that prompt's list, separated by commas and/or
+  spaces (`1`, `1,2`, `2 1`), authorizes exactly those tools' `update_cmd`. Ignore
+  duplicates. A number outside the list makes the whole reply invalid: update nothing.
+- Run the selected commands separately, so one failure does not prevent the remaining
+  updates. Never run an update for a tool that was not selected.
 - `Esc` or `Escape` skips all updates. Confirm that no updates were run.
-- Any other reply is not authorization. Repeat the two valid choices without updating.
-- After `y`, show success or failure for every selected tool, then run the check-only
+- Any other reply is not authorization. Repeat the valid choices without updating.
+- After `y` or a pick, show success or failure for every selected tool, then run the check-only
   launcher again and show the refreshed report. Do not show another prompt for a tool
   whose updater failed during that same update attempt.
 - If all tools are current, or the user explicitly asked for check-only behavior, do not

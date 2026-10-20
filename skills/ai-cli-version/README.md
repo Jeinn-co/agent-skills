@@ -3,8 +3,9 @@
 One report for whether your Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date — the
 version you have and when you installed it, the latest version and when it was released.
 
-The version check is always read-only. When an update is available, the agent offers two
-choices: `y` updates every outdated CLI, while `Esc` skips all updates.
+The version check is always read-only. When an update is available, the agent offers
+choices: `y` updates every outdated CLI, a number list such as `1` or `1,2` updates only
+those CLIs (shown when two or more are outdated), and `Esc` skips all updates.
 
 Works in Claude Code, Codex CLI, Grok Build, and anything else that reads the `SKILL.md`
 convention. Nothing here depends on a particular host.
@@ -97,8 +98,8 @@ Type the skill name as a slash command:
 
 Or just ask — "is my CLI up to date?", "check for updates", "when was this Codex released?". It reads
 live every time; there is no cache or flag. If one or more versions are outdated, it
-shows the report and waits for an explicit `y` before running their update commands.
-Choose `Esc` to leave every CLI unchanged.
+shows the report and waits for an explicit `y` (all) or a number list (some) before
+running their update commands. Choose `Esc` to leave every CLI unchanged.
 
 To run it outside an agent, change into the installed `ai-cli-version` directory — for
 example `~/.claude/skills/ai-cli-version` — then use the launcher for your platform:
@@ -123,7 +124,7 @@ information; when it is unavailable, the report and update prompt are in English
 A bare `/ai-cli-version` does not inherit the language of earlier conversation.
 The script does not detect the OS display language or translate its raw output.
 Tool names, versions, dates, commands and error codes stay unchanged, as do the
-update choices `y` and `Esc`.
+update choices `y`, the numbers and `Esc`.
 
 ## What it prints
 
@@ -155,6 +156,14 @@ CLI VERSIONS — 09-24
 
   Update the 1 outdated CLI now?
   [y] Update all    [Esc] Skip
+```
+
+With two or more outdated CLIs the prompt numbers them, so you can update some:
+
+```
+  Update the 2 outdated CLIs now?
+  1. Claude Code    2. Muse Code
+  [y] Update all    [1-2] Pick, e.g. 1 or 1,2    [Esc] Skip
 ```
 
 The prompt appears only inside an agent. The standalone `run.py` / `run.sh` launcher is
