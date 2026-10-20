@@ -1,10 +1,10 @@
 ---
 name: ai-usage
-description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, the model / effort of each CLI's newest session, and that model's CursorBench score, cost and CP. Use when the user runs /ai-usage or /uu, or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
+description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, the model / effort of each CLI's newest session, and that model's CursorBench score, cost and CP. `setup` chooses which providers to report. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.7.8"
+  version: "1.8.0"
 ---
 
 # /ai-usage — unified AI usage report
@@ -172,7 +172,7 @@ usage.
 ## Output
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.7.8
+USAGE — 09-12 01:08 · ai-usage 1.8.0
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -266,9 +266,44 @@ Rules:
   and Qualified CP populated from its `pick` line. A provider with no local session
   uses `no local session` in Now unless its usage block says `not installed`.
   Never drop it silently or select an unavailable CLI for the final `→` action.
+- **Skipped providers.** When setup has narrowed the list, the launcher prints
+  `### skipped <ids>` after the version line and no usage block, `bench` or `pick` line
+  for them. Show no block and no table row for them; add one line directly above the
+  `→` line: `Not checked (setup): Muse, Gemini`. The `→` line picks only among the
+  reported providers.
 - No preamble, no recap, no closing offer.
 - Use the report language resolved below for every label, the Qualified header and
   footnotes, the `⚠` and `→` lines, and readable status or error explanations.
+
+## Setup — choose which providers to report
+
+`/ai-usage setup` (alias `/uu setup`) changes which providers the report covers. It does
+not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (Grok),
+`muse` (Muse), `agy` (Gemini).
+
+1. Run the platform launcher with `--show-providers`; it prints `providers=<ids>`, the
+   current selection (every provider when nothing is saved), and `installed=<ids>`, the
+   providers whose CLI is present. Offer only installed providers; one that is not
+   installed is never saved.
+2. Ask which providers to report — **one question on one page**, never split across
+   several questions or tabs.
+   - With a multi-select choice tool and no more than 4 installed providers (Claude
+     Code: `AskUserQuestion` allows at most 4 options), ask one `multiSelect: true`
+     question, header `Report`, one option per installed provider. Boxes cannot start
+     ticked, so put the current selection in the question text (`Now reporting: Claude,
+     ChatGPT. Tick every provider to report.`) and give each option a plain description
+     such as `reported now` or `skipped now`.
+   - Otherwise (no such tool, or 5 installed providers) list the installed providers
+     numbered and ask for numbers (`1,2`) or `all`.
+3. Save with `--set-providers <ids>` (e.g. `--set-providers claude,codex`), or
+   `--set-providers all` when every provider is chosen and every CLI is installed. It
+   prints the saved `providers=<ids>`. Nothing chosen, a dismissed picker, or an invalid
+   reply saves nothing: say the selection is unchanged.
+4. Report one line: `Reporting: <names> · Not reported: <names>`, or `Reporting all providers.`
+
+The selection is saved in `~/.config/ai-usage/config.json` (`$XDG_CONFIG_HOME` when set),
+outside the skill folder, so reinstalling or updating the skill keeps it. Skipped
+providers launch no CLI, so Muse spends no probe call while it is skipped.
 
 ## Language
 

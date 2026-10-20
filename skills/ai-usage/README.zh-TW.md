@@ -118,6 +118,17 @@ benchmark 也與用量查詢同時進行。報表仍維持固定順序，等待�
 Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmark 表格。
 沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
 
+### 設定要報告哪些 provider
+
+    /ai-usage setup
+
+agent 只列出這台電腦有安裝的 provider CLI，用一題多選讓你勾（Claude Code 裡是單頁勾選框；
+五個都有裝、或 host 沒有選單時改成輸入編號），存在 `~/.config/ai-usage/config.json`，
+更新 skill 也不會被蓋掉。之後的報告會跳過沒選的 provider —— 不會啟動它們的 CLI，所以跳過
+Muse 時也不花那一次探測呼叫 —— 並在建議那行上方加一行 `Not checked (setup): …`。全選就回到
+預設。在 agent 外面：`run.py --show-providers`、`run.py --set-providers claude,codex`、
+`run.py --set-providers all`。
+
 ## 輸出長什麼樣
 
 ![ai-usage 報表](images/demo.png)

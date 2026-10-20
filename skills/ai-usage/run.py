@@ -7,7 +7,7 @@ or worse, a Microsoft Store stub that opens the store instead of running anythin
 
 Verified 2026-09-12 on macOS, 2026-09-14 on Windows 11. See README for platform notes.
 """
-import subprocess, sys
+import json, os, shutil, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -34,6 +34,63 @@ PROBES = (("CLAUDE", "claude_usage.py", "claude"),
           ("GROK", "grok_usage.py", "grok"),
           ("MUSE", "muse_usage.py", "muse"),
           ("GEMINI", "agy_usage.py", "agy"))
+
+NAMES = {"claude": "Claude", "codex": "ChatGPT", "grok": "Grok", "muse": "Muse",
+         "agy": "Gemini"}
+IDS = [cli for _, _, cli in PROBES]
+CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME")
+                      or os.path.join(os.path.expanduser("~"), ".config"),
+                      "ai-usage", "config.json")
+
+
+def selected():
+    """Providers chosen with --set-providers; every provider when nothing valid is saved."""
+    try:
+        with open(CONFIG, encoding="utf-8") as fh:
+            chosen = json.load(fh).get("providers")
+    except (OSError, ValueError, AttributeError):
+        return IDS
+    picked = [cli for cli in IDS if isinstance(chosen, list) and cli in chosen]
+    return picked or IDS
+
+
+def installed():
+    """Providers whose CLI is present (agy only at ~/.gemini/bin, never the IDE launcher)."""
+    agy = os.path.join(os.path.expanduser("~"), ".gemini", "bin",
+                       "agy.exe" if os.name == "nt" else "agy")
+    found = {cli: shutil.which(cli) is not None for cli in ("claude", "codex", "grok", "muse")}
+    found["agy"] = os.path.isfile(agy)
+    return [cli for cli in IDS if found[cli]]
+
+
+def set_providers(arg):
+    """Save the providers to report; `all` removes the config."""
+    if arg.strip().lower() == "all":
+        if os.path.exists(CONFIG):
+            os.remove(CONFIG)
+        return IDS
+    names = [n.strip().lower() for n in arg.split(",") if n.strip()]
+    unknown = [n for n in names if n not in IDS]
+    if unknown or not names:
+        sys.exit("unknown provider(s): %s; choose from %s or all"
+                 % (", ".join(unknown) or "none given", ",".join(IDS)))
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    picked = [cli for cli in IDS if cli in names]
+    with open(CONFIG, "w", encoding="utf-8") as fh:
+        json.dump({"providers": picked}, fh)
+    return picked
+
+
+if "--show-providers" in sys.argv:
+    print("providers=" + ",".join(selected()))
+    print("installed=" + ",".join(installed()))
+    sys.exit(0)
+if len(sys.argv) == 3 and sys.argv[1] == "--set-providers":
+    print("providers=" + ",".join(set_providers(sys.argv[2])))
+    sys.exit(0)
+
+SKIPPED = [cli for cli in IDS if cli not in selected()]
+PROBES = tuple(probe for probe in PROBES if probe[2] not in SKIPPED)
 
 
 def usage(script):
@@ -69,6 +126,8 @@ def benchmark(now):
 
 try:
     print("### ai-usage %s" % portable.VERSION)
+    if SKIPPED:
+        print("### skipped " + ",".join(SKIPPED))
     print()
     sys.stdout.flush()
     with ThreadPoolExecutor(max_workers=2 * len(PROBES)) as pool:

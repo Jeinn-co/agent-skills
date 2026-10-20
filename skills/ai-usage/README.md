@@ -131,6 +131,19 @@ benchmark lookup has its own 20-second budget; if it times out, usage is still s
 and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
 report for 90 seconds.
 
+### Choose which providers to report
+
+    /ai-usage setup
+
+The agent lists the provider CLIs installed on this machine in one multi-select question
+(one checkbox page in Claude Code; numbers in hosts without a picker or with all five
+installed) and saves the choice in `~/.config/ai-usage/config.json`, so updating the
+skill keeps it. Later reports skip the other providers — no CLI is launched for them, so a
+skipped Muse costs no probe call — and add a `Not checked (setup): …` line above the
+recommendation. Choose every provider to go back to the default. Outside an agent:
+`run.py --show-providers`, `run.py --set-providers claude,codex`,
+`run.py --set-providers all`.
+
 ## What it prints
 
 ![ai-usage report](images/demo.png)
