@@ -158,7 +158,9 @@ CLI VERSIONS — 09-24
   [y] Update all    [Esc] Skip
 ```
 
-With two or more outdated CLIs the prompt numbers them, so you can update some:
+In Claude Code the choice is a checkbox picker (`AskUserQuestion`, multi-select) with
+one box per outdated CLI: check all, some, or none. Hosts without such a picker show
+the text prompt. With two or more outdated CLIs it numbers them, so you can update some:
 
 ```
   Update the 2 outdated CLIs now?

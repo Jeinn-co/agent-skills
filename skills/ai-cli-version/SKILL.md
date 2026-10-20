@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update all or some outdated CLIs after a y / number / Esc choice. Use when the user runs /ai-cli-version or /check-uu, or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
+description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update all or some outdated CLIs, chosen with checkboxes when the host supports them or a y / number / Esc reply. Use when the user runs /ai-cli-version or /check-uu, or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.4.0"
+  version: "1.5.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -135,8 +135,26 @@ Use the same resolved language for the report, update prompt and update results.
 
 ## Optional update
 
-Only when one or more rows have `status=update available`, append the update prompt in
-the report's resolved language and stop. Keep the keys exactly `y`, the numbers, and `Esc`.
+Only when one or more rows have `status=update available`, offer the update choice.
+
+**Checkbox picker first.** When the host gives the agent a structured multiple-choice
+tool that supports multi-select (Claude Code: `AskUserQuestion` with
+`multiSelect: true`), show the report, then ask through that tool instead of printing a
+text prompt:
+
+- Question: `Which outdated CLIs should be updated?` (in the resolved language);
+  header `Update`; `multiSelect: true`.
+- One option per outdated tool, in report order: label = the tool name, description =
+  `<installed> → <latest>`. The tool allows at most 4 options; with 5 outdated tools,
+  use the text prompt below instead.
+- Checking every option means update all; checking some means update only those. An
+  empty selection, a dismissed picker, or a free-text "Other" answer that does not name
+  outdated tools means skip: confirm that no updates were run.
+- The picker answer is the user's explicit reply, so the selected `update_cmd`s run in
+  the same turn, under the same rules as a text pick below.
+
+**Text prompt otherwise.** When no such tool exists (Codex, Grok Build, a plain
+terminal), append the text prompt in the report's resolved language and stop. Keep the keys exactly `y`, the numbers, and `Esc`.
 
 With one outdated CLI, offer `y` and `Esc` only:
 
@@ -153,8 +171,8 @@ Update the N outdated CLIs now?
 [y] Update all    [1-N] Pick, e.g. 1 or 1,2    [Esc] Skip
 ```
 
-- `/ai-cli-version` authorizes the check, not an update. Do not run any updater in the
-  same turn as the initial report.
+- `/ai-cli-version` authorizes the check, not an update. Do not run any updater until the
+  user has chosen, either through the checkbox picker or in a later text reply.
 - A subsequent exact `y` or `Y` authorizes every `update_cmd` from the immediately
   preceding report whose status was `update available`.
 - A reply made only of numbers from that prompt's list, separated by commas and/or
