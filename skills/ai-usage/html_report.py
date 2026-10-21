@@ -171,12 +171,16 @@ def render(raw, now=None):
             if left is not None:
                 # Time bar: full length is the window (5h or 7 days); the remaining
                 # time fills from the right, the elapsed part stays empty on the left.
-                total = FIVE_HOURS if w["label"] == "5h" else WEEK_MINUTES
+                five = w["label"] == "5h"
+                total = FIVE_HOURS if five else WEEK_MINUTES
                 share = max(0.0, min(100.0, left * 100.0 / total))
+                # One tick per hour (5h window) or per day (7-day window).
                 rows.append(
                     '<div class="row time"><div class="lbl"></div>'
-                    '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
-                    '<div class="left">%s%s</div></div>' % (share, CLOCK, esc(left_text(left))))
+                    '<div class="tbar" style="--n:%d"><div class="ticks"></div>'
+                    '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div></div>'
+                    '<div class="left">%s%s</div></div>'
+                    % (5 if five else 7, share, CLOCK, esc(left_text(left))))
         for note in p["notes"]:
             rows.append('<div class="note">%s</div>' % esc(note))
         now_line = ("<code>%s</code> · effort %s · %s ago" % (esc(p["model"]), esc(p["effort"] or "?"),
@@ -221,8 +225,8 @@ PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI Usage</title>
 <style>
-:root{--bg:#e9e4de;--card:#fbf9f6;--text:#2b2926;--muted:#69635c;--line:#d3cbc1;--track:#dad2c8;--green:#6f8f69;--amber:#b5893f;--red:#a65f59;--accent:#55718d}
-@media (prefers-color-scheme:dark){:root{--bg:#1d1c1a;--card:#2b2926;--text:#f4efe8;--muted:#c0b8ae;--line:#47433e;--track:#4b4742;--green:#acc7a5;--amber:#e3c088;--red:#dc9d96;--accent:#a9bfd4}}
+:root{--bg:#e9e4de;--card:#fbf9f6;--text:#2b2926;--muted:#69635c;--line:#d3cbc1;--track:#dad2c8;--tick:#b9afa3;--green:#6f8f69;--amber:#b5893f;--red:#a65f59;--accent:#55718d}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1c1a;--card:#2b2926;--text:#f4efe8;--muted:#c0b8ae;--line:#47433e;--track:#4b4742;--tick:#6a655e;--green:#acc7a5;--amber:#e3c088;--red:#dc9d96;--accent:#a9bfd4}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
@@ -234,11 +238,14 @@ h2{font-size:17px;font-weight:600;margin:0}.plan{color:var(--muted);font-size:14
 border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color:var(--accent);text-decoration:none}
 .row{display:grid;grid-template-columns:64px 1fr 52px 200px;align-items:center;gap:10px;margin:8px 0}
 .lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:999px;overflow:hidden}
-.row.time{margin:-4px 0 12px}.track.thin{height:4px;display:flex;justify-content:flex-end}
+.row.time{margin:-2px 0 12px}.tbar{position:relative;height:12px;display:flex;align-items:center}
+.ticks{position:absolute;inset:0;border-right:1px solid var(--tick);
+background:repeating-linear-gradient(to right,var(--tick) 0 1px,transparent 1px calc(100% / var(--n)))}
+.track.thin{position:relative;flex:1;height:4px;display:flex;justify-content:flex-end}
 .tfill{height:100%;border-radius:999px;background:var(--accent);opacity:.6}
 .clock{width:13px;height:13px;margin-right:5px;vertical-align:-2px;fill:none;stroke:currentColor;
 stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.left{grid-column:3/5;text-align:right;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.left{grid-column:3/5;text-align:left;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .fill{height:100%;border-radius:999px}.fill.green{background:var(--green)}.fill.amber{background:var(--amber)}
 .fill.red{background:var(--red)}.pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .pct.green{color:var(--green)}.pct.amber{color:var(--amber)}.pct.red{color:var(--red)}
