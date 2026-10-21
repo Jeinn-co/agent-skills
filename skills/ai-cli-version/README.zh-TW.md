@@ -159,7 +159,7 @@ CLI VERSIONS — 09-24
 
     /ai-cli-version setup
 
-agent 只列出這台電腦有安裝的 CLI，用一題多選讓你勾（Claude Code 裡是單頁勾選框；五個都有裝、
+會先顯示目前的設定，問**保留**還是**修改**，所以已經選過的按一下就能保留；選修改才會出現勾選清單。輸出格式（HTML 或 Markdown）也用同樣方式問。agent 只列出這台電腦有安裝的 CLI，用一題多選讓你勾（Claude Code 裡是單頁勾選框；五個都有裝、
 或 host 沒有選單時，改成輸入編號）。選擇存在 `~/.config/ai-cli-version/config.json`，更新 skill
 也不會被蓋掉。之後的檢查會跳過沒選的，並在摘要下方加一行 `Not checked (setup): …`：
 

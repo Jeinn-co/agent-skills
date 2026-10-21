@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.9.2"
+  version: "1.9.3"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -229,24 +229,28 @@ does not run the check or any updater. Tool ids: `claude`, `codex`, `grok`, `mus
    selection (every tool when nothing is saved), and `installed=<ids>`, the tools whose
    CLI is present. Offer only installed tools; a tool that is not installed is never
    saved, so it drops out of later checks.
-2. Ask which tools to check — **one question on one page**, never split across several
-   questions or tabs.
-   - With a multi-select choice tool and no more than 4 installed tools (Claude Code:
-     `AskUserQuestion` allows at most 4 options), ask one `multiSelect: true` question,
-     header `Check`, one option per installed tool. Boxes cannot start ticked, so put
-     the current selection in the question text (`Now checking: Claude Code, Codex. Tick
-     every CLI to check.`) and give each option a plain description such as `checked now`
-     or `skipped now`.
-   - Otherwise (no such tool, or 5 installed tools) list the installed tools numbered
-     and ask for numbers (`1,2,3`) or `all`.
+2. Ask about the tools — **keep first**, one question per page, never split across
+   several questions or tabs. A choice tool cannot pre-tick boxes, so never show an empty
+   checkbox list for a selection the user already made.
+   - With a choice tool (Claude Code: `AskUserQuestion`), first ask one single-select
+     question, header `Check`: `Check — now: <current names>. Keep or change?` with
+     options `Keep` (description: the current names) and `Change…` (description: the
+     installed tools to pick from). `Keep` saves nothing for this step.
+   - Only after `Change…`: ask one `multiSelect: true` question, header `Check`, one
+     option per installed tool (at most 4 options; with 5 installed, use numbers
+     instead), describing each as currently on or off.
+   - Without a choice tool, show the current selection and ask for `keep`, numbers
+     (`1,2`) or `all`.
 3. Save with `--set-tools <ids>` (comma-separated, e.g. `--set-tools claude,codex,grok`),
    or `--set-tools all` when every tool is chosen and every tool is installed. It prints the saved `tools=<ids>`.
    Nothing chosen, a dismissed picker, or an invalid reply saves nothing: say the
    selection is unchanged.
-4. Then ask the output format — again one question on one page (`AskUserQuestion`, single
-   select, header `Output`), marking the current one: `HTML` (default — a page opened in
-   the browser) or `Markdown` (in chat). Without a choice tool, ask `html` or `md`. Save
-   with `--set-output html` or `--set-output md`; a dismissed question keeps the format.
+4. Then ask the output format the same way — one single-select question, header
+   `Output`: `Output — now: <HTML|Markdown>. Keep or change?` with options `Keep`
+   (description: the current format) and the other format (`HTML` — a page opened in the
+   browser, or `Markdown` — shown in chat). Without a choice tool, ask `keep`, `html` or
+   `md`. Save only a change, with `--set-output html` or `--set-output md`; `Keep` or a
+   dismissed question keeps the format.
 5. Report one line: `Checking: <names> · Not checked: <names> · Output: <HTML|Markdown>`,
    or `Checking all tools · Output: <HTML|Markdown>`.
 

@@ -148,7 +148,7 @@ current or the lookup fails, it goes straight to the report.
 
     /ai-usage setup
 
-The agent lists the provider CLIs installed on this machine in one multi-select question
+It first shows the current choice and asks **Keep** or **Change…**, so a saved selection is one click to keep; only Change opens the checkbox list. The output format (HTML or Markdown) is asked the same way. The agent lists the provider CLIs installed on this machine in one multi-select question
 (one checkbox page in Claude Code; numbers in hosts without a picker or with all five
 installed) and saves the choice in `~/.config/ai-usage/config.json`, so updating the
 skill keeps it. Later reports skip the other providers — no CLI is launched for them, so a

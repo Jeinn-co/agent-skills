@@ -177,7 +177,7 @@ skill is current or the lookup fails, it goes straight to the check.
 
     /ai-cli-version setup
 
-The agent asks one multi-select question listing only the CLIs installed on this
+It first shows the current choice and asks **Keep** or **Change…**, so a saved selection is one click to keep; only Change opens the checkbox list. The output format (HTML or Markdown) is asked the same way. The agent asks one multi-select question listing only the CLIs installed on this
 machine (Claude Code shows it as a single checkbox page; with all five installed, or in
 hosts without a picker, it asks for numbers instead). The choice is saved in
 `~/.config/ai-cli-version/config.json`, so updating the skill keeps it. Later checks skip

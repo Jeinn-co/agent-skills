@@ -133,7 +133,7 @@ Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmar
 
     /ai-usage setup
 
-agent 只列出這台電腦有安裝的 provider CLI，用一題多選讓你勾（Claude Code 裡是單頁勾選框；
+會先顯示目前的設定，問**保留**還是**修改**，所以已經選過的按一下就能保留；選修改才會出現勾選清單。輸出格式（HTML 或 Markdown）也用同樣方式問。agent 只列出這台電腦有安裝的 provider CLI，用一題多選讓你勾（Claude Code 裡是單頁勾選框；
 五個都有裝、或 host 沒有選單時改成輸入編號），存在 `~/.config/ai-usage/config.json`，
 更新 skill 也不會被蓋掉。之後的報告會跳過沒選的 provider —— 不會啟動它們的 CLI，所以跳過
 Muse 時也不花那一次探測呼叫 —— 並在建議那行上方加一行 `Not checked (setup): …`。全選就回到

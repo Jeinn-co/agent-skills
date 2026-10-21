@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.11.3"
+  version: "1.11.4"
 ---
 
 # /ai-usage — unified AI usage report
@@ -222,7 +222,7 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.11.3
+### Usage — 09-12 01:08 · ai-usage 1.11.4
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|
@@ -359,24 +359,28 @@ not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (
    current selection (every provider when nothing is saved), and `installed=<ids>`, the
    providers whose CLI is present. Offer only installed providers; one that is not
    installed is never saved.
-2. Ask which providers to report — **one question on one page**, never split across
-   several questions or tabs.
-   - With a multi-select choice tool and no more than 4 installed providers (Claude
-     Code: `AskUserQuestion` allows at most 4 options), ask one `multiSelect: true`
-     question, header `Report`, one option per installed provider. Boxes cannot start
-     ticked, so put the current selection in the question text (`Now reporting: Claude,
-     ChatGPT. Tick every provider to report.`) and give each option a plain description
-     such as `reported now` or `skipped now`.
-   - Otherwise (no such tool, or 5 installed providers) list the installed providers
-     numbered and ask for numbers (`1,2`) or `all`.
+2. Ask about the providers — **keep first**, one question per page, never split across
+   several questions or tabs. A choice tool cannot pre-tick boxes, so never show an empty
+   checkbox list for a selection the user already made.
+   - With a choice tool (Claude Code: `AskUserQuestion`), first ask one single-select
+     question, header `Report`: `Report — now: <current names>. Keep or change?` with
+     options `Keep` (description: the current names) and `Change…` (description: the
+     installed providers to pick from). `Keep` saves nothing for this step.
+   - Only after `Change…`: ask one `multiSelect: true` question, header `Report`, one
+     option per installed provider (at most 4 options; with 5 installed, use numbers
+     instead), describing each as currently on or off.
+   - Without a choice tool, show the current selection and ask for `keep`, numbers
+     (`1,2`) or `all`.
 3. Save with `--set-providers <ids>` (e.g. `--set-providers claude,codex`), or
    `--set-providers all` when every provider is chosen and every CLI is installed. It
    prints the saved `providers=<ids>`. Nothing chosen, a dismissed picker, or an invalid
    reply saves nothing: say the selection is unchanged.
-4. Then ask the output format — again one question on one page (`AskUserQuestion`, single
-   select, header `Output`), marking the current one: `HTML` (default — a page opened in
-   the browser) or `Markdown` (in chat). Without a choice tool, ask `html` or `md`. Save
-   with `--set-output html` or `--set-output md`; a dismissed question keeps the format.
+4. Then ask the output format the same way — one single-select question, header
+   `Output`: `Output — now: <HTML|Markdown>. Keep or change?` with options `Keep`
+   (description: the current format) and the other format (`HTML` — a page opened in the
+   browser, or `Markdown` — shown in chat). Without a choice tool, ask `keep`, `html` or
+   `md`. Save only a change, with `--set-output html` or `--set-output md`; `Keep` or a
+   dismissed question keeps the format.
 5. Report one line: `Reporting: <names> · Not reported: <names> · Output: <HTML|Markdown>`,
    or `Reporting all providers · Output: <HTML|Markdown>`.
 
