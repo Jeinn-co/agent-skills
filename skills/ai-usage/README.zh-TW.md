@@ -9,6 +9,9 @@ model + effort 推薦。
 可在 Claude Code、Codex CLI、Grok Build，以及任何讀 `SKILL.md` 慣例的 agent 使用，
 不綁定特定 host。
 
+想比較各個寫程式 model 的分數與成本，可看 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
+（[原始碼](https://github.com/Jeinn-co/ai-model-compare)）。
+
 ## 安裝前必讀
 
 先看這段 —— 這個 skill 只會**回報**這些工具的用量，不會幫你安裝它們。

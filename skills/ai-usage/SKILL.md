@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.9.1"
+  version: "1.9.2"
 ---
 
 # /ai-usage — unified AI usage report
@@ -202,7 +202,7 @@ usage.
 <!-- Keep every dollar amount in this file from starting with a dollar sign then the digit zero: Claude Code replaces that token with the first skill argument (for example /ai-usage setup). -->
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.9.1
+USAGE — 09-12 01:08 · ai-usage 1.9.2
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
