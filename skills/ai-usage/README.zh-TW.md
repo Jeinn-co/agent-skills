@@ -9,9 +9,6 @@ model + effort 推薦。
 可在 Claude Code、Codex CLI、Grok Build，以及任何讀 `SKILL.md` 慣例的 agent 使用，
 不綁定特定 host。
 
-想比較各個寫程式 model 的分數與成本，可看 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
-（[原始碼](https://github.com/Jeinn-co/ai-model-compare)）。
-
 ## 安裝前必讀
 
 先看這段 —— 這個 skill 只會**回報**這些工具的用量，不會幫你安裝它們。
@@ -121,6 +118,8 @@ benchmark 也與用量查詢同時進行。報表仍維持固定順序，等待�
 超時會停止探針與它啟動的 CLI 子程序，回報該家超時，直接繼續其他供應商，不重試。
 Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmark 表格。
 沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
+
+每份報表最後一行都是 `Compare models: https://jeinn-co.github.io/ai-model-compare/`。
 
 ### Skill 更新
 

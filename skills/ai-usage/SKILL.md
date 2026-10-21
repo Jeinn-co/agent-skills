@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.9.2"
+  version: "1.9.3"
 ---
 
 # /ai-usage — unified AI usage report
@@ -202,7 +202,7 @@ usage.
 <!-- Keep every dollar amount in this file from starting with a dollar sign then the digit zero: Claude Code replaces that token with the first skill argument (for example /ai-usage setup). -->
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.9.2
+USAGE — 09-12 01:08 · ai-usage 1.9.3
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -241,6 +241,7 @@ USAGE — 09-12 01:08 · ai-usage 1.9.2
   Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index (another test set): its score and CP are not comparable with CursorBench's.
 
   → Use Claude right now: the highest CursorBench score, and its 5h window is 29% used.
+  Compare models: https://jeinn-co.github.io/ai-model-compare/
 ```
 
 Rules:
@@ -288,7 +289,9 @@ Rules:
 - The pick rule lives in `cursorbench.py` (across the provider's listed models: ≥ 50% →
   highest CP; otherwise the highest score). Do not re-pick
   by hand or re-rank by today's usage.
-- The `→` line is the last line: which tool to use right now, and why in a few words.
+- The `→` line says which tool to use right now, and why in a few words. The one line
+  after it, the report's last line, is always `Compare models: https://jeinn-co.github.io/ai-model-compare/`.
+  Keep the URL exactly as written.
 - If any week row is over 80%, put a `⚠` line above the arrow saying how long until it
   resets.
 - A provider whose CLI is not installed prints `not installed` in its usage block

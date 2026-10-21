@@ -7,9 +7,6 @@ and effort each CLI is running now, and a shared model + effort pick per provide
 Works in Claude Code, Codex CLI, Grok Build, and anything else that reads the `SKILL.md`
 convention. Nothing here depends on a particular host.
 
-Comparing coding models by score and cost? See [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
-([source](https://github.com/Jeinn-co/ai-model-compare)).
-
 [Traditional Chinese documentation](README.zh-TW.md)
 
 ## Before you install
@@ -134,6 +131,8 @@ that provider as timed out, and continues with the others without retrying. The
 benchmark lookup has its own 20-second budget; if it times out, usage is still shown
 and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
 report for 90 seconds.
+
+Every report ends with `Compare models: https://jeinn-co.github.io/ai-model-compare/`.
 
 ### Skill updates
 

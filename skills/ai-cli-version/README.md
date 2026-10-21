@@ -9,9 +9,6 @@ choices: `y` updates every outdated CLI, while `Esc` skips all updates.
 Works in Claude Code, Codex CLI, Grok Build, and anything else that reads the `SKILL.md`
 convention. Nothing here depends on a particular host.
 
-Comparing coding models by score and cost? See [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
-([source](https://github.com/Jeinn-co/ai-model-compare)).
-
 > **Tested on Windows and macOS. Linux has not been tested yet.** The code has a Linux
 > path and the install locations were checked against the vendors' install scripts, but
 > it has never been run there. If it fails, please open an issue with the output of
@@ -163,6 +160,8 @@ CLI VERSIONS — 09-24
 
 When every checked CLI is current, the agent prints a short form instead: one
 `All up to date.` line and each tool's installed version, with no prompt.
+
+Every report ends with `Compare models: https://jeinn-co.github.io/ai-model-compare/`.
 
 ### Skill updates
 

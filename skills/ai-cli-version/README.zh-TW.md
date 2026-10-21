@@ -11,9 +11,6 @@
 可在 Claude Code、Codex CLI、Grok Build，以及任何讀 `SKILL.md` 慣例的 agent 使用，
 不綁定特定 host。
 
-想比較各個寫程式 model 的分數與成本，可看 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
-（[原始碼](https://github.com/Jeinn-co/ai-model-compare)）。
-
 > **目前已在 Windows 與 macOS 上測過，Linux 尚未測試。** 程式有 Linux 的處理，安裝路徑
 > 也對照過各家安裝腳本，但尚未在 Linux 上實際執行。如果出錯，請附上 `./run.sh` 的輸出
 > 開 issue。
@@ -147,6 +144,8 @@ CLI VERSIONS — 09-24
 ```
 
 全部都是最新版時，agent 改印簡短版：一行 `All up to date.` 加上每個工具目前的版本，不出現選項。
+
+每份報表最後一行都是 `Compare models: https://jeinn-co.github.io/ai-model-compare/`。
 
 ### Skill 更新
 

@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.7.2"
+  version: "1.7.3"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -114,6 +114,7 @@ CLI VERSIONS — 09-17
 
   * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
   → 1 update available: Codex.
+  Compare models: https://jeinn-co.github.io/ai-model-compare/
 
   Update the 1 outdated CLI now?
   [y] Update all    [Esc] Skip
@@ -131,6 +132,8 @@ CLI VERSIONS — 10-20 · All up to date.
   Grok Build    1.0.62
   Muse Code     1.4.11-R6667.1
   Antigravity   not installed
+
+  Compare models: https://jeinn-co.github.io/ai-model-compare/
 ```
 
 `not installed` and `check failed (...)` rows still appear in the short form, with their
@@ -150,6 +153,7 @@ CLI VERSIONS — 10-20
 
   → 1 update available: Claude Code.
   Not checked (setup): Grok Build, Muse Code, Antigravity
+  Compare models: https://jeinn-co.github.io/ai-model-compare/
 
   Update the 1 outdated CLI now?
   [y] Update all    [Esc] Skip
@@ -166,7 +170,10 @@ Rules:
 - `↑ update` rows end with the update command.
 - `ahead of channel` means the installed build is newer than the channel tag — show it
   as-is, not as an error.
-- Last report line: how many updates are available and for which tools, or `All up to date.`
+- Summary line: how many updates are available and for which tools, or `All up to date.`
+- The report's last line, in both the table and the short form, is always
+  `Compare models: https://jeinn-co.github.io/ai-model-compare/` — after the summary and any `Not checked (setup)` line, before any
+  update prompt. Keep the URL exactly as written.
 - Use the report language resolved below for labels, readable status and error
   explanations, and update results.
 
