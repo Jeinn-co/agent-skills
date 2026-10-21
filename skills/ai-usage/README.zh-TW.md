@@ -119,10 +119,6 @@ benchmark 也與用量查詢同時進行。報表仍維持固定順序，等待�
 Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmark 表格。
 沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
 
-每份報表最後會列 `Usage pages`：每個有報告的 provider 自己的用量頁連結（Claude、ChatGPT、Grok；setup 沒選的不列），最後一行是 AI Model Compare 的 Compare models 連結；這些都以可點的 Markdown 連結印在報表下方。
-
-預設會在瀏覽器打開 HTML 報表（莫蘭迪配色、彩色進度條，每條下方有剩餘時間條，總長 5 小時或 7 天、從右往左填，深淺色模式），由 Python 產生、不耗模型 token；對話框只顯示推薦和連結。`setup` 可以改成 Markdown，直接在對話框裡用表格與可點連結呈現。
-
 ### Skill 更新
 
 每次執行前，agent 會先比對 GitHub `main` 上發佈的 `SKILL.md`（`run.py --check-skill`，
@@ -133,29 +129,40 @@ Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmar
 
     /ai-usage setup
 
-會先顯示目前的設定，問**保留**還是**修改**，所以已經選過的按一下就能保留；選修改才會出現勾選清單。輸出格式（HTML 或 Markdown）也用同樣方式問。agent 只列出這台電腦有安裝的 provider CLI，用一題多選讓你勾（Claude Code 裡是單頁勾選框；
-五個都有裝、或 host 沒有選單時改成輸入編號），存在 `~/.config/ai-usage/config.json`，
+setup 會先顯示目前的設定，問**保留**還是**修改**，所以已經選過的按一下就能保留。選**修改**
+才會出現勾選清單，只列這台電腦有安裝的 provider CLI（host 沒有選單、或五個都有裝時，改成
+輸入編號）。輸出格式（HTML 或 Markdown）也用同樣方式問。設定存在 `~/.config/ai-usage/config.json`，
 更新 skill 也不會被蓋掉。之後的報告會跳過沒選的 provider —— 不會啟動它們的 CLI，所以跳過
-Muse 時也不花那一次探測呼叫 —— 並在建議那行上方加一行 `Not checked (setup): …`。全選就回到
-預設。在 agent 外面：`run.py --show-providers`、`run.py --set-providers claude,codex`、
-`run.py --set-providers all`。
+Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): …`。全部勾選就回到預設。
+在 agent 外面：`run.py --show-providers`、`run.py --set-providers claude,codex`、
+`run.py --set-providers all`、`run.py --set-output html|md`。
 
 ## 輸出長什麼樣
+
+`/ai-usage` 的示範資料。預設會在瀏覽器打開 HTML 報表（莫蘭迪配色、深淺色模式），由 Python
+產生、不耗模型 token：
 
 ![ai-usage 報表](images/demo.png)
 
 由上往下看：
 
-1. **五家的用量區塊** —— Claude、ChatGPT、Grok、Muse、Gemini。每個視窗有 20 格長條（每格 5 個百分點，不足一格再切 8 段）、已用百分比、
-   重置時間與剩餘時間。Grok 只有一個週視窗；Gemini 有兩個週額度池（`gemini` 是 Gemini 模型，
-   `cl+gpt` 是 Antigravity 另外提供的 Claude 與 GPT 模型）；其他三家是 5 小時加一週。
-2. **`now`** —— 該 CLI 最新一個本機 session 的 model 與 effort。
-3. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是
+1. **每家一張卡片，上下排列** —— Claude、ChatGPT、Grok、Muse、Gemini。每個視窗有一條彩色
+   進度條（未滿 50% 綠、50–79% 黃、80% 以上紅）、已用百分比與重置時間。Grok 只有一個週視窗；
+   Gemini 有兩個週額度池（`gemini` 是 Gemini 模型，`cl+gpt` 是 Antigravity 另外提供的 Claude
+   與 GPT 模型）；其他三家是 5 小時加一週。
+2. **剩餘時間條** —— 每條用量條下面的細條，總長就是視窗長度：5 小時或 7 天，每小時或每天
+   一個刻度並標上數字（`5h … 0`、`7d … 0`）。剩下的時間從右往左填，旁邊有時鐘圖示和文字，
+   例如 `2h32m left`。用量條跑在時間條前面，就代表用得比時間過得快。
+3. **Now** —— 該 CLI 最新一個本機 session 的 model 與 effort，以及這家自己的用量頁連結
+   （Claude、ChatGPT、Grok）。
+4. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是
    挑選規則選出的那一檔。兩邊各有分數、`$`（依 API 價格的每題成本）與 CP（分數 ÷ `$`）。
    `*` 表示這家沒有任何一檔到 50%，改列它的最高分。CursorBench 沒收錄的 model（例如上圖的
    GPT-6.1 Sol）改用 Artificial Analysis，顯示 `AA <指數>`。
-4. **`⚠`** —— 只有週視窗用量超過 80% 才出現。
-5. **`→`** —— 現在該用哪一個，附一句理由。
+5. **Compare models** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
+
+對話框裡只顯示推薦 —— **→** 現在該用哪一個、附一句理由；週視窗超過 80% 時前面多一行
+**⚠** —— 以及報表連結。`setup` 可以改成 Markdown，整份報表直接以表格顯示在對話框裡，不開網頁。
 
 它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
 的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude、Grok、Muse 和 Gemini 的數字。

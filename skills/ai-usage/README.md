@@ -132,10 +132,6 @@ benchmark lookup has its own 20-second budget; if it times out, usage is still s
 and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
 report for 90 seconds.
 
-Every report ends with a `Usage pages` block — a link to each reported provider's own usage page (Claude, ChatGPT, Grok; providers skipped by setup are left out) — and a Compare models link to AI Model Compare, both printed as clickable Markdown links after the report.
-
-By default the report opens as an HTML page in your browser (Morandi palette, colour bars with a time-left bar under each — 5 hours or 7 days long, filled from the right — light and dark mode), drawn by Python at no model-token cost; chat shows only the recommendation and a link. `setup` can switch to Markdown, rendered in chat as tables with clickable links.
-
 ### Skill updates
 
 Before each run the agent first compares this skill with the `SKILL.md` published on
@@ -148,33 +144,49 @@ current or the lookup fails, it goes straight to the report.
 
     /ai-usage setup
 
-It first shows the current choice and asks **Keep** or **Change…**, so a saved selection is one click to keep; only Change opens the checkbox list. The output format (HTML or Markdown) is asked the same way. The agent lists the provider CLIs installed on this machine in one multi-select question
-(one checkbox page in Claude Code; numbers in hosts without a picker or with all five
-installed) and saves the choice in `~/.config/ai-usage/config.json`, so updating the
-skill keeps it. Later reports skip the other providers — no CLI is launched for them, so a
-skipped Muse costs no probe call — and add a `Not checked (setup): …` line above the
-recommendation. Choose every provider to go back to the default. Outside an agent:
+Setup first shows the current choice and asks **Keep** or **Change…**, so a saved
+selection stays one click away. Only **Change…** opens the checkbox list, which shows the
+provider CLIs installed on this machine (in hosts without a picker, or with all five
+installed, it asks for numbers instead). The output format — HTML or Markdown — is asked
+the same way. Choices are saved in `~/.config/ai-usage/config.json`, so updating the
+skill keeps them. Later reports skip the other providers — no CLI is launched for them,
+so a skipped Muse costs no probe call — and list them as `Not checked (setup): …`.
+Choose every provider to go back to the default. Outside an agent:
 `run.py --show-providers`, `run.py --set-providers claude,codex`,
-`run.py --set-providers all`.
+`run.py --set-providers all`, `run.py --set-output html|md`.
 
 ## What it prints
+
+`/ai-usage` with demo data. By default the report opens as an HTML page in your browser
+(Morandi palette, light and dark mode), drawn by Python at no model-token cost:
 
 ![ai-usage report](images/demo.png)
 
 Read top to bottom:
 
-1. **Five provider blocks** — Claude, ChatGPT, Grok, Muse and Gemini. Each window gets a
-   20-cell bar (each cell is 5 points, the partial cell is one eighth), the percent used, the reset clock and the time left. Grok has one
-   weekly window; Gemini has two weekly pools (`gemini` for Gemini models, `cl+gpt` for
-   the Claude and GPT models Antigravity also offers); the others have a 5-hour window and a week.
-2. **`now`** — the model and effort of that CLI's newest local session.
-3. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran
+1. **One card per provider**, stacked — Claude, ChatGPT, Grok, Muse and Gemini. Each
+   window has a colour bar (green below 50%, amber 50–79%, red from 80%), the percent
+   used and the reset clock. Grok has one weekly window; Gemini has two weekly pools
+   (`gemini` for Gemini models, `cl+gpt` for the Claude and GPT models Antigravity also
+   offers); the others have a 5-hour window and a week.
+2. **Time-left bar** — under each usage bar, a thin bar whose full length is the window:
+   5 hours or 7 days, with a tick and a number for every hour or day (`5h … 0`,
+   `7d … 0`). The time left fills from the right and is labelled with a clock icon, such
+   as `2h32m left`. When the usage bar is ahead of the time bar, you are using the window
+   faster than it runs out.
+3. **Now** — the model and effort of that CLI's newest local session, plus a link to the
+   provider's own usage page (Claude, ChatGPT, Grok).
+4. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran
    last; *Qualified* is the effort the pick rule chooses. Each side shows its score,
    `$` (cost per task at API prices) and CP (score ÷ `$`). `*` marks a provider with
    nothing at 50%, so its highest score is shown. A model CursorBench does not list, like
    GPT-6.1 Sol above, falls back to Artificial Analysis and shows `AA <index>`.
-4. **`⚠`** — only when a weekly window is over 80% used.
-5. **`→`** — which tool to use right now, and why in a few words.
+5. **Compare models** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
+
+In chat the agent shows only the recommendation — **→** which tool to use right now and
+why, after a **⚠** line when a weekly window is over 80% — and a link to the page.
+`setup` can switch the output to Markdown, which renders the whole report in chat as
+tables and opens no page.
 
 It asks each provider's CLI rather than its own host, so it reads the same provider
 accounts wherever you install it — run it inside Codex and you still get your Claude,

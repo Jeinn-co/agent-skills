@@ -116,38 +116,26 @@ py -3 run.py      # Windows；沒有 `py` 就用 `python run.py`
 
 ## 輸出範例
 
-`/ai-cli-version` 在 10-02 執行，五個 CLI 都檢查過，其中一個有更新：
+`/ai-cli-version` 的示範資料 —— 五個 CLI 都檢查過，其中兩個有更新。預設會在瀏覽器打開
+HTML 報表（莫蘭迪配色、深淺色模式），由 Python 產生、不耗模型 token：
 
 ![ai-cli-version 報表](images/demo.png)
 
-每一列顯示你裝的版本與安裝時間、最新版本與發佈時間、狀態，以及更新 channel。Grok Build
-的發佈時間來自第三方鏡像，所以加上 `≤` 和 `*` 註腳；Muse Code 和 Antigravity 的更新來源
-不帶日期，發佈時間一律是 `?`。最後一行是 `All up to date.`，或列出有更新的 CLI。
+每一列顯示你裝的版本與安裝時間、最新版本與發佈時間、狀態標籤（`up to date`，或 `update`
+加上更新指令），以及更新 channel。Grok Build 的發佈時間來自第三方鏡像，所以加上 `≤` 和
+`*` 註腳；Muse Code 和 Antigravity 的更新來源不帶日期，發佈時間一律是 `?`。頁面最後附
+[AI Model Compare](https://jeinn-co.github.io/ai-model-compare/) 的連結。
 
-有 CLI 過期時，該列會在最後附上更新指令，agent 會先問過你才執行。純文字版，一個 CLI 過期的例子：
+對話框裡只顯示摘要、報表連結，有 CLI 過期時再加上更新選項：
 
-```
-CLI VERSIONS — 09-24
+> **→ 2 updates available:** Claude Code, Muse Code.
+>
+> **Report:** Open the HTML report
+>
+> **現在更新 2 個過期的 CLI？** `[y]` 全部更新 · `[Esc]` 跳過
 
-  Tool          Installed                     Latest                             Status
-  Claude Code   2.1.274 (09/17 11:20)         2.1.274 (released 09/17 06:36)     ✓ up to date   channel: latest
-  Codex         0.153.4 (09/07 11:03)         0.154.0 (released 09/10 06:40)     ↑ update → codex update
-  Grok Build    1.0.34 (09/17 09:28)          1.0.34 (released ≤ 09/17 03:32*)   ✓ up to date   channel: stable
-  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)         ✓ up to date   channel: muse-stable
-  Antigravity   1.2.14 (09/30 10:57)          1.2.14 (released ?)                ✓ up to date   channel: stable
-
-  * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
-  → 1 update available: Codex.
-
-  現在更新 1 個過期的 CLI？
-  [y] 全部更新    [Esc] 跳過
-```
-
-全部都是最新版時，agent 改印簡短版：一行 `All up to date.` 加上每個工具目前的版本，不出現選項。
-
-每份報表最後都會附可點的 Compare models 連結，連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
-
-預設會在瀏覽器打開 HTML 報表（莫蘭迪配色、狀態徽章、深淺色模式），由 Python 產生、不耗模型 token；對話框只顯示摘要、連結和更新選項。`setup` 可以改成 Markdown，直接在對話框裡呈現。
+全部都是最新版時，摘要顯示 **All up to date**，不出現選項。`setup` 可以把輸出改成
+Markdown，agent 會直接在對話框裡顯示同一張表，不開網頁。
 
 ### Skill 更新
 
@@ -159,24 +147,12 @@ CLI VERSIONS — 09-24
 
     /ai-cli-version setup
 
-會先顯示目前的設定，問**保留**還是**修改**，所以已經選過的按一下就能保留；選修改才會出現勾選清單。輸出格式（HTML 或 Markdown）也用同樣方式問。agent 只列出這台電腦有安裝的 CLI，用一題多選讓你勾（Claude Code 裡是單頁勾選框；五個都有裝、
-或 host 沒有選單時，改成輸入編號）。選擇存在 `~/.config/ai-cli-version/config.json`，更新 skill
-也不會被蓋掉。之後的檢查會跳過沒選的，並在摘要下方加一行 `Not checked (setup): …`：
-
-```
-  Tool          Installed               Latest                             Status
-  Claude Code   2.1.303 (10/19 16:13)   2.1.304 (released 10/20 03:47)     ↑ update → claude update      channel: latest
-  Codex         0.163.0 (10/19 16:14)   0.163.0 (released 10/16 05:37)     ✓ up to date      channel: latest
-
-  → 1 update available: Claude Code.
-  Not checked (setup): Grok Build, Muse Code, Antigravity
-
-  現在更新 1 個過期的 CLI？
-  [y] 全部更新    [Esc] 跳過
-```
-
+setup 會先顯示目前的設定，問**保留**還是**修改**，所以已經選過的按一下就能保留。選**修改**
+才會出現勾選清單，只列這台電腦有安裝的 CLI（host 沒有選單、或五個都有裝時，改成輸入編號）。
+輸出格式（HTML 或 Markdown）也用同樣方式問。設定存在 `~/.config/ai-cli-version/config.json`，
+更新 skill 也不會被蓋掉。之後的檢查會跳過沒選的工具，並列在 `Not checked (setup): …`。
 全部勾選就回到預設。在 agent 外面：`run.py --show-tools`、`run.py --set-tools claude,codex,grok`、
-`run.py --set-tools all`。
+`run.py --set-tools all`、`run.py --set-output html|md`。
 
 這個選項只會在 agent 裡出現。單獨執行 `run.py` / `run.sh` 永遠只檢查，仍會輸出原始報表資料，
 也不會接受更新選項。

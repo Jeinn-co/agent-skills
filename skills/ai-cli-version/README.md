@@ -128,42 +128,31 @@ update choices `y` and `Esc`.
 
 ## What it prints
 
-`/ai-cli-version` on 10-02, with all five CLIs checked and one update available:
+`/ai-cli-version` with demo data — all five CLIs checked, two updates available. By
+default the report opens as an HTML page in your browser (Morandi palette, light and dark
+mode), drawn by Python at no model-token cost:
 
 ![ai-cli-version report](images/demo.png)
 
 Each row shows the version you have and when you installed it, the latest version and
-when it was released, the status and the update channel. Grok Build's release time
-carries `≤` and the `*` footnote because it comes from a third-party mirror; Muse Code's
-and Antigravity's are always `?` because their update sources publish no date. The last line is `All up to date.`
-or the list of CLIs that have an update.
+when it was released, a status badge (`up to date`, or `update` with its command) and
+the update channel. Grok Build's release time carries `≤` and the `*` footnote because it
+comes from a third-party mirror; Muse Code's and Antigravity's are always `?` because
+their update sources publish no date. The page ends with a link to
+[AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
-When a CLI is outdated, its row ends with the update command and the agent asks before
-running anything. As plain text, with one outdated CLI:
+In chat the agent shows only the summary, a link to the page and, when something is
+outdated, the update prompt:
 
-```
-CLI VERSIONS — 09-24
+> **→ 2 updates available:** Claude Code, Muse Code.
+>
+> **Report:** Open the HTML report
+>
+> **Update the 2 outdated CLIs now?** `[y]` Update all · `[Esc]` Skip
 
-  Tool          Installed                     Latest                             Status
-  Claude Code   2.1.274 (09/17 11:20)         2.1.274 (released 09/17 06:36)     ✓ up to date   channel: latest
-  Codex         0.153.4 (09/07 11:03)         0.154.0 (released 09/10 06:40)     ↑ update → codex update
-  Grok Build    1.0.34 (09/17 09:28)          1.0.34 (released ≤ 09/17 03:32*)   ✓ up to date   channel: stable
-  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)         ✓ up to date   channel: muse-stable
-  Antigravity   1.2.14 (09/30 10:57)          1.2.14 (released ?)                ✓ up to date   channel: stable
-
-  * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
-  → 1 update available: Codex.
-
-  Update the 1 outdated CLI now?
-  [y] Update all    [Esc] Skip
-```
-
-When every checked CLI is current, the agent prints a short form instead: one
-`All up to date.` line and each tool's installed version, with no prompt.
-
-Every report ends with a clickable Compare models link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
-
-By default the report opens as an HTML page in your browser (Morandi palette, status badges, light and dark mode), drawn by Python at no model-token cost; chat shows only the summary, a link and any update prompt. `setup` can switch to Markdown, rendered in chat.
+When every checked CLI is current, the summary reads **All up to date** and there is no
+prompt. `setup` can switch the output to Markdown: the agent then renders the same table
+in chat and opens no page.
 
 ### Skill updates
 
@@ -177,26 +166,15 @@ skill is current or the lookup fails, it goes straight to the check.
 
     /ai-cli-version setup
 
-It first shows the current choice and asks **Keep** or **Change…**, so a saved selection is one click to keep; only Change opens the checkbox list. The output format (HTML or Markdown) is asked the same way. The agent asks one multi-select question listing only the CLIs installed on this
-machine (Claude Code shows it as a single checkbox page; with all five installed, or in
-hosts without a picker, it asks for numbers instead). The choice is saved in
-`~/.config/ai-cli-version/config.json`, so updating the skill keeps it. Later checks skip
-the other tools and add a `Not checked (setup): …` line under the summary:
-
-```
-  Tool          Installed               Latest                             Status
-  Claude Code   2.1.303 (10/19 16:13)   2.1.304 (released 10/20 03:47)     ↑ update → claude update      channel: latest
-  Codex         0.163.0 (10/19 16:14)   0.163.0 (released 10/16 05:37)     ✓ up to date      channel: latest
-
-  → 1 update available: Claude Code.
-  Not checked (setup): Grok Build, Muse Code, Antigravity
-
-  Update the 1 outdated CLI now?
-  [y] Update all    [Esc] Skip
-```
-
-Choose every tool to go back to the default. Outside an agent: `run.py --show-tools`, `run.py --set-tools claude,codex,grok`,
-`run.py --set-tools all`.
+Setup first shows the current choice and asks **Keep** or **Change…**, so a saved
+selection stays one click away. Only **Change…** opens the checkbox list, which shows the
+CLIs installed on this machine (in hosts without a picker, or with all five installed,
+it asks for numbers instead). The output format — HTML or Markdown — is asked the same
+way. Choices are saved in `~/.config/ai-cli-version/config.json`, so updating the skill
+keeps them. Later checks skip the other tools and list them as
+`Not checked (setup): …`. Choose every tool to go back to the default. Outside an agent:
+`run.py --show-tools`, `run.py --set-tools claude,codex,grok`, `run.py --set-tools all`,
+`run.py --set-output html|md`.
 
 The prompt appears only inside an agent. The standalone `run.py` / `run.sh` launcher is
 always check-only and continues to print raw report data without accepting input.
