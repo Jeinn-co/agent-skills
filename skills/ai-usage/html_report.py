@@ -144,7 +144,7 @@ def render(raw, now=None):
             '<section class="card"><header><h2>%s</h2><span class="plan">%s</span>%s</header>%s'
             '<div class="now">Now: %s</div></section>'
             % (esc(p["name"]), esc(p["plan"]),
-               '<a class="usage" href="%s" target="_blank" rel="noopener">usage page ↗</a>' % esc(link) if link else "",
+               '<a class="usage" href="%s" target="_blank" rel="noopener">Usage page</a>' % esc(link) if link else "",
                "".join(rows), now_line))
 
     bench_rows = []
@@ -181,16 +181,16 @@ PAGE = """<!doctype html>
 :root{--bg:#ece8e3;--card:#f7f4f0;--text:#4a4744;--muted:#8f8983;--line:#ddd6ce;--track:#e3ddd5;--green:#8fa68a;--amber:#c7a46c;--red:#b67b77;--accent:#7b91a6}
 @media (prefers-color-scheme:dark){:root{--bg:#2a2826;--card:#34322f;--text:#e6e0d8;--muted:#a69f97;--line:#47443f;--track:#4a4743;--green:#a3b89e;--amber:#d4b483;--red:#c8918c;--accent:#97abbe}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
-font:14px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;padding:24px 16px}
-main{max-width:920px;margin:0 auto}h1{font-size:20px;margin:0 0 4px}
+font:14px/1.55 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
+main{max-width:920px;margin:0 auto}h1{font-size:22px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
 .sub{color:var(--muted);margin:0 0 20px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
-h2{font-size:16px;margin:0}.plan{color:var(--muted);font-size:12px;border:1px solid var(--line);
+h2{font-size:15px;font-weight:600;margin:0}.plan{color:var(--muted);font-size:12px;border:1px solid var(--line);
 border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:12px;color:var(--accent);text-decoration:none}
 .row{display:grid;grid-template-columns:54px 1fr 44px 170px;align-items:center;gap:10px;margin:8px 0}
-.lbl{color:var(--muted);font-size:12px}.track{height:10px;background:var(--track);border-radius:999px;overflow:hidden}
+.lbl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}.track{height:6px;background:var(--track);border-radius:999px;overflow:hidden}
 .fill{height:100%;border-radius:999px}.fill.green{background:var(--green)}.fill.amber{background:var(--amber)}
 .fill.red{background:var(--red)}.pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .pct.green{color:var(--green)}.pct.amber{color:var(--amber)}.pct.red{color:var(--red)}
@@ -198,10 +198,10 @@ border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:12px;color
 .note{color:var(--muted);font-style:italic;margin:6px 0}
 .now{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);color:var(--muted);font-size:12px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}
-h3{font-size:15px;margin:28px 0 8px}.std{color:var(--muted);font-size:12px;margin:0 0 8px;font-style:italic}
+h3{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:36px 0 8px}.std{color:var(--muted);font-size:12px;margin:0 0 8px;font-style:italic}
 .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
 table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:9px 12px;text-align:left;
-border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:600;font-size:12px}
+border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
 tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums}.score{color:var(--muted)}
 .foot{color:var(--muted);font-size:12px;margin:8px 0}.muted{color:var(--muted)}
 .links{margin-top:20px}a{color:var(--accent)}
@@ -218,6 +218,6 @@ tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabu
 CP = score points per US dollar; higher is better. * nothing from this provider reaches 50%: its highest.
 AA = Artificial Analysis Intelligence Index (another test set): not comparable with CursorBench.</p>
 @@skipped@@
-<p class="links">Compare models: <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare ↗</a></p>
+<p class="links">Compare models: <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 </main></body></html>
 """

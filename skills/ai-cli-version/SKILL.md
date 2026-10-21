@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.9.0"
+  version: "1.9.1"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -112,7 +112,7 @@ or `output=md`.
   drawn by Python with no scripts and no external requests, so it costs no model
   tokens. In chat, print only:
   1. the summary as a blockquote (`> **→ N update(s) available:** <tools>.` or
-     `> **✓ All up to date**`),
+     `> **All up to date.**`),
   2. `**Report:** [Open the HTML report](file:///<path with forward slashes>)`, and a short
      note when the browser could not be opened,
   3. the update prompt below when anything is outdated.
@@ -128,11 +128,11 @@ clickable. Sample:
 
 | Tool | Installed | Latest | Status |
 |---|---|---|---|
-| Claude Code | 2.1.274 · 09/17 11:20 | 2.1.274 · released 09/17 06:36 | ✅ up to date · channel latest |
-| Codex | 0.153.4 · 09/07 11:03 | 0.154.0 · released 09/10 06:40 | ⬆️ **update** → `codex update` |
-| Grok Build | 1.0.34 · 09/17 09:28 | 1.0.34 · released ≤ 09/17 03:32\* | ✅ up to date · channel stable |
-| Muse Code | 1.3.0-R3401.1 · 09/24 11:08 | 1.3.0-R3401.1 · released ? | ✅ up to date · channel muse-stable |
-| Antigravity | 1.2.14 · 09/30 10:57 | 1.2.14 · released ? | ✅ up to date · channel stable |
+| Claude Code | 2.1.274 · 09/17 11:20 | 2.1.274 · released 09/17 06:36 | up to date · channel latest |
+| Codex | 0.153.4 · 09/07 11:03 | 0.154.0 · released 09/10 06:40 | **update** → `codex update` |
+| Grok Build | 1.0.34 · 09/17 09:28 | 1.0.34 · released ≤ 09/17 03:32\* | up to date · channel stable |
+| Muse Code | 1.3.0-R3401.1 · 09/24 11:08 | 1.3.0-R3401.1 · released ? | up to date · channel muse-stable |
+| Antigravity | 1.2.14 · 09/30 10:57 | 1.2.14 · released ? | up to date · channel stable |
 
 _\* Grok release time is approximate (third-party mirror); official: x.ai/build/changelog_
 
@@ -147,7 +147,7 @@ _\* Grok release time is approximate (third-party mirror); official: x.ai/build/
 and no prompt — the heading says everything is current, then one row per tool with its
 installed version:
 
-### CLI versions — 10-20 · ✅ All up to date
+### CLI versions — 10-20 · all up to date
 
 | Tool | Version |
 |---|---|
@@ -171,8 +171,8 @@ table), before the Compare models link: `_Not checked (setup): Grok Build, Muse 
 
 | Tool | Installed | Latest | Status |
 |---|---|---|---|
-| Claude Code | 2.1.303 · 10/19 16:13 | 2.1.304 · released 10/20 03:47 | ⬆️ **update** → `claude update` |
-| Codex | 0.163.0 · 10/19 16:14 | 0.163.0 · released 10/16 05:37 | ✅ up to date · channel latest |
+| Claude Code | 2.1.303 · 10/19 16:13 | 2.1.304 · released 10/20 03:47 | **update** → `claude update` |
+| Codex | 0.163.0 · 10/19 16:14 | 0.163.0 · released 10/16 05:37 | up to date · channel latest |
 
 > **→ 1 update available:** Claude Code.
 
@@ -193,11 +193,11 @@ Rules:
 - Muse's and Antigravity's release times are always `?`; do not fill them in from anywhere else.
 - Label the `agy` row `Antigravity` (it is the Gemini CLI) and print its update command
   exactly as `update_cmd` gives it — a full path, never a bare `agy update`.
-- Status cells start with a colour mark: `✅ up to date · channel <channel>`, ``⬆️ **update** → `<update_cmd>` ``, `❌` before `check failed (...)`, `⚪` before `not installed`. `↑ update` rows end with the update command in inline code.
+- Keep icons to a minimum: no emoji or status marks. Status reads `up to date · channel <channel>`, ``**update** → `<update_cmd>` ``, `check failed (...)` or `not installed`. Update rows end with the update command in inline code.
 - `ahead of channel` means the installed build is newer than the channel tag — show it
   as-is, not as an error.
 - Summary: a blockquote `> **→ N update(s) available:** <tools>.` in the full form; the
-  short form says `✅ All up to date` in its heading instead.
+  short form says `all up to date` in its heading instead.
 - `**Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)` always follows the report (after the summary and any `Not checked (setup)`
   line), before any update prompt. Keep the URL exactly as written.
 - Use the report language resolved below for labels, readable status and error

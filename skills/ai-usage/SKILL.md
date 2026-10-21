@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.11.0"
+  version: "1.11.1"
 ---
 
 # /ai-usage — unified AI usage report
@@ -208,7 +208,7 @@ or `output=md`.
   `### HTML <path>` (plus `(could not open a browser)` when that failed). The page is
   drawn by Python with no scripts and no external requests, so it costs no model
   tokens. In chat, print only:
-  1. the `→` line as a blockquote (and the `⚠` line above it, if any week row is over 80%),
+  1. the `→` line as a blockquote (and the warning line above it, if any week row is over 80%),
   2. `**Report:** [Open the HTML report](file:///<path with forward slashes>)`, and a short
      note when the browser could not be opened.
   Do not print the Markdown report as well.
@@ -222,19 +222,19 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.11.0
+### Usage — 09-12 01:08 · ai-usage 1.11.1
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|
-| **Claude** · pro | 5h | 🟢 29% | `█████▊░░░░░░░░░░░░░░` | 03:40 (2h32m) |
-| | week | 🟢 41% | `████████▎░░░░░░░░░░░` | Mon 17:00 (2d16h) |
-| **ChatGPT** · plus | 5h | 🟢 0% | `░░░░░░░░░░░░░░░░░░░░` | 05:55 (4h47m) |
-| | week | 🟢 0% | `░░░░░░░░░░░░░░░░░░░░` | 09-18 17:07 (6d15h) |
-| **Grok** · SuperGrok | week | 🟢 27% | `█████▍░░░░░░░░░░░░░░` | 09-15 09:38 (3d8h) |
-| **Muse** · ? | 5h | 🟢 5% | `█░░░░░░░░░░░░░░░░░░░` | 16:24 (2h20m) |
-| | week | 🟢 1% | `▎░░░░░░░░░░░░░░░░░░░` | 09-28 08:00 (3d17h) |
-| **Gemini** · ? | gemini | 🟢 12% | `██▌░░░░░░░░░░░░░░░░░` | 09-19 04:09 (6d23h) |
-| | cl+gpt | 🟢 0% | `░░░░░░░░░░░░░░░░░░░░` | 09-19 04:09 (6d23h) |
+| **Claude** · pro | 5h | 29% | `█████▊░░░░░░░░░░░░░░` | 03:40 (2h32m) |
+| | week | 41% | `████████▎░░░░░░░░░░░` | Mon 17:00 (2d16h) |
+| **ChatGPT** · plus | 5h | 0% | `░░░░░░░░░░░░░░░░░░░░` | 05:55 (4h47m) |
+| | week | 0% | `░░░░░░░░░░░░░░░░░░░░` | 09-18 17:07 (6d15h) |
+| **Grok** · SuperGrok | week | 27% | `█████▍░░░░░░░░░░░░░░` | 09-15 09:38 (3d8h) |
+| **Muse** · ? | 5h | 5% | `█░░░░░░░░░░░░░░░░░░░` | 16:24 (2h20m) |
+| | week | 1% | `▎░░░░░░░░░░░░░░░░░░░` | 09-28 08:00 (3d17h) |
+| **Gemini** · ? | gemini | 12% | `██▌░░░░░░░░░░░░░░░░░` | 09-19 04:09 (6d23h) |
+| | cl+gpt | 0% | `░░░░░░░░░░░░░░░░░░░░` | 09-19 04:09 (6d23h) |
 
 **Now**
 - Claude — `claude-opus-5` · effort high · 0m ago
@@ -271,7 +271,7 @@ Rules:
   status or failure reason in Resets. Escape a literal `*` or `|` inside a table cell
   with a backslash.
 - Copy each window's `bar` exactly, inside inline code. It is 20 cells: each cell is 5 points, and the partial cell is one eighth (`▏▎▍▌▋▊▉`), so 28% and 30% no longer draw the same bar. Full cell `█`, empty track `░`. Do not redraw it and do not shorten it to 10 cells. The displayed percent stays a whole number.
-- Prefix every Used cell with a colour light by its whole percent: `🟢` below 50%, `🟡` 50–79%, `🔴` 80% or more (`<1%` is `🟢`). A row with no window shows `⚪` before `—`. Markdown has no text colour, so these lights are the only colour.
+- Keep icons to a minimum: no emoji or status lights anywhere in the report. Used is a plain percent; bold it when it is 80% or more.
 - Relative time next to every reset clock. If the probe omitted the reset (Claude
   5h at 0% used), omit the reset clause — do not invent a time. Grok `<1% used`
   prints as `<1%` with the probe's empty bar.
@@ -333,7 +333,7 @@ Rules:
 
 - Then, always, the last line: `**Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)`.
   Keep every URL exactly as written.
-- If any week row is over 80%, put a `> ⚠ …` blockquote line above the `→` line saying how
+- If any week row is over 80%, put a `> **Warning:** …` blockquote line above the `→` line saying how
   long until it resets.
 - A provider whose CLI is not installed prints `not installed` in its usage row
   and Now cell, with `—` for Now $ and Now CP. Keep its Qualified model, Qualified $
@@ -347,7 +347,7 @@ Rules:
   reported providers.
 - No preamble, no recap, no closing offer.
 - Use the report language resolved below for every label, the Qualified header and
-  footnotes, the `⚠` and `→` lines, and readable status or error explanations.
+  footnotes, the warning and `→` lines, and readable status or error explanations.
 
 ## Setup — choose which providers to report
 
