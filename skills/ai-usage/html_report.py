@@ -79,6 +79,10 @@ def remaining_minutes(reset, now):
     return None
 
 
+CLOCK = ('<svg class="clock" viewBox="0 0 16 16" aria-hidden="true">'
+         '<circle cx="8" cy="8" r="6.25"/><path d="M8 4.6V8l2.4 1.5"/></svg>')
+
+
 def left_text(minutes):
     days, rest = divmod(minutes, 1440)
     hours, mins = divmod(rest, 60)
@@ -172,7 +176,7 @@ def render(raw, now=None):
                 rows.append(
                     '<div class="row time"><div class="lbl"></div>'
                     '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
-                    '<div class="left">%s</div></div>' % (share, esc(left_text(left))))
+                    '<div class="left">%s%s</div></div>' % (share, CLOCK, esc(left_text(left))))
         for note in p["notes"]:
             rows.append('<div class="note">%s</div>' % esc(note))
         now_line = ("<code>%s</code> · effort %s · %s ago" % (esc(p["model"]), esc(p["effort"] or "?"),
@@ -232,6 +236,8 @@ border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color
 .lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:999px;overflow:hidden}
 .row.time{margin:-4px 0 12px}.track.thin{height:4px;display:flex;justify-content:flex-end}
 .tfill{height:100%;border-radius:999px;background:var(--accent);opacity:.6}
+.clock{width:13px;height:13px;margin-right:5px;vertical-align:-2px;fill:none;stroke:currentColor;
+stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .left{grid-column:3/5;text-align:right;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .fill{height:100%;border-radius:999px}.fill.green{background:var(--green)}.fill.amber{background:var(--amber)}
 .fill.red{background:var(--red)}.pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
