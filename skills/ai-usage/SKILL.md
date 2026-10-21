@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.11.4"
+  version: "1.12.0"
 ---
 
 # /ai-usage — unified AI usage report
@@ -203,7 +203,7 @@ Setup saves the format; `html` is the default when nothing is saved. There is no
 command argument for it — only `setup` changes it. `--show-providers` prints `output=html`
 or `output=md`.
 
-- **html**: the launcher prints its usual raw lines, then writes a Morandi-palette page (cards with colour bars, the Qualified table, links) to
+- **html**: the launcher prints its usual raw lines, then writes a Morandi-palette page (cards with colour bars, a thin time bar under each one showing the time left in that window — full length 5 hours or 7 days, filled from the right — the Qualified table, links) to
   `<temp>/ai-usage/report.html`, opens it in the default browser, and ends with
   `### HTML <path>` (plus `(could not open a browser)` when that failed). The page is
   drawn by Python with no scripts and no external requests, so it costs no model
@@ -222,7 +222,7 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.11.4
+### Usage — 09-12 01:08 · ai-usage 1.12.0
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|

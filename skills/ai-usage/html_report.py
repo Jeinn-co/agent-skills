@@ -58,6 +58,37 @@ def relative(reset, now):
     return ""
 
 
+WEEK_MINUTES = 7 * 24 * 60
+FIVE_HOURS = 5 * 60
+
+
+def remaining_minutes(reset, now):
+    """Minutes until the reset clock; falls back to the probe's coarse `(XdYh)`."""
+    text = re.sub(r"\s*\(.*\)$", "", reset).strip()
+    for fmt in ("%b %d, %I:%M%p", "%b %d, %I%p", "%m-%d %H:%M"):
+        try:
+            when = datetime.datetime.strptime(text, fmt).replace(year=now.year)
+        except ValueError:
+            continue
+        if when < now - datetime.timedelta(days=180):
+            when = when.replace(year=now.year + 1)
+        return max(0, int((when - now).total_seconds() // 60))
+    found = re.search(r"\((\d+)d(\d+)h\)", reset)
+    if found:
+        return int(found.group(1)) * 1440 + int(found.group(2)) * 60
+    return None
+
+
+def left_text(minutes):
+    days, rest = divmod(minutes, 1440)
+    hours, mins = divmod(rest, 60)
+    if days:
+        return "%dd%dh left" % (days, hours)
+    if hours:
+        return "%dh%02dm left" % (hours, mins)
+    return "%dm left" % mins
+
+
 def parse(raw):
     report = {"version": "?", "skipped": [], "providers": [], "bench": {}, "pick": {}}
     current = None
@@ -125,15 +156,23 @@ def render(raw, now=None):
         rows = []
         for w in p["windows"]:
             when = w["reset"]
-            rel = relative(when, now) if when else ""
             shown = clock(when, now) if when else ""
             rows.append(
                 '<div class="row"><div class="lbl">%s</div>'
                 '<div class="track"><div class="fill %s" style="width:%.1f%%"></div></div>'
-                '<div class="pct %s">%s</div><div class="reset">%s%s</div></div>'
+                '<div class="pct %s">%s</div><div class="reset">%s</div></div>'
                 % (esc(w["label"]), level(w["pct"]), min(w["pct"], 100), level(w["pct"]),
-                   esc(w["shown"]), esc(shown),
-                   ' <span class="rel">(%s)</span>' % esc(rel) if rel else ""))
+                   esc(w["shown"]), esc(shown)))
+            left = remaining_minutes(when, now) if when else None
+            if left is not None:
+                # Time bar: full length is the window (5h or 7 days); the remaining
+                # time fills from the right, the elapsed part stays empty on the left.
+                total = FIVE_HOURS if w["label"] == "5h" else WEEK_MINUTES
+                share = max(0.0, min(100.0, left * 100.0 / total))
+                rows.append(
+                    '<div class="row time"><div class="lbl"></div>'
+                    '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
+                    '<div class="left">%s</div></div>' % (share, esc(left_text(left))))
         for note in p["notes"]:
             rows.append('<div class="note">%s</div>' % esc(note))
         now_line = ("<code>%s</code> · effort %s · %s ago" % (esc(p["model"]), esc(p["effort"] or "?"),
@@ -191,6 +230,9 @@ h2{font-size:17px;font-weight:600;margin:0}.plan{color:var(--muted);font-size:14
 border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color:var(--accent);text-decoration:none}
 .row{display:grid;grid-template-columns:64px 1fr 52px 200px;align-items:center;gap:10px;margin:8px 0}
 .lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:999px;overflow:hidden}
+.row.time{margin:-4px 0 12px}.track.thin{height:4px;display:flex;justify-content:flex-end}
+.tfill{height:100%;border-radius:999px;background:var(--accent);opacity:.6}
+.left{grid-column:3/5;text-align:right;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .fill{height:100%;border-radius:999px}.fill.green{background:var(--green)}.fill.amber{background:var(--amber)}
 .fill.red{background:var(--red)}.pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .pct.green{color:var(--green)}.pct.amber{color:var(--amber)}.pct.red{color:var(--red)}
@@ -205,7 +247,7 @@ border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);fon
 tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums}.score{color:var(--muted)}
 .foot{color:var(--muted);font-size:14px;margin:8px 0}.muted{color:var(--muted)}
 .links{margin-top:20px}a{color:var(--accent)}
-@media (max-width:480px){.row{grid-template-columns:44px 1fr 40px}.reset{grid-column:2/4}}
+@media (max-width:480px){.row{grid-template-columns:44px 1fr 40px}.reset{grid-column:2/4}.left{grid-column:2/4}}
 </style></head><body><main>
 <h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>

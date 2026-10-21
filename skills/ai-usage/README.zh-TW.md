@@ -121,7 +121,7 @@ Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmar
 
 每份報表最後會列 `Usage pages`：每個有報告的 provider 自己的用量頁連結（Claude、ChatGPT、Grok；setup 沒選的不列），最後一行是 AI Model Compare 的 Compare models 連結；這些都以可點的 Markdown 連結印在報表下方。
 
-預設會在瀏覽器打開 HTML 報表（莫蘭迪配色、彩色進度條、深淺色模式），由 Python 產生、不耗模型 token；對話框只顯示推薦和連結。`setup` 可以改成 Markdown，直接在對話框裡用表格與可點連結呈現。
+預設會在瀏覽器打開 HTML 報表（莫蘭迪配色、彩色進度條，每條下方有剩餘時間條，總長 5 小時或 7 天、從右往左填，深淺色模式），由 Python 產生、不耗模型 token；對話框只顯示推薦和連結。`setup` 可以改成 Markdown，直接在對話框裡用表格與可點連結呈現。
 
 ### Skill 更新
 

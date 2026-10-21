@@ -134,7 +134,7 @@ report for 90 seconds.
 
 Every report ends with a `Usage pages` block — a link to each reported provider's own usage page (Claude, ChatGPT, Grok; providers skipped by setup are left out) — and a Compare models link to AI Model Compare, both printed as clickable Markdown links after the report.
 
-By default the report opens as an HTML page in your browser (Morandi palette, colour bars, light and dark mode), drawn by Python at no model-token cost; chat shows only the recommendation and a link. `setup` can switch to Markdown, rendered in chat as tables with clickable links.
+By default the report opens as an HTML page in your browser (Morandi palette, colour bars with a time-left bar under each — 5 hours or 7 days long, filled from the right — light and dark mode), drawn by Python at no model-token cost; chat shows only the recommendation and a link. `setup` can switch to Markdown, rendered in chat as tables with clickable links.
 
 ### Skill updates
 
