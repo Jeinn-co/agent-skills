@@ -163,7 +163,7 @@ When every checked CLI is current, the agent prints a short form instead: one
 
 Every report ends with a clickable Compare models link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
-Inside an agent the report is rendered as Markdown — a table, a bold summary, clickable links — instead of a code block.
+By default the report opens as an HTML page in your browser (Morandi palette, status badges, light and dark mode), drawn by Python at no model-token cost; chat shows only the summary, a link and any update prompt. `setup` can switch to Markdown, rendered in chat.
 
 ### Skill updates
 

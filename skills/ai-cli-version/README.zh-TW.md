@@ -147,7 +147,7 @@ CLI VERSIONS — 09-24
 
 每份報表最後都會附可點的 Compare models 連結，連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
-在 agent 裡，報表以 Markdown 呈現（表格、粗體摘要、可點的連結），不再包在程式碼區塊裡。
+預設會在瀏覽器打開 HTML 報表（莫蘭迪配色、狀態徽章、深淺色模式），由 Python 產生、不耗模型 token；對話框只顯示摘要、連結和更新選項。`setup` 可以改成 Markdown，直接在對話框裡呈現。
 
 ### Skill 更新
 

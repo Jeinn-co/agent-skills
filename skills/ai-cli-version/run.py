@@ -24,7 +24,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.8.0"
+VERSION = "1.9.0"
 
 TIMEOUT = 10
 HOME = os.path.expanduser("~")
@@ -360,13 +360,39 @@ CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".
                       "ai-cli-version", "config.json")
 
 
-def selected_tools():
-    """Tools chosen with --set-tools; every tool when there is no valid config."""
+OUTPUTS = ("html", "md")
+
+
+def load_config():
     try:
         with open(CONFIG, encoding="utf-8") as fh:
-            tools = json.load(fh).get("tools")
-    except (OSError, ValueError, AttributeError):
-        return list(CHECKS)
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def save_config(data):
+    """Write the config; an empty one removes the file so defaults apply."""
+    data = {key: value for key, value in data.items() if value is not None}
+    if not data:
+        if os.path.exists(CONFIG):
+            os.remove(CONFIG)
+        return
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    with open(CONFIG, "w", encoding="utf-8") as fh:
+        json.dump(data, fh)
+
+
+def output_format():
+    """`html` unless setup saved `md`."""
+    value = load_config().get("output")
+    return value if value in OUTPUTS else "html"
+
+
+def selected_tools():
+    """Tools chosen with --set-tools; every tool when there is no valid config."""
+    tools = load_config().get("tools")
     picked = [name for name in CHECKS if isinstance(tools, list) and name in tools]
     return picked or list(CHECKS)
 
@@ -381,19 +407,19 @@ def installed_tools():
 
 def set_tools(arg):
     """Save the tools to check; `all` removes the config so every tool is checked."""
+    config = load_config()
     if arg.strip().lower() == "all":
-        if os.path.exists(CONFIG):
-            os.remove(CONFIG)
+        config.pop("tools", None)
+        save_config(config)
         return list(CHECKS)
     names = [n.strip().lower() for n in arg.split(",") if n.strip()]
     unknown = [n for n in names if n not in CHECKS]
     if unknown or not names:
         raise SystemExit("unknown tool(s): %s; choose from %s or all"
                          % (", ".join(unknown) or "none given", ",".join(CHECKS)))
-    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
     picked = [name for name in CHECKS if name in names]
-    with open(CONFIG, "w", encoding="utf-8") as fh:
-        json.dump({"tools": picked}, fh)
+    config["tools"] = picked
+    save_config(config)
     return picked
 
 
@@ -444,21 +470,42 @@ def main():
     if "--show-tools" in sys.argv:
         print("tools=" + ",".join(selected_tools()))
         print("installed=" + ",".join(installed_tools()))
+        print("output=" + output_format())
+        return
+    if len(sys.argv) == 3 and sys.argv[1] == "--set-output":
+        if sys.argv[2] not in OUTPUTS:
+            raise SystemExit("unknown output: %s; choose html or md" % sys.argv[2])
+        config = load_config()
+        config["output"] = None if sys.argv[2] == "html" else sys.argv[2]
+        save_config(config)
+        print("output=" + output_format())
         return
     if len(sys.argv) == 3 and sys.argv[1] == "--set-tools":
         print("tools=" + ",".join(set_tools(sys.argv[2])))
         return
     tools = selected_tools()
-    print(f"### ai-cli-version {VERSION}")
+    lines = [f"### ai-cli-version {VERSION}"]
     skipped = [name for name in CHECKS if name not in tools]
     if skipped:
-        print("### skipped " + ",".join(skipped))
-    sys.stdout.flush()
+        lines.append("### skipped " + ",".join(skipped))
+    print(chr(10).join(lines), flush=True)
     with ThreadPoolExecutor(max_workers=len(tools)) as pool:
         # Submit every selected check before collecting; keep the report's tool order.
         results = [pool.submit(check_tool, name) for name in tools]
         for result in results:
-            print(result.result(), end="", flush=True)
+            text = result.result()
+            lines.extend(text.splitlines())
+            print(text, end="", flush=True)
+    if output_format() == "html":
+        import tempfile
+        import webbrowser
+        import html_report
+        out = os.path.join(tempfile.gettempdir(), "ai-cli-version", "report.html")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.write(html_report.render(lines))
+        opened = webbrowser.open("file:///" + out.replace(os.sep, "/").lstrip("/"))
+        print("### HTML %s%s" % (out, "" if opened else "  (could not open a browser)"))
 
 
 if __name__ == "__main__":

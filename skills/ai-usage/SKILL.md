@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.10.0"
+  version: "1.11.0"
 ---
 
 # /ai-usage — unified AI usage report
@@ -197,7 +197,24 @@ Claude's current CLI response does not expose a reliable extra-usage field.
 `fast_mode_disabled_reason` describes fast mode and must never be presented as extra
 usage.
 
-## Output
+## Output format — HTML (default) or Markdown
+
+Setup saves the format; `html` is the default when nothing is saved. There is no
+command argument for it — only `setup` changes it. `--show-providers` prints `output=html`
+or `output=md`.
+
+- **html**: the launcher prints its usual raw lines, then writes a Morandi-palette page (cards with colour bars, the Qualified table, links) to
+  `<temp>/ai-usage/report.html`, opens it in the default browser, and ends with
+  `### HTML <path>` (plus `(could not open a browser)` when that failed). The page is
+  drawn by Python with no scripts and no external requests, so it costs no model
+  tokens. In chat, print only:
+  1. the `→` line as a blockquote (and the `⚠` line above it, if any week row is over 80%),
+  2. `**Report:** [Open the HTML report](file:///<path with forward slashes>)`, and a short
+     note when the browser could not be opened.
+  Do not print the Markdown report as well.
+- **md**: no file is written; render the Markdown report below in chat.
+
+## Output (Markdown)
 
 <!-- Keep every dollar amount in this file from starting with a dollar sign then the digit zero: Claude Code replaces that token with the first skill argument (for example /ai-usage setup). -->
 
@@ -205,7 +222,7 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.10.0
+### Usage — 09-12 01:08 · ai-usage 1.11.0
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|
@@ -334,7 +351,7 @@ Rules:
 
 ## Setup — choose which providers to report
 
-`/ai-usage setup` (alias `/uu setup`) changes which providers the report covers. It does
+`/ai-usage setup` (alias `/uu setup`) changes which providers the report covers and the output format. It does
 not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (Grok),
 `muse` (Muse), `agy` (Gemini).
 
@@ -356,7 +373,12 @@ not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (
    `--set-providers all` when every provider is chosen and every CLI is installed. It
    prints the saved `providers=<ids>`. Nothing chosen, a dismissed picker, or an invalid
    reply saves nothing: say the selection is unchanged.
-4. Report one line: `Reporting: <names> · Not reported: <names>`, or `Reporting all providers.`
+4. Then ask the output format — again one question on one page (`AskUserQuestion`, single
+   select, header `Output`), marking the current one: `HTML` (default — a page opened in
+   the browser) or `Markdown` (in chat). Without a choice tool, ask `html` or `md`. Save
+   with `--set-output html` or `--set-output md`; a dismissed question keeps the format.
+5. Report one line: `Reporting: <names> · Not reported: <names> · Output: <HTML|Markdown>`,
+   or `Reporting all providers · Output: <HTML|Markdown>`.
 
 The selection is saved in `~/.config/ai-usage/config.json` (`$XDG_CONFIG_HOME` when set),
 outside the skill folder, so reinstalling or updating the skill keeps it. Skipped

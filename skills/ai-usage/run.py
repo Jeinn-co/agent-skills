@@ -43,13 +43,39 @@ CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME")
                       "ai-usage", "config.json")
 
 
-def selected():
-    """Providers chosen with --set-providers; every provider when nothing valid is saved."""
+OUTPUTS = ("html", "md")
+
+
+def load_config():
     try:
         with open(CONFIG, encoding="utf-8") as fh:
-            chosen = json.load(fh).get("providers")
-    except (OSError, ValueError, AttributeError):
-        return IDS
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def save_config(data):
+    """Write the config; an empty one removes the file so defaults apply."""
+    data = {key: value for key, value in data.items() if value is not None}
+    if not data:
+        if os.path.exists(CONFIG):
+            os.remove(CONFIG)
+        return
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    with open(CONFIG, "w", encoding="utf-8") as fh:
+        json.dump(data, fh)
+
+
+def output_format():
+    """`html` unless setup saved `md`."""
+    value = load_config().get("output")
+    return value if value in OUTPUTS else "html"
+
+
+def selected():
+    """Providers chosen with --set-providers; every provider when nothing valid is saved."""
+    chosen = load_config().get("providers")
     picked = [cli for cli in IDS if isinstance(chosen, list) and cli in chosen]
     return picked or IDS
 
@@ -65,19 +91,19 @@ def installed():
 
 def set_providers(arg):
     """Save the providers to report; `all` removes the config."""
+    config = load_config()
     if arg.strip().lower() == "all":
-        if os.path.exists(CONFIG):
-            os.remove(CONFIG)
+        config.pop("providers", None)
+        save_config(config)
         return IDS
     names = [n.strip().lower() for n in arg.split(",") if n.strip()]
     unknown = [n for n in names if n not in IDS]
     if unknown or not names:
         sys.exit("unknown provider(s): %s; choose from %s or all"
                  % (", ".join(unknown) or "none given", ",".join(IDS)))
-    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
     picked = [cli for cli in IDS if cli in names]
-    with open(CONFIG, "w", encoding="utf-8") as fh:
-        json.dump({"providers": picked}, fh)
+    config["providers"] = picked
+    save_config(config)
     return picked
 
 
@@ -109,6 +135,15 @@ if "--check-skill" in sys.argv:
 if "--show-providers" in sys.argv:
     print("providers=" + ",".join(selected()))
     print("installed=" + ",".join(installed()))
+    print("output=" + output_format())
+    sys.exit(0)
+if len(sys.argv) == 3 and sys.argv[1] == "--set-output":
+    if sys.argv[2] not in OUTPUTS:
+        sys.exit("unknown output: %s; choose html or md" % sys.argv[2])
+    config = load_config()
+    config["output"] = None if sys.argv[2] == "html" else sys.argv[2]
+    save_config(config)
+    print("output=" + output_format())
     sys.exit(0)
 if len(sys.argv) == 3 and sys.argv[1] == "--set-providers":
     print("providers=" + ",".join(set_providers(sys.argv[2])))
@@ -149,6 +184,24 @@ def benchmark(now):
     except subprocess.TimeoutExpired:
         return "bench failed (lookup timed out after %gs; skipped)\n" % portable.CALL_TIMEOUT
 
+# Setup decides the output format; html unless `--set-output md` was saved.
+HTML = output_format() == "html"
+if HTML:
+    # Keep a copy of everything printed so html_report can render the same data.
+    import io
+    _real_stdout = sys.stdout
+    _captured = io.StringIO()
+
+    class _Tee:
+        def write(self, text):
+            _captured.write(text)
+            return _real_stdout.write(text)
+
+        def flush(self):
+            _real_stdout.flush()
+
+    sys.stdout = _Tee()
+
 try:
     print("### ai-usage %s" % portable.VERSION)
     if SKIPPED:
@@ -181,6 +234,15 @@ try:
         print()
         print("### CURSORBENCH")
         print(bench.result(), end="")
+    if HTML:
+        import tempfile, webbrowser
+        import html_report
+        out = Path(tempfile.gettempdir()) / "ai-usage" / "report.html"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(html_report.render(_captured.getvalue()), encoding="utf-8")
+        opened = webbrowser.open(out.as_uri())
+        print()
+        print("### HTML %s%s" % (out, "" if opened else "  (could not open a browser)"))
 except BrokenPipeError:
     # someone piped us into `head` and walked away. Point the fd at devnull so the
     # interpreter's shutdown flush does not print a second traceback on top.

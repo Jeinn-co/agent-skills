@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.8.0"
+  version: "1.9.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -100,7 +100,26 @@ Each tool line is tab-separated:
 or `name<TAB>not installed`, or `name<TAB>check failed (<reason>)`. Times are local
 `MM/DD HH:MM`; `?` means unknown.
 
-## Report
+## Output format — HTML (default) or Markdown
+
+Setup saves the format; `html` is the default when nothing is saved. There is no
+command argument for it — only `setup` changes it. `--show-tools` prints `output=html`
+or `output=md`.
+
+- **html**: the launcher prints its usual raw lines, then writes a Morandi-palette page (the version table with status badges) to
+  `<temp>/ai-cli-version/report.html`, opens it in the default browser, and ends with
+  `### HTML <path>` (plus `(could not open a browser)` when that failed). The page is
+  drawn by Python with no scripts and no external requests, so it costs no model
+  tokens. In chat, print only:
+  1. the summary as a blockquote (`> **→ N update(s) available:** <tools>.` or
+     `> **✓ All up to date**`),
+  2. `**Report:** [Open the HTML report](file:///<path with forward slashes>)`, and a short
+     note when the browser could not be opened,
+  3. the update prompt below when anything is outdated.
+  Do not print the Markdown report as well.
+- **md**: no file is written; render the Markdown report below in chat.
+
+## Report (Markdown)
 
 Render the report as **Markdown**, not inside a code block, so tables align and links are
 clickable. Sample:
@@ -203,7 +222,7 @@ Use the same resolved language for the report, update prompt and update results.
 
 ## Setup — choose which tools to check
 
-`/ai-cli-version setup` (alias `/check-uu setup`) changes which tools the check runs. It
+`/ai-cli-version setup` (alias `/check-uu setup`) changes which tools the check runs and the output format. It
 does not run the check or any updater. Tool ids: `claude`, `codex`, `grok`, `muse`, `agy`.
 
 1. Run the platform launcher with `--show-tools`; it prints `tools=<ids>`, the current
@@ -224,7 +243,12 @@ does not run the check or any updater. Tool ids: `claude`, `codex`, `grok`, `mus
    or `--set-tools all` when every tool is chosen and every tool is installed. It prints the saved `tools=<ids>`.
    Nothing chosen, a dismissed picker, or an invalid reply saves nothing: say the
    selection is unchanged.
-4. Report one line: `Checking: <names> · Not checked: <names>`, or `Checking all tools.`
+4. Then ask the output format — again one question on one page (`AskUserQuestion`, single
+   select, header `Output`), marking the current one: `HTML` (default — a page opened in
+   the browser) or `Markdown` (in chat). Without a choice tool, ask `html` or `md`. Save
+   with `--set-output html` or `--set-output md`; a dismissed question keeps the format.
+5. Report one line: `Checking: <names> · Not checked: <names> · Output: <HTML|Markdown>`,
+   or `Checking all tools · Output: <HTML|Markdown>`.
 
 The selection is saved in `~/.config/ai-cli-version/config.json` (`$XDG_CONFIG_HOME`
 when set), outside the skill folder, so reinstalling or updating the skill keeps it.
