@@ -47,7 +47,8 @@ call, not a login screen.
 The agent host must allow this skill to launch local subprocesses. Each provider CLI
 must also be able to reach its own service over the internet. Usage probes leave
 authentication and service requests inside the provider CLIs. The benchmark helper
-also fetches public CursorBench and Artificial Analysis pages without credentials.
+also fetches public CursorBench and Artificial Analysis pages without credentials, and
+the update check reads this skill's published `SKILL.md` from `raw.githubusercontent.com`.
 
 ### 4. Platform
 
@@ -231,8 +232,8 @@ cell, marked `AA`. For Gemini that is Gemini 4 Argon (AA 52.6) over Gemini 3.8 F
 (39.6%). For ChatGPT that is GPT-6.1 Sol (AA 50) over GPT-5.6 Sol Max (41.7%). Argon is in a limited rollout, so it may not be selectable in the CLI yet. Only when AA has no page either does the report add one `ref` line
 naming the newest listed same-provider row at the same effort, for orientation only.
 `cursorbench.py` fetches the CursorBench page once per run, plus one AA page per unlisted
-model; those are the only HTTP requests the skill's own code makes, and they send no
-credential.
+model; with the one update-check request to `raw.githubusercontent.com`, those are the
+only HTTP requests the skill's own code makes, and they send no credential.
 
 **Language.** Documentation and the scripts' data and status messages are in English.
 Inside an agent, an explicit request for a report language takes priority. Otherwise,

@@ -43,7 +43,8 @@ agent server，所以「裝了但沒登入」的 CLI 會回報呼叫失敗，而
 
 Agent host 必須允許這個 skill 啟動本機 subprocess。每個 provider CLI 也必須能連上自己的
 網路服務。用量探針把認證與服務請求留在 provider CLI 內部處理；benchmark 輔助程式另外
-會讀取 CursorBench 與 Artificial Analysis 的公開網頁，不帶憑證。
+會讀取 CursorBench 與 Artificial Analysis 的公開網頁，不帶憑證；更新檢查會從
+`raw.githubusercontent.com` 讀取這個 skill 已發佈的 `SKILL.md`。
 
 ### 4. 平台
 
@@ -195,7 +196,8 @@ tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor
 的公開 release 頁，標 `AA`：AA 智力指數、每題成本、speed、verbosity、latency（AA 模型頁那五個量值），合格規則套在該 model 自己的各強度上。AA 是
 另一套題，分數與 CP 不跟 CursorBench 比。唯一例外（依使用者要求）：某家在 CursorBench 上沒有任何模型到 50% 時，`AA_EXTRA` 裡列的 model 若在 AA 上有一檔到 50，就放進合格欄並標 `AA`。Gemini 的例子是 Gemini 4 Argon（AA 52.6）取代 Gemini 3.8 Flash（39.6%）；ChatGPT 的例子是 GPT-6.1 Sol（AA 50）取代 GPT-5.6 Sol Max（41.7%）。Argon 仍在限量開放，CLI 裡可能還選不到。AA 也沒有頁面時，才多一行 `ref`，標示同家最新、同強度的一列，
 僅供對照。`cursorbench.py` 每次執行抓一次 CursorBench 公開頁面，每個未收錄的 model 再抓一次 AA 頁面；
-這些是 skill 自己的程式唯一發出的 HTTP 請求，不帶任何憑證。
+加上更新檢查對 `raw.githubusercontent.com` 的一次請求，這些是 skill 自己的程式唯一發出的
+HTTP 請求，不帶任何憑證。
 
 **語言。** 公開說明以英文為準，腳本的資料與狀態訊息使用英文。在 agent 裡，使用者明確指定
 報表語言時優先採用該語言；否則可依 host 提供的電腦偏好語言輸出，沒有資訊時用英文。

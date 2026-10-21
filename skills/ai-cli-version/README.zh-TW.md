@@ -48,7 +48,8 @@ macOS 的 `/usr/bin/python3`（3.9）來自 Xcode Command Line Tools；沒裝的
 ### 3. 網路與 subprocess 權限
 
 這個 skill 會執行上面的 CLI，並對 `registry.npmjs.org`、`api.github.com`、`api.meta.ai`
-以及 `run.app` 上的 Antigravity CLI auto-updater 發 HTTPS 請求。
+以及 `run.app` 上的 Antigravity CLI auto-updater 發 HTTPS 請求，另外會對
+`raw.githubusercontent.com` 發一次請求，檢查 skill 本身有沒有新版。
 **不需要 npm 或 Node.js** —— 直接查 npm registry。
 
 ## 安裝

@@ -51,7 +51,8 @@ others still run. Signing in is not required to read versions.
 ### 3. Network and subprocess access
 
 The skill launches the CLIs above and makes HTTPS requests to `registry.npmjs.org`,
-`api.github.com`, `api.meta.ai` and the Antigravity CLI auto-updater on `run.app`.
+`api.github.com`, `api.meta.ai` and the Antigravity CLI auto-updater on `run.app`, plus
+one request to `raw.githubusercontent.com` for the skill's own update check.
 **npm and Node.js are not required** — the registry is queried directly.
 
 ## Install
