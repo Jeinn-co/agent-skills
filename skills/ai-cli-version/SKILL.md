@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.7.4"
+  version: "1.8.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -102,84 +102,85 @@ or `name<TAB>not installed`, or `name<TAB>check failed (<reason>)`. Times are lo
 
 ## Report
 
-```
-CLI VERSIONS — 09-17
+Render the report as **Markdown**, not inside a code block, so tables align and links are
+clickable. Sample:
 
-  Tool          Installed               Latest                             Status
-  Claude Code   2.1.274 (09/17 11:20)   2.1.274 (released 09/17 06:36)     ✓ up to date      channel: latest
-  Codex         0.153.4 (09/07 11:03)   0.154.0 (released 09/10 06:40)     ↑ update → codex update
-  Grok Build    1.0.34  (09/17 09:28)   1.0.34  (released ≤ 09/17 03:32*)  ✓ up to date      channel: stable
-  Muse Code     1.3.0-R3401.1 (09/24 11:08)   1.3.0-R3401.1 (released ?)   ✓ up to date   channel: muse-stable
-  Antigravity   1.2.14  (09/30 10:57)   1.2.14  (released ?)               ✓ up to date      channel: stable
+### CLI versions — 09-17
 
-  * Grok release time is approximate (third-party mirror); official: x.ai/build/changelog
-  → 1 update available: Codex.
-```
+| Tool | Installed | Latest | Status |
+|---|---|---|---|
+| Claude Code | 2.1.274 · 09/17 11:20 | 2.1.274 · released 09/17 06:36 | ✅ up to date · channel latest |
+| Codex | 0.153.4 · 09/07 11:03 | 0.154.0 · released 09/10 06:40 | ⬆️ **update** → `codex update` |
+| Grok Build | 1.0.34 · 09/17 09:28 | 1.0.34 · released ≤ 09/17 03:32\* | ✅ up to date · channel stable |
+| Muse Code | 1.3.0-R3401.1 · 09/24 11:08 | 1.3.0-R3401.1 · released ? | ✅ up to date · channel muse-stable |
+| Antigravity | 1.2.14 · 09/30 10:57 | 1.2.14 · released ? | ✅ up to date · channel stable |
+
+_\* Grok release time is approximate (third-party mirror); official: x.ai/build/changelog_
+
+> **→ 1 update available:** Codex.
 
 **Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
 
-```
-  Update the 1 outdated CLI now?
-  [y] Update all    [Esc] Skip
-```
+**Update the 1 outdated CLI now?**
+`[y]` Update all · `[Esc]` Skip
 
 **When no row has `status=update available`, print the short form instead of the table**
-and no prompt — one line saying everything is current, then one line per tool with its
+and no prompt — the heading says everything is current, then one row per tool with its
 installed version:
 
-```
-CLI VERSIONS — 10-20 · All up to date.
+### CLI versions — 10-20 · ✅ All up to date
 
-  Claude Code   2.1.304
-  Codex         0.163.0
-  Grok Build    1.0.62
-  Muse Code     1.4.11-R6667.1
-  Antigravity   not installed
-```
+| Tool | Version |
+|---|---|
+| Claude Code | 2.1.304 |
+| Codex | 0.163.0 |
+| Grok Build | 1.0.62 |
+| Muse Code | 1.4.11-R6667.1 |
+| Antigravity | not installed |
 
 **Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
 
 `not installed` and `check failed (...)` rows still appear in the short form, with their
-reason. As soon as one tool is outdated, print the full table above.
+reason in the Version cell. As soon as one tool is outdated, print the full table above.
 
 **Skipped tools.** When setup has narrowed the list, the launcher prints
 `### skipped <ids>` after the version line and no row for those tools. Do not show a
-row for them; add one line directly under the `→` / `All up to date.` line, before any
-update prompt: `Not checked (setup): Grok Build, Muse Code, Antigravity`.
+row for them; add one italic line directly under the `→` line (or under the short-form
+table), before the Compare models link: `_Not checked (setup): Grok Build, Muse Code, Antigravity_`.
 
-```
-CLI VERSIONS — 10-20
+### CLI versions — 10-20
 
-  Tool          Installed               Latest                             Status
-  Claude Code   2.1.303 (10/19 16:13)   2.1.304 (released 10/20 03:47)     ↑ update → claude update      channel: latest
-  Codex         0.163.0 (10/19 16:14)   0.163.0 (released 10/16 05:37)     ✓ up to date      channel: latest
+| Tool | Installed | Latest | Status |
+|---|---|---|---|
+| Claude Code | 2.1.303 · 10/19 16:13 | 2.1.304 · released 10/20 03:47 | ⬆️ **update** → `claude update` |
+| Codex | 0.163.0 · 10/19 16:14 | 0.163.0 · released 10/16 05:37 | ✅ up to date · channel latest |
 
-  → 1 update available: Claude Code.
-  Not checked (setup): Grok Build, Muse Code, Antigravity
-```
+> **→ 1 update available:** Claude Code.
+
+_Not checked (setup): Grok Build, Muse Code, Antigravity_
 
 **Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
 
-```
-  Update the 1 outdated CLI now?
-  [y] Update all    [Esc] Skip
-```
+**Update the 1 outdated CLI now?**
+`[y]` Update all · `[Esc]` Skip
 
 Rules:
+- Never wrap the report in a code block. Escape a literal `*` or `|` inside a table cell
+  with a backslash.
 - Show every tool the launcher printed. `not installed` and `check failed (...)` get their own row with the
-  reason; never drop a row, and never fill in a version or time from memory.
+  reason in the Installed cell and `—` in the others; never drop a row, and never fill in a version or time from memory.
 - Show `?` for an unknown time; do not guess.
 - Grok's release time always gets `≤` and the footnote.
 - Muse's and Antigravity's release times are always `?`; do not fill them in from anywhere else.
 - Label the `agy` row `Antigravity` (it is the Gemini CLI) and print its update command
   exactly as `update_cmd` gives it — a full path, never a bare `agy update`.
-- `↑ update` rows end with the update command.
+- Status cells start with a colour mark: `✅ up to date · channel <channel>`, ``⬆️ **update** → `<update_cmd>` ``, `❌` before `check failed (...)`, `⚪` before `not installed`. `↑ update` rows end with the update command in inline code.
 - `ahead of channel` means the installed build is newer than the channel tag — show it
   as-is, not as an error.
-- Summary line: how many updates are available and for which tools, or `All up to date.`
-- After the report's code block closes (table or short form), print `**Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)`
-  outside any code block, so it is a clickable Markdown link — after the summary and any
-  `Not checked (setup)` line, before any update prompt. Keep the URL exactly as written.
+- Summary: a blockquote `> **→ N update(s) available:** <tools>.` in the full form; the
+  short form says `✅ All up to date` in its heading instead.
+- `**Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)` always follows the report (after the summary and any `Not checked (setup)`
+  line), before any update prompt. Keep the URL exactly as written.
 - Use the report language resolved below for labels, readable status and error
   explanations, and update results.
 
@@ -233,10 +234,8 @@ when set), outside the skill folder, so reinstalling or updating the skill keeps
 Only when one or more rows have `status=update available`, append a two-choice prompt in
 the report's resolved language and stop. Keep the keys exactly `y` and `Esc`:
 
-```
-Update the N outdated CLIs now?
-[y] Update all    [Esc] Skip
-```
+**Update the N outdated CLIs now?**
+`[y]` Update all · `[Esc]` Skip
 
 - `/ai-cli-version` authorizes the check, not an update. Do not run any updater in the
   same turn as the initial report.

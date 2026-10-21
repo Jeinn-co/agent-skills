@@ -147,6 +147,8 @@ CLI VERSIONS — 09-24
 
 每份報表最後都會附可點的 Compare models 連結，連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
+在 agent 裡，報表以 Markdown 呈現（表格、粗體摘要、可點的連結），不再包在程式碼區塊裡。
+
 ### Skill 更新
 
 每次執行前，agent 會先比對 GitHub `main` 上發佈的 `SKILL.md`（`run.py --check-skill`，

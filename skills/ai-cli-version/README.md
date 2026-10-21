@@ -163,6 +163,8 @@ When every checked CLI is current, the agent prints a short form instead: one
 
 Every report ends with a clickable Compare models link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
+Inside an agent the report is rendered as Markdown — a table, a bold summary, clickable links — instead of a code block.
+
 ### Skill updates
 
 Before each run the agent first compares this skill with the `SKILL.md` published on

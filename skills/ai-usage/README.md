@@ -134,6 +134,8 @@ report for 90 seconds.
 
 Every report ends with a `Usage pages` block — a link to each reported provider's own usage page (Claude, ChatGPT, Grok; providers skipped by setup are left out) — and a Compare models link to AI Model Compare, both printed as clickable Markdown links after the report.
 
+Inside an agent the report is rendered as Markdown — tables, a bold heading, clickable links — instead of a code block.
+
 ### Skill updates
 
 Before each run the agent first compares this skill with the `SKILL.md` published on

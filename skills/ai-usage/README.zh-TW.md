@@ -121,6 +121,8 @@ Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmar
 
 每份報表最後會列 `Usage pages`：每個有報告的 provider 自己的用量頁連結（Claude、ChatGPT、Grok；setup 沒選的不列），最後一行是 AI Model Compare 的 Compare models 連結；這些都以可點的 Markdown 連結印在報表下方。
 
+在 agent 裡，報表以 Markdown 呈現（表格、標題、可點的連結），不再包在程式碼區塊裡。
+
 ### Skill 更新
 
 每次執行前，agent 會先比對 GitHub `main` 上發佈的 `SKILL.md`（`run.py --check-skill`，
