@@ -144,6 +144,12 @@ CLI VERSIONS — 09-24
 
 全部都是最新版時，agent 改印簡短版：一行 `All up to date.` 加上每個工具目前的版本，不出現選項。
 
+### Skill 更新
+
+每次執行前，agent 會先比對 GitHub `main` 上發佈的 `SKILL.md`（`run.py --check-skill`，
+一次 `raw.githubusercontent.com` 請求）。有新版時，會先問 `y` / `n` 才做其他事；按 `y` 會執行
+`npx -y skills update -g ai-cli-version`，再用新版繼續。已是最新或查不到時，直接開始檢查。
+
 ### 設定要檢查哪些 CLI
 
     /ai-cli-version setup

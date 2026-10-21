@@ -7,7 +7,7 @@ or worse, a Microsoft Store stub that opens the store instead of running anythin
 
 Verified 2026-09-12 on macOS, 2026-09-14 on Windows 11. See README for platform notes.
 """
-import json, os, shutil, subprocess, sys
+import json, os, re, shutil, subprocess, sys, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -81,6 +81,31 @@ def set_providers(arg):
     return picked
 
 
+SKILL_URL = "https://raw.githubusercontent.com/Jeinn-co/agent-skills/main/skills/ai-usage/SKILL.md"
+
+
+def check_skill():
+    """Compare this skill with the SKILL.md published on GitHub main."""
+    def key(text):
+        return tuple(int(part) for part in re.findall(r"\d+", text)[:3])
+    try:
+        request = urllib.request.Request(SKILL_URL, headers={"User-Agent": "ai-usage"})
+        with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
+            text = response.read().decode("utf-8", errors="replace")
+        found = re.search(r'^\s*version:\s*"([^"]+)"', text, re.M)
+        if not found:
+            raise RuntimeError("no version in the published SKILL.md")
+        latest = found.group(1)
+    except Exception as exc:  # noqa: BLE001 -- the check must never block the report
+        return "skill check failed (%s)" % exc
+    status = "update available" if key(latest) > key(portable.VERSION) else "up to date"
+    return ("skill installed=%s latest=%s status=%s update_cmd=npx -y skills update -g ai-usage"
+            % (portable.VERSION, latest, status))
+
+
+if "--check-skill" in sys.argv:
+    print(check_skill())
+    sys.exit(0)
 if "--show-providers" in sys.argv:
     print("providers=" + ",".join(selected()))
     print("installed=" + ",".join(installed()))

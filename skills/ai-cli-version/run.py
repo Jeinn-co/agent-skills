@@ -24,7 +24,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.6.2"
+VERSION = "1.7.0"
 
 TIMEOUT = 10
 HOME = os.path.expanduser("~")
@@ -330,6 +330,28 @@ def check_agy():
         print(f"agy\tcheck failed ({exc})")
 
 
+SKILL_URL = "https://raw.githubusercontent.com/Jeinn-co/agent-skills/main/skills/ai-cli-version/SKILL.md"
+
+
+def version_key(text):
+    return tuple(int(part) for part in re.findall(r"\d+", text)[:3])
+
+
+def check_skill():
+    """Compare this skill with the SKILL.md published on GitHub main."""
+    try:
+        found = re.search(r'^\s*version:\s*"([^"]+)"', get_text(SKILL_URL), re.M)
+        if not found:
+            raise RuntimeError("no version in the published SKILL.md")
+        latest = found.group(1)
+    except Exception as exc:  # noqa: BLE001 -- the check must never block the report
+        print(f"skill\tcheck failed ({exc})")
+        return
+    status = "update available" if version_key(latest) > version_key(VERSION) else "up to date"
+    print(f"skill\tinstalled={VERSION}\tlatest={latest}\tstatus={status}"
+          "\tupdate_cmd=npx -y skills update -g ai-cli-version")
+
+
 CHECKS = {"claude": check_claude, "codex": check_codex, "grok": check_grok,
           "muse": check_muse, "agy": check_agy}
 
@@ -415,6 +437,9 @@ def main():
         return
     if len(sys.argv) == 3 and sys.argv[1] == "--probe":
         CHECKS[sys.argv[2]]()
+        return
+    if "--check-skill" in sys.argv:
+        check_skill()
         return
     if "--show-tools" in sys.argv:
         print("tools=" + ",".join(selected_tools()))

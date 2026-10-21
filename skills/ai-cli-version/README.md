@@ -160,6 +160,14 @@ CLI VERSIONS — 09-24
 When every checked CLI is current, the agent prints a short form instead: one
 `All up to date.` line and each tool's installed version, with no prompt.
 
+### Skill updates
+
+Before each run the agent first compares this skill with the `SKILL.md` published on
+GitHub `main` (`run.py --check-skill`, one GET of `raw.githubusercontent.com`). When a
+newer version exists, it asks `y` / `n` before doing anything else; `y` runs
+`npx -y skills update -g ai-cli-version` and continues with the new version. When the
+skill is current or the lookup fails, it goes straight to the check.
+
 ### Choose which CLIs to check
 
     /ai-cli-version setup

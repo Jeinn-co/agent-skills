@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
 description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. `setup` chooses which CLIs to check. Use when the user runs /ai-cli-version or /check-uu (with or without `setup`), or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
-compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
+compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.6.2"
+  version: "1.7.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -25,6 +25,32 @@ run Muse with `MUSE_SYNC_UPDATE=1`.
 The first output line is `### ai-cli-version <version>`. Leave it out of the report; quote
 it only when the user asks which version they are on or reports a bug. Adding `--version`
 to the platform command prints the version alone.
+
+## Step 0 — check this skill for an update first
+
+Before anything else (the report, or `setup`), run the platform launcher with
+`--check-skill`. It makes one GET of this skill's `SKILL.md` on GitHub `main`
+(`raw.githubusercontent.com`) and prints one line:
+`skill installed=… latest=… status=… update_cmd=…`, or `skill check failed (...)`.
+
+- `status=up to date` or `check failed`: say nothing about it and continue.
+- `status=update available`: print only
+
+  ```
+  ai-cli-version skill {installed} → {latest} is available.
+  Update the skill now?
+  [y] Update    [n] Skip
+  ```
+
+  and stop. Run nothing else this turn.
+  - Exact `y` / `Y`: run `update_cmd`, report success or failure in one line, then read
+    this skill's `SKILL.md` again from disk (it is now the new version) and continue
+    with what the user asked for, following the new instructions.
+  - `n` / `N`: say the skill was not updated and continue with what the user
+    asked for.
+  - Any other reply: repeat the two choices without updating.
+
+The CLI check itself (step 1 onward) never includes this line.
 
 ## What is checked
 

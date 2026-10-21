@@ -131,6 +131,14 @@ benchmark lookup has its own 20-second budget; if it times out, usage is still s
 and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
 report for 90 seconds.
 
+### Skill updates
+
+Before each run the agent first compares this skill with the `SKILL.md` published on
+GitHub `main` (`run.py --check-skill`, one GET of `raw.githubusercontent.com`). When a
+newer version exists, it asks `y` / `n` before doing anything else; `y` runs
+`npx -y skills update -g ai-usage` and continues with the new version. When the skill is
+current or the lookup fails, it goes straight to the report.
+
 ### Choose which providers to report
 
     /ai-usage setup

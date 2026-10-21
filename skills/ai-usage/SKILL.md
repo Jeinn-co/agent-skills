@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable.
 metadata:
   author: Jeinn
-  version: "1.8.1"
+  version: "1.9.0"
 ---
 
 # /ai-usage — unified AI usage report
@@ -33,6 +33,32 @@ for manually copied installations even though `npx skills` records source inform
 for installations it manages. Adding `--version` to the platform command prints the
 version alone.
 
+## Step 0 — check this skill for an update first
+
+Before anything else (the report, or `setup`), run the platform launcher with
+`--check-skill`. It makes one GET of this skill's `SKILL.md` on GitHub `main`
+(`raw.githubusercontent.com`) and prints one line:
+`skill installed=… latest=… status=… update_cmd=…`, or `skill check failed (...)`.
+
+- `status=up to date` or `check failed`: say nothing about it and continue.
+- `status=update available`: print only
+
+  ```
+  ai-usage skill {installed} → {latest} is available.
+  Update the skill now?
+  [y] Update    [n] Skip
+  ```
+
+  and stop. Run nothing else this turn.
+  - Exact `y` / `Y`: run `update_cmd`, report success or failure in one line, then read
+    this skill's `SKILL.md` again from disk (it is now the new version) and continue
+    with what the user asked for, following the new instructions.
+  - `n` / `N`: say the skill was not updated and continue with what the user
+    asked for.
+  - Any other reply: repeat the two choices without updating.
+
+The report itself never includes this line.
+
 ## What must already be in place
 
 Do not install anything and do not ask the user to log in. Just run the script and
@@ -47,9 +73,11 @@ report what comes back.
 - **Subprocess and network access.** The host must allow local process launches, and
   each installed provider CLI must be able to reach its own service. The only direct
   HTTP requests the Python code makes are one GET of the public page
-  `https://cursor.com/cursorbench` (`cursorbench.py`) and, for a current model
+  `https://cursor.com/cursorbench` (`cursorbench.py`), for a current model
   CursorBench does not list, one GET of its public Artificial Analysis release page
-  (`https://artificialanalysis.ai/models/releases/<model id>`); no credential is sent.
+  (`https://artificialanalysis.ai/models/releases/<model id>`), and, for step 0 only,
+  one GET of this skill's published `SKILL.md` on `raw.githubusercontent.com`; no
+  credential is sent.
 
 If a provider prints `not installed`, show that status in its usage block and Now
 cell, but still show its Qualified model, cost and CP from the public benchmarks.
@@ -174,7 +202,7 @@ usage.
 <!-- Keep every dollar amount in this file from starting with a dollar sign then the digit zero: Claude Code replaces that token with the first skill argument (for example /ai-usage setup). -->
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.8.1
+USAGE — 09-12 01:08 · ai-usage 1.9.0
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)

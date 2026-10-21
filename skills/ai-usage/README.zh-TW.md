@@ -118,6 +118,12 @@ benchmark 也與用量查詢同時進行。報表仍維持固定順序，等待�
 Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmark 表格。
 沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
 
+### Skill 更新
+
+每次執行前，agent 會先比對 GitHub `main` 上發佈的 `SKILL.md`（`run.py --check-skill`，
+一次 `raw.githubusercontent.com` 請求）。有新版時，會先問 `y` / `n` 才做其他事；按 `y` 會執行
+`npx -y skills update -g ai-usage`，再用新版繼續。已是最新或查不到時，直接出報表。
+
 ### 設定要報告哪些 provider
 
     /ai-usage setup
