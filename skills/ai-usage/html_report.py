@@ -236,7 +236,7 @@ main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spa
 header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
 h2{font-size:17px;font-weight:600;margin:0}.plan{color:var(--muted);font-size:14px;border:1px solid var(--line);
 border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color:var(--accent);text-decoration:none}
-.row{display:grid;grid-template-columns:64px 1fr 52px 200px;align-items:center;gap:10px;margin:8px 0}
+.row{display:grid;grid-template-columns:64px 1fr 56px 112px;align-items:center;gap:10px;margin:8px 0}
 .lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:999px;overflow:hidden}
 .row.time{margin:-2px 0 12px}.tbar{position:relative;height:12px;display:flex;align-items:center}
 .ticks{position:absolute;inset:0;border-right:1px solid var(--tick);
@@ -245,11 +245,11 @@ background:repeating-linear-gradient(to right,var(--tick) 0 1px,transparent 1px 
 .tfill{height:100%;border-radius:999px;background:var(--accent);opacity:.6}
 .clock{width:13px;height:13px;margin-right:5px;vertical-align:-2px;fill:none;stroke:currentColor;
 stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.left{grid-column:3/5;text-align:left;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.left{grid-column:3/5;text-align:left;white-space:nowrap;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .fill{height:100%;border-radius:999px}.fill.green{background:var(--green)}.fill.amber{background:var(--amber)}
 .fill.red{background:var(--red)}.pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .pct.green{color:var(--green)}.pct.amber{color:var(--amber)}.pct.red{color:var(--red)}
-.reset{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}.rel{opacity:.8}
+.reset{white-space:nowrap;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}.rel{opacity:.8}
 .note{color:var(--muted);font-style:italic;margin:6px 0}
 .now{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}

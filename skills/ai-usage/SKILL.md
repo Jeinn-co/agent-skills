@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.12.2"
+  version: "1.12.3"
 ---
 
 # /ai-usage — unified AI usage report
@@ -222,7 +222,7 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.12.2
+### Usage — 09-12 01:08 · ai-usage 1.12.3
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|
