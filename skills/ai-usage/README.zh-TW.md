@@ -119,7 +119,7 @@ benchmark 也與用量查詢同時進行。報表仍維持固定順序，等待�
 Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmark 表格。
 沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
 
-每份報表最後一行都是 `Compare models: https://jeinn-co.github.io/ai-model-compare/`。
+每份報表最後會列 `Usage pages`：每個有報告的 provider 自己的用量頁連結（Claude、ChatGPT、Grok；setup 沒選的不列），最後一行是 `Compare models: https://jeinn-co.github.io/ai-model-compare/`。
 
 ### Skill 更新
 

@@ -16,7 +16,7 @@ Neither has any effect on macOS or Linux.
 import atexit, os, shutil, signal, subprocess, sys
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.9.3"
+VERSION = "1.9.4"
 CALL_TIMEOUT = 20
 
 # 20 cells. Each cell is 5 points; the partial cell is one of 8 eighths, so the
