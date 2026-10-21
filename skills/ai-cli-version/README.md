@@ -161,7 +161,7 @@ CLI VERSIONS — 09-24
 When every checked CLI is current, the agent prints a short form instead: one
 `All up to date.` line and each tool's installed version, with no prompt.
 
-Every report ends with `Compare models: https://jeinn-co.github.io/ai-model-compare/`.
+Every report ends with a clickable Compare models link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
 ### Skill updates
 

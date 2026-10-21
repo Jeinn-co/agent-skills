@@ -132,7 +132,7 @@ benchmark lookup has its own 20-second budget; if it times out, usage is still s
 and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
 report for 90 seconds.
 
-Every report ends with a `Usage pages` block — a link to each reported provider's own usage page (Claude, ChatGPT, Grok; providers skipped by setup are left out) — and `Compare models: https://jeinn-co.github.io/ai-model-compare/`.
+Every report ends with a `Usage pages` block — a link to each reported provider's own usage page (Claude, ChatGPT, Grok; providers skipped by setup are left out) — and a Compare models link to AI Model Compare, both printed as clickable Markdown links after the report.
 
 ### Skill updates
 

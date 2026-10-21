@@ -145,7 +145,7 @@ CLI VERSIONS — 09-24
 
 全部都是最新版時，agent 改印簡短版：一行 `All up to date.` 加上每個工具目前的版本，不出現選項。
 
-每份報表最後一行都是 `Compare models: https://jeinn-co.github.io/ai-model-compare/`。
+每份報表最後都會附可點的 Compare models 連結，連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
 ### Skill 更新
 

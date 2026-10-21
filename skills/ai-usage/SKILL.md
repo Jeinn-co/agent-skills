@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.9.4"
+  version: "1.9.5"
 ---
 
 # /ai-usage — unified AI usage report
@@ -202,7 +202,7 @@ usage.
 <!-- Keep every dollar amount in this file from starting with a dollar sign then the digit zero: Claude Code replaces that token with the first skill argument (for example /ai-usage setup). -->
 
 ```
-USAGE — 09-12 01:08 · ai-usage 1.9.4
+USAGE — 09-12 01:08 · ai-usage 1.9.5
 
   Claude    pro
     5h    █████▊░░░░░░░░░░░░░░  29%   resets 03:40 (2h32m)
@@ -241,13 +241,10 @@ USAGE — 09-12 01:08 · ai-usage 1.9.4
   Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index (another test set): its score and CP are not comparable with CursorBench's.
 
   → Use Claude right now: the highest CursorBench score, and its 5h window is 29% used.
-
-  Usage pages
-    Claude    https://claude.ai/new#settings/usage
-    ChatGPT   https://chatgpt.com/settings/usage?tab=overview
-    Grok      https://grok.com/?_s=home
-  Compare models: https://jeinn-co.github.io/ai-model-compare/
 ```
+
+**Usage pages:** [Claude](https://claude.ai/new#settings/usage) · [ChatGPT](https://chatgpt.com/settings/usage?tab=overview) · [Grok](https://grok.com/?_s=home)
+**Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
 
 Rules:
 - Copy each window's `bar` exactly. It is 20 cells: each cell is 5 points, and the partial cell is one eighth (`▏▎▍▌▋▊▉`), so 28% and 30% no longer draw the same bar. Full cell `█`, empty track `░`. Do not redraw it and do not shorten it to 10 cells. The displayed percent stays a whole number.
@@ -294,10 +291,13 @@ Rules:
 - The pick rule lives in `cursorbench.py` (across the provider's listed models: ≥ 50% →
   highest CP; otherwise the highest score). Do not re-pick
   by hand or re-rank by today's usage.
-- The `→` line says which tool to use right now, and why in a few words.
-- After the `→` line, a blank line and a `Usage pages` block: one row per provider shown
-  in this report (never a provider skipped by setup) that has a URL below, in provider
-  order. Omit a provider with no URL; omit the whole block when no row is left.
+- The `→` line says which tool to use right now, and why in a few words. It is the last
+  line inside the report's code block.
+- **Links go outside the code block**, directly after its closing fence, as Markdown
+  links so they are clickable (a code block shows URLs as plain text). First the
+  `**Usage pages:**` line: one link per provider shown in this report (never a provider
+  skipped by setup) that has a URL below, in provider order, joined with ` · `. Omit a
+  provider with no URL; omit the whole line when none is left.
 
   | Provider | URL |
   |---|---|
@@ -307,7 +307,7 @@ Rules:
   | Muse | none yet |
   | Gemini | none yet |
 
-- The report's last line is always `Compare models: https://jeinn-co.github.io/ai-model-compare/`.
+- Then, always, the last line: `**Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)`.
   Keep every URL exactly as written.
 - If any week row is over 80%, put a `⚠` line above the arrow saying how long until it
   resets.
