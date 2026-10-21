@@ -88,20 +88,20 @@ PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CLI Versions</title>
 <style>
-:root{--bg:#ece8e3;--card:#f7f4f0;--text:#4a4744;--muted:#8f8983;--line:#ddd6ce;--track:#e3ddd5;--ok:#8fa68a;--up:#c7a46c;--bad:#b67b77;--accent:#7b91a6}
-@media (prefers-color-scheme:dark){:root{--bg:#2a2826;--card:#34322f;--text:#e6e0d8;--muted:#a69f97;--line:#47443f;--track:#4a4743;--ok:#a3b89e;--up:#d4b483;--bad:#c8918c;--accent:#97abbe}}
+:root{--bg:#e9e4de;--card:#fbf9f6;--text:#2b2926;--muted:#69635c;--line:#d3cbc1;--track:#dad2c8;--ok:#6f8f69;--up:#b5893f;--bad:#a65f59;--accent:#55718d}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1c1a;--card:#2b2926;--text:#f4efe8;--muted:#c0b8ae;--line:#47433e;--track:#4b4742;--ok:#acc7a5;--up:#e3c088;--bad:#dc9d96;--accent:#a9bfd4}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
-font:14px/1.55 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
-main{max-width:920px;margin:0 auto}h1{font-size:22px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}.top{color:var(--muted);margin:0 0 16px}
-.summary{font-size:15px;font-weight:500;margin:0 0 18px}.summary.ok{color:var(--ok)}.summary.up{color:var(--up)}
+font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
+main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}.top{color:var(--muted);margin:0 0 16px}
+.summary{font-size:17px;font-weight:500;margin:0 0 18px}.summary.ok{color:var(--ok)}.summary.up{color:var(--up)}
 .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 table{border-collapse:collapse;width:100%}th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);
-vertical-align:top}th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.06em}tr:last-child td{border-bottom:0}
-.sub{color:var(--muted);font-size:12px}.badge{display:inline-block;border-radius:999px;padding:1px 10px;font-size:11px;
+vertical-align:top}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}tr:last-child td{border-bottom:0}
+.sub{color:var(--muted);font-size:14px}.badge{display:inline-block;border-radius:999px;padding:1px 10px;font-size:13px;
 font-weight:500;letter-spacing:.02em;border:1px solid currentColor}.badge.ok{color:var(--ok)}.badge.up{color:var(--up)}
 .badge.bad{color:var(--bad)}.badge.muted{color:var(--muted)}td.bad{color:var(--bad)}td.muted{color:var(--muted)}
-code{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:var(--bg);padding:1px 6px;border-radius:6px}
-.foot{color:var(--muted);font-size:12px;margin:10px 0}a{color:var(--accent)}
+code{font-family:ui-monospace,Consolas,monospace;font-size:14px;background:var(--bg);padding:1px 6px;border-radius:6px}
+.foot{color:var(--muted);font-size:14px;margin:10px 0}a{color:var(--accent)}
 </style></head><body><main>
 <h1>CLI Versions</h1><p class="top">@@time@@ · ai-cli-version @@version@@</p>
 @@summary@@
