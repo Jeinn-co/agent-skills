@@ -167,9 +167,12 @@ skill is current or the lookup fails, it goes straight to the check.
     /ai-cli-version setup
 
 Setup first shows the current choice and asks **Keep** or **Change…**, so a saved
-selection stays one click away. Only **Change…** opens the checkbox list, which shows the
-CLIs installed on this machine (in hosts without a picker, or with all five installed,
-it asks for numbers instead). The output format — HTML or Markdown — is asked the same
+selection stays one click away. After **Change…**, a host with multi-select shows
+checkboxes for installed CLIs, using multiple pages if needed. Other hosts show a
+numbered list in the normal chat, one CLI and its current state per line, then ask
+for numbers in a short input question (e.g. `1,2`). The list stays outside the question
+widget so its layout remains readable. CLI names, `keep` and `all` also work;
+cancellation keeps the saved selection unchanged. The output format — HTML or Markdown — is asked the same
 way. Choices are saved in `~/.config/ai-cli-version/config.json`, so updating the skill
 keeps them. Later checks skip the other tools and list them as
 `Not checked (setup): …`. Choose every tool to go back to the default. Outside an agent:

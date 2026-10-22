@@ -147,9 +147,10 @@ Markdown，agent 會直接在對話框裡顯示同一張表，不開網頁。
 
     /ai-cli-version setup
 
-setup 會先顯示目前的設定，問**保留**還是**修改**，所以已經選過的按一下就能保留。選**修改**
-才會出現勾選清單，只列這台電腦有安裝的 CLI（host 沒有選單、或五個都有裝時，改成輸入編號）。
-輸出格式（HTML 或 Markdown）也用同樣方式問。設定存在 `~/.config/ai-cli-version/config.json`，
+setup 先顯示目前設定，問**保留**或**修改**。選**修改**後，只列這台電腦已安裝的 CLI：
+支援多選的 host 使用勾選清單，超出選項上限時分頁；其他 host 在一般對話中顯示**編號清單**，
+每行一個 CLI 與目前狀態，再用簡短輸入框詢問要保留的編號（例如 `1,2`）。清單不塞進問題標題，
+避免換行被擠成一段。也接受 CLI 名稱、`keep` 或 `all`；中途取消不會更改原設定。輸出格式（HTML 或 Markdown）也用同樣方式問。設定存在 `~/.config/ai-cli-version/config.json`，
 更新 skill 也不會被蓋掉。之後的檢查會跳過沒選的工具，並列在 `Not checked (setup): …`。
 全部勾選就回到預設。在 agent 外面：`run.py --show-tools`、`run.py --set-tools claude,codex,grok`、
 `run.py --set-tools all`、`run.py --set-output html|md`。

@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.12.5"
+  version: "1.12.7"
 ---
 
 # /ai-usage — unified AI usage report
@@ -222,7 +222,7 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.12.5
+### Usage — 09-12 01:08 · ai-usage 1.12.7
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|
@@ -359,18 +359,27 @@ not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (
    current selection (every provider when nothing is saved), and `installed=<ids>`, the
    providers whose CLI is present. Offer only installed providers; one that is not
    installed is never saved.
-2. Ask about the providers — **keep first**, one question per page, never split across
-   several questions or tabs. A choice tool cannot pre-tick boxes, so never show an empty
-   checkbox list for a selection the user already made.
-   - With a choice tool (Claude Code: `AskUserQuestion`), first ask one single-select
-     question, header `Report`: `Report — now: <current names>. Keep or change?` with
-     options `Keep` (description: the current names) and `Change…` (description: the
-     installed providers to pick from). `Keep` saves nothing for this step.
-   - Only after `Change…`: ask one `multiSelect: true` question, header `Report`, one
-     option per installed provider (at most 4 options; with 5 installed, use numbers
-     instead), describing each as currently on or off.
-   - Without a choice tool, show the current selection and ask for `keep`, numbers
-     (`1,2`) or `all`.
+2. Ask about the providers — **keep first**, with one short question at a time.
+   First show the current selection in the choice descriptions and ask `Keep or change?`
+   with `Keep` first and `Change…` second. `Keep` saves nothing for this step.
+   Only after `Change…`, use the host's actual picker capabilities:
+   - **Multi-select available** (e.g. Claude Code `AskUserQuestion` with
+     `multiSelect: true`): one option per installed provider, using its name as the
+     label and current on/off state as the description. Preselect current choices
+     only if supported; otherwise show those states without claiming boxes are checked.
+     If the option limit is smaller than the list, use consecutive multi-select pages
+     and combine their selections; do not replace the picker with typed numbers.
+   - **Single-select only or no choice tool** (e.g. Codex
+     `request_user_input_async`): show a numbered Markdown list in the normal chat
+     message, one installed provider per line, including its current on/off state.
+     Then ask one short free-text question: `Which numbers should be kept? (e.g. 1,2)`.
+     Keep the list visible outside the question widget: its title may flatten newlines.
+     Never paste the whole list into that title or ask separately for each provider.
+     Accept comma-separated numbers, `keep`, `all`, or provider names. Map numbers
+     to the exact displayed list; invalid or out-of-range choices save nothing.
+   Keep changed choices in memory until the selection is complete. Cancellation
+   leaves the saved selection unchanged. If the user already names the desired
+   providers, use those names without repeating the picker.
 3. Save with `--set-providers <ids>` (e.g. `--set-providers claude,codex`), or
    `--set-providers all` when every provider is chosen and every CLI is installed. It
    prints the saved `providers=<ids>`. Nothing chosen, a dismissed picker, or an invalid

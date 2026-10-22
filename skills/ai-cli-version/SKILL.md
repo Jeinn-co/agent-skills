@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.9.4"
+  version: "1.9.6"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -229,18 +229,27 @@ does not run the check or any updater. Tool ids: `claude`, `codex`, `grok`, `mus
    selection (every tool when nothing is saved), and `installed=<ids>`, the tools whose
    CLI is present. Offer only installed tools; a tool that is not installed is never
    saved, so it drops out of later checks.
-2. Ask about the tools — **keep first**, one question per page, never split across
-   several questions or tabs. A choice tool cannot pre-tick boxes, so never show an empty
-   checkbox list for a selection the user already made.
-   - With a choice tool (Claude Code: `AskUserQuestion`), first ask one single-select
-     question, header `Check`: `Check — now: <current names>. Keep or change?` with
-     options `Keep` (description: the current names) and `Change…` (description: the
-     installed tools to pick from). `Keep` saves nothing for this step.
-   - Only after `Change…`: ask one `multiSelect: true` question, header `Check`, one
-     option per installed tool (at most 4 options; with 5 installed, use numbers
-     instead), describing each as currently on or off.
-   - Without a choice tool, show the current selection and ask for `keep`, numbers
-     (`1,2`) or `all`.
+2. Ask about the tools — **keep first**, with one short question at a time.
+   First show the current selection in the choice descriptions and ask `Keep or change?`
+   with `Keep` first and `Change…` second. `Keep` saves nothing for this step.
+   Only after `Change…`, use the host's actual picker capabilities:
+   - **Multi-select available** (e.g. Claude Code `AskUserQuestion` with
+     `multiSelect: true`): one option per installed tool, using its name as the
+     label and current on/off state as the description. Preselect current choices
+     only if supported; otherwise show those states without claiming boxes are checked.
+     If the option limit is smaller than the list, use consecutive multi-select pages
+     and combine their selections; do not replace the picker with typed numbers.
+   - **Single-select only or no choice tool** (e.g. Codex
+     `request_user_input_async`): show a numbered Markdown list in the normal chat
+     message, one installed tool per line, including its current on/off state.
+     Then ask one short free-text question: `Which numbers should be kept? (e.g. 1,2)`.
+     Keep the list visible outside the question widget: its title may flatten newlines.
+     Never paste the whole list into that title or ask separately for each tool.
+     Accept comma-separated numbers, `keep`, `all`, or tool names. Map numbers
+     to the exact displayed list; invalid or out-of-range choices save nothing.
+   Keep changed choices in memory until the selection is complete. Cancellation
+   leaves the saved selection unchanged. If the user already names the desired
+   tools, use those names without repeating the picker.
 3. Save with `--set-tools <ids>` (comma-separated, e.g. `--set-tools claude,codex,grok`),
    or `--set-tools all` when every tool is chosen and every tool is installed. It prints the saved `tools=<ids>`.
    Nothing chosen, a dismissed picker, or an invalid reply saves nothing: say the
