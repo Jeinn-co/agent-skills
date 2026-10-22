@@ -27,8 +27,8 @@ def esc(text):
 
 
 def clock(reset, now):
-    """`Oct 21, 11:19am` -> `10-21 11:19`; other formats pass through without the `(…)`."""
-    text = re.sub(r"\s*\(.*\)$", "", reset).strip()
+    """`Oct 21, 11:19am` or `Oct 21 at 11:19am` -> `10-21 11:19`; other formats pass through without the `(…)`."""
+    text = re.sub(r"\s*\(.*\)$", "", reset).strip().replace(" at ", ", ")
     for fmt in ("%b %d, %I:%M%p", "%b %d, %I%p"):
         try:
             return datetime.datetime.strptime(text, fmt).strftime("%m-%d %H:%M")
@@ -43,7 +43,7 @@ def relative(reset, now):
     if found:
         days, hours = int(found.group(1)), int(found.group(2))
         return "%dd%dh" % (days, hours) if days else ("%dh" % hours if hours else "<1h")
-    text = re.sub(r"\s*\(.*\)$", "", reset).strip()
+    text = re.sub(r"\s*\(.*\)$", "", reset).strip().replace(" at ", ", ")
     for fmt in ("%b %d, %I:%M%p", "%b %d, %I%p"):
         try:
             when = datetime.datetime.strptime(text, fmt).replace(year=now.year)
@@ -64,7 +64,7 @@ FIVE_HOURS = 5 * 60
 
 def remaining_minutes(reset, now):
     """Minutes until the reset clock; falls back to the probe's coarse `(XdYh)`."""
-    text = re.sub(r"\s*\(.*\)$", "", reset).strip()
+    text = re.sub(r"\s*\(.*\)$", "", reset).strip().replace(" at ", ", ")
     for fmt in ("%b %d, %I:%M%p", "%b %d, %I%p", "%m-%d %H:%M"):
         try:
             when = datetime.datetime.strptime(text, fmt).replace(year=now.year)
