@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.12.7"
+  version: "1.12.8"
 ---
 
 # /ai-usage — unified AI usage report
@@ -222,7 +222,7 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.12.7
+### Usage — 09-12 01:08 · ai-usage 1.12.8
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|
@@ -258,7 +258,7 @@ _Standard: any of the provider's models ≥ 50% → highest CP among those · no
 _$ = cost per task at API prices (AA rows: AA's cost per index task), not subscription quota. CP = score ÷ $; higher is better. \* nothing from this provider reaches 50%: its highest._
 _Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index (another test set): its score and CP are not comparable with CursorBench's._
 
-> **→ Use Claude right now:** the highest CursorBench score, and its 5h window is 29% used.
+> **→ Use ChatGPT right now:** the most usage left — 100% in its tightest window.
 
 **Usage pages:** [Claude](https://claude.ai/new#settings/usage) · [ChatGPT](https://chatgpt.com/settings/usage?tab=overview) · [Grok](https://grok.com/?_s=home)
 **Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
@@ -316,8 +316,20 @@ Rules:
   Omit the table only for `bench failed`, and say it failed.
 - The pick rule lives in `cursorbench.py` (across the provider's listed models: ≥ 50% →
   highest CP; otherwise the highest score). Do not re-pick
-  by hand or re-rank by today's usage.
+  by hand or re-rank by today's usage. That applies to the Qualified table only; the
+  `→` line below is chosen by usage left.
 - The `→` line is a blockquote, `> **→ Use <tool> right now:** <why in a few words>`.
+  Pick it by usage left, not by benchmark:
+  1. Headroom per provider = 100 − its most-used window: the higher of 5h and week for
+     Claude, ChatGPT and Muse; the one week for Grok (`<1%` counts as 0); the `gemini`
+     pool for Gemini.
+  2. Only providers with a usage block count. A failed, timed-out, not signed-in or
+     not installed provider is never picked.
+  3. The highest headroom wins. When the top two are within 10 points, the higher
+     CursorBench score of the two wins; if either is an `(AA)` row, keep the higher
+     headroom.
+  4. The why names the headroom, e.g. `97% left in its tightest window`, plus the reason
+     in a few words when obvious (week just reset, 5h nearly full).
 - **Links** follow it as Markdown links, so they are clickable. First the
   `**Usage pages:**` line: one link per provider shown in this report (never a provider
   skipped by setup) that has a URL below, in provider order, joined with ` · `. Omit a

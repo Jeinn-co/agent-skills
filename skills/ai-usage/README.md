@@ -186,8 +186,8 @@ Read top to bottom:
    GPT-6.1 Sol above, falls back to Artificial Analysis and shows `AA <index>`.
 5. **Compare models** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
-In chat the agent shows only the recommendation — **→** which tool to use right now and
-why, after a **⚠** line when a weekly window is over 80% — and a link to the page.
+In chat the agent shows only the recommendation — **→** which tool to use right now (the
+one with the most usage left in its tightest window; benchmark score breaks a near tie) and why, after a **⚠** line when a weekly window is over 80% — and a link to the page.
 `setup` can switch the output to Markdown, which renders the whole report in chat as
 tables and opens no page.
 
