@@ -154,6 +154,9 @@ When every checked CLI is current, the summary reads **All up to date** and ther
 prompt. `setup` can switch the output to Markdown: the agent then renders the same table
 in chat and opens no page.
 
+The launcher prints these lines itself (`### SUMMARY`), so the agent only copies them
+and loads a short `SKILL.md`.
+
 ### Skill updates
 
 Before each run the agent first compares this skill with the `SKILL.md` published on

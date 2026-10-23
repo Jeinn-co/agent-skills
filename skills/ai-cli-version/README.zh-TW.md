@@ -137,6 +137,8 @@ HTML 報表（莫蘭迪配色、深淺色模式），由 Python 產生、不耗�
 全部都是最新版時，摘要顯示 **All up to date**，不出現選項。`setup` 可以把輸出改成
 Markdown，agent 會直接在對話框裡顯示同一張表，不開網頁。
 
+這幾行由 launcher 自己印出（`### SUMMARY`），agent 只照抄，載入的 `SKILL.md` 也很短。
+
 ### Skill 更新
 
 每次執行前，agent 會先比對 GitHub `main` 上發佈的 `SKILL.md`（`run.py --check-skill`，

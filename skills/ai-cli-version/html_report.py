@@ -35,6 +35,22 @@ def parse(lines):
     return version, skipped, rows
 
 
+def summary(lines):
+    """The chat lines: the → summary, any `Not checked` line, and the y/Esc prompt."""
+    _, skipped, rows = parse(lines)
+    outdated = [NAMES[r["name"]] for r in rows if r.get("status") == "update available"]
+    n = len(outdated)
+    out = ["> **→ %d update%s available:** %s." % (n, "" if n == 1 else "s", ", ".join(outdated))
+           if n else "> **All up to date.**"]
+    if skipped:
+        out.append("_Not checked (setup): %s_" % ", ".join(skipped))
+    if n:
+        out.append("")
+        out.append("**Update the %s now?**" % ("1 outdated CLI" if n == 1 else "%d outdated CLIs" % n))
+        out.append("`[y]` Update all · `[Esc]` Skip")
+    return out
+
+
 def render(lines, now=None):
     now = now or datetime.datetime.now()
     version, skipped, rows = parse(lines)

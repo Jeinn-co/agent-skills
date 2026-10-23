@@ -13,6 +13,7 @@ everything else is read from the local CLIs and the filesystem.
 
 import datetime
 import glob
+import gzip
 import json
 import os
 import re
@@ -24,7 +25,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.9.7"
+VERSION = "1.10.0"
 
 TIMEOUT = 20
 HOME = os.path.expanduser("~")
@@ -67,9 +68,14 @@ def run(cmd, env=None):
 
 
 def get_json(url, headers=None):
-    request = urllib.request.Request(url, headers={"User-Agent": "ai-cli-version", **(headers or {})})
+    # gzip: the full npm document for @openai/codex is ~18 MB raw, ~1.6 MB compressed.
+    request = urllib.request.Request(url, headers={"User-Agent": "ai-cli-version",
+                                                   "Accept-Encoding": "gzip", **(headers or {})})
     with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-        return json.loads(response.read().decode("utf-8", errors="replace"))
+        body = response.read()
+        if response.headers.get("Content-Encoding") == "gzip":
+            body = gzip.decompress(body)
+        return json.loads(body.decode("utf-8", errors="replace"))
 
 
 def get_text(url):
@@ -496,10 +502,13 @@ def main():
             text = result.result()
             lines.extend(text.splitlines())
             print(text, end="", flush=True)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import html_report
+    print("### SUMMARY")
+    print(chr(10).join(html_report.summary(lines)), flush=True)
     if output_format() == "html":
         import tempfile
         import webbrowser
-        import html_report
         out = os.path.join(tempfile.gettempdir(), "ai-cli-version", "report.html")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", encoding="utf-8") as fh:

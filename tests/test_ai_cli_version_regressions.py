@@ -34,10 +34,37 @@ class ParallelCheckTests(unittest.TestCase):
         out = io.StringIO()
         with mock.patch.object(run, "check_tool", side_effect=check), \
                 mock.patch.object(sys, "argv", [str(SCRIPT)]), \
+                mock.patch.object(run, "output_format", return_value="md"), \
+                mock.patch.object(run, "selected_tools", return_value=list(run.CHECKS)), \
                 contextlib.redirect_stdout(out):
             run.main()
-        rows = out.getvalue().splitlines()[1:]
+        lines = out.getvalue().splitlines()
+        rows = lines[1:lines.index("### SUMMARY")]
         self.assertEqual(rows, [name + "\tchecked" for name in run.CHECKS])
+
+
+class SummaryTests(unittest.TestCase):
+    def summary(self, text):
+        spec = importlib.util.spec_from_file_location("ai_cli_version_html", SCRIPT.parent / "html_report.py")
+        html_report = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(html_report)
+        return html_report.summary(text.splitlines())
+
+    def test_outdated_tools_get_summary_and_prompt(self):
+        self.assertEqual(self.summary(
+            "### skipped grok\n"
+            "claude\tinstalled=1\tstatus=up to date\n"
+            "codex\tinstalled=1\tstatus=update available\n"
+            "muse\tinstalled=1\tstatus=update available\n"), [
+            "> **→ 2 updates available:** Codex, Muse Code.",
+            "_Not checked (setup): Grok Build_",
+            "",
+            "**Update the 2 outdated CLIs now?**",
+            "`[y]` Update all · `[Esc]` Skip"])
+
+    def test_all_current_has_no_prompt(self):
+        self.assertEqual(self.summary("claude\tinstalled=1\tstatus=up to date\nagy\tnot installed\n"),
+                         ["> **All up to date.**"])
 
 
 @unittest.skipIf(os.name == "nt", "POSIX fake executables are used")
