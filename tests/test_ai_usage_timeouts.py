@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import shutil
 import subprocess
 import sys
@@ -73,10 +74,14 @@ class LookupTimeoutTests(unittest.TestCase):
             if slow_bench:
                 bench = "print('partial benchmark', flush=True)\nimport time; time.sleep(60)\n"
             (target / "cursorbench.py").write_text(bench, encoding="utf-8")
+            # Own config: every provider, Markdown output, so no browser tab opens.
+            (target / "ai-usage").mkdir()
+            (target / "ai-usage" / "config.json").write_text('{"output": "md"}', encoding="utf-8")
+            env = dict(os.environ, XDG_CONFIG_HOME=str(target))
             return subprocess.run(
                 [sys.executable, "-c",
                  "import portable,runpy; portable.CALL_TIMEOUT=0.5; runpy.run_path('run.py')"],
-                cwd=target, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                cwd=target, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 timeout=8, **portable.text_kwargs())
 
     def test_timed_out_provider_does_not_prevent_later_provider_or_benchmark(self):
