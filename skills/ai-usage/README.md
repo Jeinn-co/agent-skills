@@ -242,19 +242,22 @@ task, points per dollar at Cursor's API prices — higher is better). The report
 shows the score, `$` and CP for both sides; tokens and steps stay in the raw output. One qualified row per
 provider: across every model and effort CursorBench lists for that provider, the best CP at a
 score of 50% or more; when nothing from that provider reaches 50%, its highest score. A model CursorBench does not list shows `not listed`, never a
-neighbouring row. For such a model the row falls back to its public
-[Artificial Analysis](https://artificialanalysis.ai) release page, marked `AA`: the AA
+neighbouring row. For such a model the row falls back to its
+[Artificial Analysis](https://artificialanalysis.ai) rows, marked `AA`: the AA
 Intelligence Index, cost per index task, speed, verbosity and latency (the five figures
 on AA's model page), with the same qualified rule over that
 model's own efforts. AA is a different test set, so its score and CP are never compared
 with CursorBench's. One exception, on request: when nothing a provider has on CursorBench
 reaches 50%, a model listed in `AA_EXTRA` whose AA pick does reach 50 fills the qualified
-cell, marked `AA`. For Gemini that is Gemini 4 Argon (AA 52.6) over Gemini 3.8 Flash
-(39.6%). For ChatGPT that is GPT-6.1 Sol (AA 50) over GPT-5.6 Sol Max (41.7%). Argon is in a limited rollout, so it may not be selectable in the CLI yet. Only when AA has no page either does the report add one `ref` line
+cell, marked `AA`. For ChatGPT that is GPT-6.1 Sol (AA 50) over GPT-5.6 Sol Max (41.7%). Only when AA has no row either does the report add one `ref` line
 naming the newest listed same-provider row at the same effort, for orientation only.
-`cursorbench.py` fetches the CursorBench page once per run, plus one AA page per unlisted
-model; with the one update-check request to `raw.githubusercontent.com`, those are the
-only HTTP requests the skill's own code makes, and they send no credential.
+`cursorbench.py` does not scrape either site itself: it reads the rows
+[AI Model Compare](https://jeinn-co.github.io/ai-model-compare/) publishes
+(`data/cursorbench.json`, and `data/aa.json` only when an AA row is needed), which that
+site refreshes from CursorBench and Artificial Analysis every six hours. Benchmark
+figures can therefore be up to six hours old. With the one update-check request to
+`raw.githubusercontent.com`, those are the only HTTP requests the skill's own code
+makes, and they send no credential.
 
 **Language.** Documentation and the scripts' data and status messages are in English.
 Inside an agent, an explicit request for a report language takes priority. Otherwise,
@@ -297,8 +300,7 @@ fields) verified 2026-10-02 against the Antigravity CLI (`agy`) 1.2.14 on macOS.
 | Muse's `usage/read` returns only what the host has observed | `muse_usage.py` | If the turn ends with no usage, the Muse row fails visibly (`no usage observed`); it never defaults to 0% |
 | Gemini's `/usage` output is tab-separated text from the Antigravity CLI, which is undocumented | `agy_usage.py` | A changed layout makes the Gemini row fail visibly (`usage call failed`); it never defaults to 0% |
 | Session files and model caches are internal to each CLI and undocumented | `session_info.py` | A renamed field prints `?` for that value; a moved file prints `no local session`. The usage rows are unaffected |
-| CursorBench is a web page parsed by its HTML table, and model ids are mapped to its names by rule | `cursorbench.py` | A layout change prints `bench failed (...)` and the usage rows are unaffected. A model the rules cannot map, or a name CursorBench spells differently, shows `not listed` |
-| The Artificial Analysis fallback reads the model data embedded in AA's server-rendered release page, which is undocumented | `cursorbench.py` | Each variant is decoded as its own JSON object and kept only when it belongs to the model, so an effort AA has not scored is left out rather than filled from the next model. A missing page or changed payload means no AA row; the report falls back to `not listed` plus a `ref` line. It never guesses a score |
+| Benchmark rows come from AI Model Compare's published JSON, and model ids are mapped to its names by rule | `cursorbench.py` | If the site is down the table prints `bench failed (...)` and the usage rows are unaffected. A model the rules cannot map, or a name the source spells differently, shows `not listed`; an AA effort without a cost is left out, never filled from another row |
 
 **Deliberately not reported.** A wrong number here is worse than no number:
 

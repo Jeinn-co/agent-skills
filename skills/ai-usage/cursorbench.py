@@ -3,9 +3,10 @@
 
 Usage: cursorbench.py [cli=model:effort ...]    e.g. claude=claude-opus-5-5:high
 
-Fetches the public leaderboard at https://cursor.com/cursorbench (one GET, no
-credentials) and parses its first <table>: rank, model ("Opus 5.5 High"), score,
-cost / task, tokens / task, steps / task. Found 2026-09-24; the page is server-rendered.
+Reads the rows AI Model Compare publishes (https://jeinn-co.github.io/ai-model-compare/,
+data/cursorbench.json and data/aa.json; one GET each, no credentials). That site scrapes
+cursor.com/cursorbench and Artificial Analysis every six hours, so the scraping lives in
+one place: rank, model ("Opus 5.5 High"), score, cost / task, tokens / task, steps / task.
 
 Each CLI's model id is mapped to CursorBench's display name by rule (NAME below) and
 its effort to CursorBench's suffix (EFFORT). A model the leaderboard does not list
@@ -23,20 +24,19 @@ An empty model means no local session: print that status and still select the
 provider's Qualified model, independently of whether its CLI is installed.
 
 When the current model is not listed, its `bench` and `pick` lines come from Artificial
-Analysis instead (one GET of https://artificialanalysis.ai/models/releases/<model id>,
-no credentials), marked `(AA)`: the AA Intelligence Index and AA's four other model-page
+Analysis instead (data/aa.json), marked `(AA)`: the AA Intelligence Index and AA's four other model-page
 figures (cost per index task, median output speed, index verbosity, time to first
 answer token), with the same pick rule applied to that model's own efforts only. AA is a
 different test set, so an `(AA)` score or cp is never compared with a CursorBench one.
 Only when AA has no page for the model either does a `ref` line follow: the newest
 same-provider CursorBench row at the same effort. Orientation only -- never a pick.
 
-AA_EXTRA lists models a provider is gaining that CursorBench does not list yet (Gemini 4
-Argon for agy, GPT-6.1 Sol for Codex). When the provider's own pick only reached
+AA_EXTRA lists models a provider is gaining that CursorBench does not list yet (GPT-6.1
+Sol for Codex). When the provider's own pick only reached
 `rule closest`, an extra whose AA pick reaches TARGET takes the pick line instead,
 marked `(AA)`.
 """
-import html, json, re, sys, urllib.request
+import functools, json, re, sys, urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -44,7 +44,9 @@ import portable
 
 portable.stdout_utf8()
 
-URL = "https://cursor.com/cursorbench"
+DATA = "https://jeinn-co.github.io/ai-model-compare/data/%s.json"
+URL = DATA % "cursorbench"
+AA_URL = DATA % "aa"
 EFFORT = {"minimal": "Minimal", "low": "Low", "medium": "Medium", "high": "High",
           "xhigh": "Extra High", "max": "Max"}
 TARGET = 50.0  # CursorBench score, percent, to reach whenever the provider can
@@ -139,80 +141,57 @@ def name(cli, model):
     return None
 
 
-AA_URL = "https://artificialanalysis.ai/models/releases/%s"
-# AA effort.level on each variant -> the effort key used here.
-AA_EFFORT = ("minimal", "low", "medium", "high", "xhigh", "max")
-AA_LEVEL = {10: "minimal", 20: "low", 30: "medium", 40: "high", 50: "xhigh", 60: "max"}
+SUFFIX = {label: key for key, label in EFFORT.items()}
+
+
+@functools.lru_cache(maxsize=None)
+def published(url):
+    """Rows of one AI Model Compare data file, in the source's rank order."""
+    request = urllib.request.Request(url, headers={"User-Agent": "ai-usage"})
+    with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
+        rows = json.loads(response.read().decode("utf-8", errors="replace")).get("rows")
+    if not rows:
+        raise ValueError("no rows in %s" % url)
+    return rows
 
 
 def aa_rows(model):
-    """{effort: (score, cost, tokens, speed, verbosity, latency)} for one CLI model id
-    from its Artificial Analysis release page, or {} when AA has no page or no scored
-    row for it.
-
-    The page is server-rendered and embeds every variant as a JSON object
-    ({"id":..., "slug":..., "release": {"slug": ...}, "effort": {"level": 40},
-    "intelligenceIndex", "intelligenceIndexCostPerTask": {"cost": {"total"}},
-    "intelligenceIndexOutputTokensPerTask": {"output"}, "medianOutputSpeed",
-    "canonicalIntelligenceIndexTokenCount": {"output"},
-    "timeToFirstAnswerToken": {"total"}}). Each object is decoded on its
-    own and kept only when its `release.slug` is this model, so a variant AA has not
-    scored is left out -- never filled from the next model on the page (found
-    2026-10-02: the old fixed-width text scan gave Gemini 3.8 Flash Low Opus's cost).
-    Speed / verbosity / latency are the other three model-summary cards plus TTFT
-    (the five figures on AA's model page); missing ones stay 0 and print as `?`."""
-    slug = re.sub(r"-contributor$", "", model.lower()).replace(".", "-")
-    request = urllib.request.Request(AA_URL % slug,
-                                     headers={"User-Agent": "Mozilla/5.0 (ai-usage)"})
+    """{effort: (score, cost, tokens, speed, verbosity, latency)} for one model name
+    ("GPT-6.1 Sol") from the Artificial Analysis rows, or {} when AA has no scored,
+    costed row for it. Missing speed / verbosity / latency stay 0 and print as `?`."""
     try:
-        with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
-            page = response.read().decode("utf-8", errors="replace")
-    except Exception:  # noqa: BLE001 -- no AA page means no AA row, nothing more
+        rows = published(AA_URL)
+    except Exception:  # noqa: BLE001 -- no AA data means no AA row, nothing more
         return {}
-    page = page.replace('\\"', '"').replace("\\\\", "\\")
-    decoder = json.JSONDecoder()
     out = {}
-    for m in re.finditer(r'\{"id":"[0-9a-f-]+","slug":"', page):
-        try:
-            variant, _ = decoder.raw_decode(page, m.start())
-        except ValueError:
-            continue
-        if (variant.get("release") or {}).get("slug") != slug:
-            continue
-        effort = AA_LEVEL.get((variant.get("effort") or {}).get("level"))
-        score = variant.get("intelligenceIndex")
-        cost = ((variant.get("intelligenceIndexCostPerTask") or {}).get("cost") or {}).get("total")
-        tokens = (variant.get("intelligenceIndexOutputTokensPerTask") or {}).get("output") or 0.0
-        speed = variant.get("medianOutputSpeed") or 0.0
-        verbosity = (variant.get("canonicalIntelligenceIndexTokenCount") or {}).get("output") or 0.0
-        latency = (variant.get("timeToFirstAnswerToken") or {}).get("total") or 0.0
-        if effort and score is not None and cost and cost > 0:
-            out.setdefault(effort, (float(score), float(cost), float(tokens),
-                                    float(speed), float(verbosity), float(latency)))
+    for r in rows:
+        effort = SUFFIX.get(r.get("effort"))
+        if r.get("model") == model and effort and r.get("score") is not None and (r.get("cost") or 0) > 0:
+            out.setdefault(effort, (float(r["score"]), float(r["cost"]), 0.0, float(r.get("speed") or 0),
+                                    float(r.get("verbosity") or 0), float(r.get("latency") or 0)))
     return out
 
 
 # Models a provider's CLI line-up is expected to gain that CursorBench does not list yet,
-# scored on Artificial Analysis instead (AA release slug -> display name). When none of the
-# provider's CursorBench rows reaches TARGET, an extra whose own AA pick does reaches the
-# Qualified cell, marked (AA). It mixes test sets on purpose; the (AA) mark and footnote
-# say so. Added 2026-10-02 for Gemini 4 Argon (AA 52.6 vs CursorBench Gemini 39.6%);
-# GPT-6.1 Sol 2026-10-05 (AA 50 vs CursorBench GPT-5.6 Sol Max 41.7%).
-AA_EXTRA = {"agy": {"gemini-4-argon": "Gemini 4 Argon"},
-            "codex": {"gpt-6.1-sol": "GPT-6.1 Sol"}}
+# scored on Artificial Analysis instead. When none of the provider's CursorBench rows
+# reaches TARGET, an extra whose own AA pick does reaches the Qualified cell, marked
+# (AA). It mixes test sets on purpose; the (AA) mark and footnote say so. GPT-6.1 Sol
+# added 2026-10-05 (AA 50 vs CursorBench GPT-5.6 Sol Max 41.7%); Gemini 4 Argon dropped
+# 2026-10-23 once CursorBench listed it.
+AA_EXTRA = {"codex": ["GPT-6.1 Sol"]}
 
 
 def extra_pick(cli):
-    """(label, score, cost, "cp", "aa", slug) for the best AA extra of `cli` whose own
+    """(label, score, cost, "cp", "aa") for the best AA extra of `cli` whose own
     pick reaches TARGET, or None."""
     best = None
-    for slug, display in AA_EXTRA.get(cli, {}).items():
-        board = aa_rows(slug)
+    for display in AA_EXTRA.get(cli, []):
+        board = aa_rows(display)
         if not board:
             continue
         e, s, c, rule = aa_pick(board)
         if rule == "cp" and (best is None or s / c > best[1] / best[2]):
-            best = ("%s %s" % (display, EFFORT[e]), s, c, rule, "aa", slug)
+            best = ("%s %s" % (display, EFFORT[e]), s, c, rule, "aa")
     return best
 
 
@@ -250,20 +229,12 @@ def _aa_latency(v):
 
 
 def rows():
-    request = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0 (ai-usage)"})
-    with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
-        page = response.read().decode("utf-8", errors="replace")
-    table = re.search(r"<table.*?</table>", page, re.S)
-    if not table:
-        raise ValueError("no leaderboard table on the page")
+    """{label: [score, cost, tokens, steps]} as the leaderboard prints them, in rank order."""
     out = {}
-    for tr in re.findall(r"<tr.*?</tr>", table.group(0), re.S):
-        cells = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip()
-                 for c in re.findall(r"<td.*?</td>", tr, re.S)]
-        if len(cells) == 6:
-            out[cells[1]] = cells[2:]
-    if not out:
-        raise ValueError("leaderboard table has no rows")
+    for r in published(URL):
+        out[r["label"]] = ["%.1f%%" % r["score"], "$%.2f" % r["cost"],
+                           "{:,}".format(r["tokens"]) if r.get("tokens") is not None else "?",
+                           str(r.get("steps", "?"))]
     return out
 
 
@@ -296,9 +267,9 @@ def main():
             continue
         label = "%s %s" % (base, suffix)
         hit = board.get(label)
-        aa = {} if hit else aa_rows(model)
+        aa = {} if hit else aa_rows(base)
         if aa:
-            sources.append(AA_URL % re.sub(r"-contributor$", "", model.lower()).replace(".", "-"))
+            sources.append(AA_URL)
             now = aa.get(effort.lower())
             if now:
                 score, cost = now[0], now[1]
@@ -334,8 +305,8 @@ def main():
         except Exception:  # noqa: BLE001 -- an optional extra must never take the table down
             extra = None
         if extra:
-            sources.append(AA_URL % extra[5])
-            picks[i] = (cli, base, extra[:5])
+            sources.append(AA_URL)
+            picks[i] = (cli, base, extra)
     for cli, base, hit in picks:
         if hit and len(hit) == 5:
             label, score, cost, rule, _ = hit
@@ -347,7 +318,7 @@ def main():
                   % (cli, label, score, cost, score / cost, rule))
         else:
             print("pick    %s  %s  not listed" % (cli, base))
-    for source in sources:
+    for source in dict.fromkeys(sources):
         print("source  %s" % source)
     return 0
 

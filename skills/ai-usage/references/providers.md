@@ -145,10 +145,9 @@ report what comes back.
   still a valid run: every row prints `not installed`.
 - **Subprocess and network access.** The host must allow local process launches, and
   each installed provider CLI must be able to reach its own service. The only direct
-  HTTP requests the Python code makes are one GET of the public page
-  `https://cursor.com/cursorbench` (`cursorbench.py`), for a current model
-  CursorBench does not list, one GET of its public Artificial Analysis release page
-  (`https://artificialanalysis.ai/models/releases/<model id>`), and, for step 0 only,
+  HTTP requests the Python code makes are one GET of AI Model Compare's
+  `data/cursorbench.json` (`cursorbench.py`), one GET of its `data/aa.json` when a
+  current model CursorBench does not list needs an AA row, and, for step 0 only,
   one GET of this skill's published `SKILL.md` on `raw.githubusercontent.com`; no
   credential is sent.
 

@@ -50,7 +50,7 @@ set) instead of a CursorBench percent, with AA's cost, speed (median output tok/
 verbosity (index output tokens, e.g. `25M`) and latency (time to first answer token),
 and the same pick
 rule applied to that model's own efforts. When a provider's own pick is only `rule
-closest`, a model listed in `AA_EXTRA` (`cursorbench.py`; Gemini 4 Argon for Gemini, GPT-6.1 Sol for ChatGPT) whose
+closest`, a model listed in `AA_EXTRA` (`cursorbench.py`; GPT-6.1 Sol for ChatGPT) whose
 own AA pick reaches 50 takes the `pick` line, marked `(AA)` and `rule cp`, even though the
 Now side is a CursorBench row — the user asked for it. Only when AA has no page either does a `ref`
 line follow, naming the newest listed same-provider row at the same effort —
@@ -75,7 +75,7 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.13.2
+### Usage — 09-12 01:08 · ai-usage 1.14.0
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|

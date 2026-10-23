@@ -205,11 +205,12 @@ model + effort 在 [CursorBench](https://cursor.com/cursorbench) 的分數、每
 tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor 的 API 價格，每 1 美元換到的 CursorBench 分數，
 越高越划算）。報表的表格兩邊都列分數、`$` 與 CP；tokens 與 steps 只留在原始輸出。每家再列一個「合格」組合：同一個 model 裡，在該家所有模型與強度中，分數 ≥ 50% 裡 CP 最高的一檔；整家都達不到 50% 時，取該家最高分。CursorBench 沒收錄的 model 顯示 `not listed`，
 絕不借用相鄰那列的數字。這種 model 改用它在 [Artificial Analysis](https://artificialanalysis.ai)
-的公開 release 頁，標 `AA`：AA 智力指數、每題成本、speed、verbosity、latency（AA 模型頁那五個量值），合格規則套在該 model 自己的各強度上。AA 是
-另一套題，分數與 CP 不跟 CursorBench 比。唯一例外（依使用者要求）：某家在 CursorBench 上沒有任何模型到 50% 時，`AA_EXTRA` 裡列的 model 若在 AA 上有一檔到 50，就放進合格欄並標 `AA`。Gemini 的例子是 Gemini 4 Argon（AA 52.6）取代 Gemini 3.8 Flash（39.6%）；ChatGPT 的例子是 GPT-6.1 Sol（AA 50）取代 GPT-5.6 Sol Max（41.7%）。Argon 仍在限量開放，CLI 裡可能還選不到。AA 也沒有頁面時，才多一行 `ref`，標示同家最新、同強度的一列，
-僅供對照。`cursorbench.py` 每次執行抓一次 CursorBench 公開頁面，每個未收錄的 model 再抓一次 AA 頁面；
-加上更新檢查對 `raw.githubusercontent.com` 的一次請求，這些是 skill 自己的程式唯一發出的
-HTTP 請求，不帶任何憑證。
+的資料，標 `AA`：AA 智力指數、每題成本、speed、verbosity、latency（AA 模型頁那五個量值），合格規則套在該 model 自己的各強度上。AA 是
+另一套題，分數與 CP 不跟 CursorBench 比。唯一例外（依使用者要求）：某家在 CursorBench 上沒有任何模型到 50% 時，`AA_EXTRA` 裡列的 model 若在 AA 上有一檔到 50，就放進合格欄並標 `AA`。例子是 ChatGPT 的 GPT-6.1 Sol（AA 50）取代 GPT-5.6 Sol Max（41.7%）。AA 也沒有資料時，才多一行 `ref`，標示同家最新、同強度的一列，
+僅供對照。`cursorbench.py` 自己不爬這兩個網站，而是讀 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
+發布的資料（`data/cursorbench.json`，需要 AA 時再讀 `data/aa.json`）；那個網站每 6 小時從 CursorBench 與
+Artificial Analysis 更新一次，所以跑分數字最多晚 6 小時。加上更新檢查對 `raw.githubusercontent.com` 的一次請求，
+這些是 skill 自己的程式唯一發出的 HTTP 請求，不帶任何憑證。
 
 **語言。** 公開說明以英文為準，腳本的資料與狀態訊息使用英文。在 agent 裡，使用者明確指定
 報表語言時優先採用該語言；否則可依 host 提供的電腦偏好語言輸出，沒有資訊時用英文。
@@ -247,8 +248,7 @@ session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.
 | Muse 的 `usage/read` 只回報 host 觀察到的資料 | `muse_usage.py` | turn 結束仍沒有用量時，Muse 那列會明確失敗（`no usage observed`）；絕不預設成 0% |
 | Gemini 的 `/usage` 輸出是 Antigravity CLI 的 tab 分隔文字，沒有公開文件 | `agy_usage.py` | 格式改變時 Gemini 那列會明確失敗（`usage call failed`）；絕不預設成 0% |
 | session 檔與 model 快取是各 CLI 內部格式，沒有公開文件 | `session_info.py` | 欄位改名時該值印 `?`；檔案搬家時印 `no local session`。用量那幾列不受影響 |
-| CursorBench 是網頁，靠解析它的 HTML 表格；model id 對應到它的名稱是靠規則 | `cursorbench.py` | 版面改變時印 `bench failed (...)`，用量那幾列不受影響。規則對不上、或 CursorBench 名稱拼法不同時顯示 `not listed` |
-| Artificial Analysis 備援讀的是 AA release 頁伺服器端渲染時內嵌的 model 資料，沒有公開文件 | `cursorbench.py` | 每個強度各自當成一個 JSON 物件解析，只留屬於該 model 的，所以 AA 沒評分的強度直接略過，不會拿到下一個 model 的數字。頁面不存在或資料格式改變時就沒有 AA 列，報表退回 `not listed` 加一行 `ref`；絕不猜分數 |
+| 跑分資料來自 AI Model Compare 發布的 JSON；model id 對應到它的名稱是靠規則 | `cursorbench.py` | 網站掛掉時印 `bench failed (...)`，用量那幾列不受影響。規則對不上、或名稱拼法不同時顯示 `not listed`；AA 沒有成本的強度直接略過，不會借用別列的數字 |
 
 **刻意不回報的。** 這裡報錯數字比不報更糟：
 

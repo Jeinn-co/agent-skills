@@ -479,37 +479,19 @@ print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z
 
 
 class ArtificialAnalysisTests(unittest.TestCase):
-    def test_variant_without_cost_is_left_out_not_borrowed(self):
+    def aa_rows(self, model, rows):
         sys.path.insert(0, str(SKILL))
         import cursorbench
         from unittest import mock
+        with mock.patch.object(cursorbench, "published", return_value=rows):
+            return cursorbench.aa_rows(model)
 
-        def variant(slug, release, level, score, cost):
-            data = {"id": "0f0f0f0f-0000-0000-0000-000000000000", "slug": slug,
-                    "release": {"slug": release}, "effort": {"level": level},
-                    "intelligenceIndex": score}
-            if cost is not None:
-                data["intelligenceIndexCostPerTask"] = {"cost": {"total": cost}}
-            return json.dumps(data, separators=(",", ":"))
-
-        page = "<script>" + ",".join([
-            variant("gemini-3-8-flash", "gemini-3-8-flash", 40, 40.9, 1.24),
-            variant("gemini-3-8-flash-low", "gemini-3-8-flash", 20, 33.5, None),
-            variant("claude-opus-5-5", "claude-opus-5-5", 60, 57.6, 5.98),
-        ]) + "</script>"
-
-        class Response:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *exc):
-                return False
-
-            def read(self):
-                return page.encode("utf-8")
-
-        with mock.patch.object(cursorbench.urllib.request, "urlopen", return_value=Response()):
-            rows = cursorbench.aa_rows("gemini-3.8-flash")
+    def test_variant_without_cost_is_left_out_not_borrowed(self):
+        rows = self.aa_rows("Gemini 3.8 Flash", [
+            {"model": "Gemini 3.8 Flash", "effort": "High", "score": 40.9, "cost": 1.24},
+            {"model": "Gemini 3.8 Flash", "effort": "Low", "score": 33.5, "cost": None},
+            {"model": "Opus 5.5", "effort": "Low", "score": 57.6, "cost": 5.98},
+        ])
         self.assertEqual(set(rows), {"high"})
         self.assertEqual(rows["high"][:2], (40.9, 1.24))
         self.assertEqual(rows["high"][3:], (0.0, 0.0, 0.0))
@@ -517,39 +499,25 @@ class ArtificialAnalysisTests(unittest.TestCase):
     def test_aa_rows_reads_speed_verbosity_latency(self):
         sys.path.insert(0, str(SKILL))
         import cursorbench
-        from unittest import mock
-
-        data = {
-            "id": "0f0f0f0f-0000-0000-0000-000000000000",
-            "slug": "gpt-6-1-sol-high",
-            "release": {"slug": "gpt-6-1-sol"},
-            "effort": {"level": 40},
-            "intelligenceIndex": 50.237,
-            "intelligenceIndexCostPerTask": {"cost": {"total": 0.319}},
-            "intelligenceIndexOutputTokensPerTask": {"output": 13191.8},
-            "medianOutputSpeed": 50.854,
-            "canonicalIntelligenceIndexTokenCount": {"output": 25376903},
-            "timeToFirstAnswerToken": {"total": 46.5526},
-        }
-        page = "<script>" + json.dumps(data, separators=(",", ":")) + "</script>"
-
-        class Response:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *exc):
-                return False
-
-            def read(self):
-                return page.encode("utf-8")
-
-        with mock.patch.object(cursorbench.urllib.request, "urlopen", return_value=Response()):
-            rows = cursorbench.aa_rows("gpt-6.1-sol")
+        rows = self.aa_rows("GPT-6.1 Sol", [
+            {"model": "GPT-6.1 Sol", "effort": "Extra High", "score": 51.0, "cost": 0.39},
+            {"model": "GPT-6.1 Sol", "effort": "High", "score": 50.237, "cost": 0.319,
+             "speed": 50.854, "verbosity": 25376903, "latency": 46.5526},
+        ])
+        self.assertEqual(set(rows), {"high", "xhigh"})
         self.assertEqual(rows["high"][:2], (50.237, 0.319))
         self.assertEqual(rows["high"][3:], (50.854, 25376903.0, 46.5526))
         self.assertEqual(cursorbench._aa_speed(50.854), "50.9/s")
         self.assertEqual(cursorbench._aa_verbosity(25376903), "25M")
         self.assertEqual(cursorbench._aa_latency(46.5526), "46.6s")
+
+    def test_leaderboard_rows_print_like_the_page(self):
+        sys.path.insert(0, str(SKILL))
+        import cursorbench
+        from unittest import mock
+        rows = [{"label": "Opus 5.5 High", "score": 56, "cost": 3.97, "tokens": 53078, "steps": 68}]
+        with mock.patch.object(cursorbench, "published", return_value=rows):
+            self.assertEqual(cursorbench.rows(), {"Opus 5.5 High": ["56.0%", "$3.97", "53,078", "68"]})
 
 
 class AAExtraPickTests(unittest.TestCase):
@@ -558,18 +526,14 @@ class AAExtraPickTests(unittest.TestCase):
         import cursorbench
         from unittest import mock
 
-        boards = {"gemini-4-argon": {"high": (52.6, 1.99, 0.0)},
-                  "gpt-6.1-sol": {"high": (50.237, 0.319, 0.0)}}
-        with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda slug: boards.get(slug, {})):
-            hit = cursorbench.extra_pick("agy")
-            self.assertEqual(hit[:4], ("Gemini 4 Argon High", 52.6, 1.99, "cp"))
+        boards = {"GPT-6.1 Sol": {"high": (50.237, 0.319, 0.0)}}
+        with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda m: boards.get(m, {})):
             hit = cursorbench.extra_pick("codex")
             self.assertEqual(hit[:4], ("GPT-6.1 Sol High", 50.237, 0.319, "cp"))
-            self.assertIsNone(cursorbench.extra_pick("grok"))
-        boards = {"gemini-4-argon": {"high": (45.0, 1.99, 0.0)},
-                  "gpt-6.1-sol": {"high": (45.0, 0.32, 0.0)}}
-        with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda slug: boards.get(slug, {})):
             self.assertIsNone(cursorbench.extra_pick("agy"))
+            self.assertIsNone(cursorbench.extra_pick("grok"))
+        boards = {"GPT-6.1 Sol": {"high": (45.0, 0.32, 0.0)}}
+        with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda m: boards.get(m, {})):
             self.assertIsNone(cursorbench.extra_pick("codex"))
 
 
