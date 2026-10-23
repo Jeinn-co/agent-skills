@@ -163,7 +163,8 @@ def advice(raw, now=None):
         # Gemini's cl+gpt pool serves other vendors' models, so only its gemini pool counts.
         pcts = [0 if w["shown"] == "<1%" else w["pct"] for w in p["windows"]
                 if p["name"] != "Gemini" or w["label"] == "gemini"]
-        if pcts:
+        # A free plan shows nearly 100% left because it is not really used; never pick it.
+        if pcts and p["plan"].lower() != "free":
             bench = data["bench"].get(clis.get(p["name"]), "")
             score = re.search(r"score ([\d.]+)%", bench)
             ranked.append((100 - max(pcts), float(score.group(1)) if score and "(AA)" not in bench

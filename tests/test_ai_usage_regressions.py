@@ -728,5 +728,16 @@ class AdviceTests(unittest.TestCase):
         self.assertIn("Use Claude", self.advice(raw.format("score 40.0%  cost $1.00  cp 40.0"))[-1])
         self.assertIn("Use ChatGPT", self.advice(raw.format("aa 50  cost $0.32  cp 157.4  (AA)"))[-1])
 
+    def test_free_plan_is_never_picked(self):
+        lines = self.advice("""\
+            ### CHATGPT
+            plan: plus
+            outer   40.0% used  window 168h  resets 10-30 01:11 (6d14h)  bar x
+            ### GROK
+            plan: Free
+            week       <1% used  window weekly  resets 10-30 01:11 (6d14h)  bar x
+            """)
+        self.assertEqual(lines, ["> **→ Use ChatGPT right now:** 60% left in its tightest window."])
+
     def test_no_usage_block_no_advice(self):
         self.assertEqual(self.advice("### CLAUDE\nnot installed\n"), [])
