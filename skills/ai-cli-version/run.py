@@ -24,9 +24,9 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.9.6"
+VERSION = "1.9.7"
 
-TIMEOUT = 10
+TIMEOUT = 20
 HOME = os.path.expanduser("~")
 # Both CLIs let the user move their home directory; the installers honour these variables.
 CLAUDE_DIR = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(HOME, ".claude")

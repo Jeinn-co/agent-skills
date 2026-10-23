@@ -112,7 +112,7 @@ py -3 run.py      # Windows; use `python run.py` if `py` is unavailable
 Add `--version` to print the skill version and exit. Outside an agent you get the raw
 tab-separated lines, not the formatted report.
 
-All selected tools (every tool unless `setup` narrowed them) are checked **in parallel**, with a **10-second total budget per
+All selected tools (every tool unless `setup` narrowed them) are checked **in parallel**, with a **20-second total budget per
 tool** covering CLI startup and all network requests. A timed-out check and its
 CLI children are stopped without retrying; other checks continue independently.
 Rows stay in tool order. The check never runs an updater.
