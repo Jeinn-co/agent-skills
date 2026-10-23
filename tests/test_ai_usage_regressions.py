@@ -703,11 +703,14 @@ class AdviceTests(unittest.TestCase):
     def test_tightest_window_and_week_warning(self):
         lines = self.advice("""\
             ### CLAUDE
+            plan: pro
             5h      16.0% used  resets Oct 23 at 1:49pm  bar x
             week    85.0% used  resets Oct 26 at 4:59pm  bar x
             ### GROK
+            plan: SuperGrok
             week       <1% used  window weekly  resets 10-30 01:11 (6d14h)  bar x
             ### GEMINI
+            plan: ?
             gemini  30.0% used  window weekly  pool gemini  resets 10-30 (6d14h)  bar x
             cl+gpt  20.0% used  window weekly  pool x  resets 10-30 (6d14h)  bar x
             """)
@@ -718,8 +721,10 @@ class AdviceTests(unittest.TestCase):
     def test_near_tie_goes_to_higher_cursorbench_score_but_not_aa(self):
         raw = """\
             ### CLAUDE
+            plan: pro
             week    10.0% used  resets Oct 26 at 4:59pm  bar x
             ### CHATGPT
+            plan: plus
             outer    5.0% used  window 168h  resets 10-30 01:11 (6d14h)  bar x
             ### CURSORBENCH
             bench   claude  Opus 5.5 High  score 56.0%  cost $3.97  cp 14.1
@@ -736,6 +741,9 @@ class AdviceTests(unittest.TestCase):
             ### GROK
             plan: Free
             week       <1% used  window weekly  resets 10-30 01:11 (6d14h)  bar x
+            ### GEMINI
+            plan: ?
+            gemini   0.0% used  window weekly  pool g  resets 10-30 (6d14h)  bar x
             """)
         self.assertEqual(lines, ["> **→ Use ChatGPT right now:** 60% left in its tightest window."])
 
