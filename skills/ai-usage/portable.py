@@ -13,10 +13,10 @@ Windows needs two things POSIX does not:
 
 Neither has any effect on macOS or Linux.
 """
-import atexit, os, shutil, signal, subprocess, sys
+import atexit, json, os, shutil, signal, subprocess, sys, time
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.12.8"
+VERSION = "1.13.0"
 CALL_TIMEOUT = 20
 
 # 20 cells. Each cell is 5 points; the partial cell is one of 8 eighths, so the
@@ -152,3 +152,21 @@ def usage_bar(percent):
 def format_bar(percent):
     """Probe suffix. The report copies this string; it does not redraw the bar."""
     return "bar %s" % usage_bar(percent)
+
+
+def rpc_reply(lines, i, seconds=10):
+    """The JSON-RPC response with id `i` from a list a reader thread fills, or None.
+
+    Polls every 50 ms instead of sleeping a fixed time before and between requests.
+    """
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        for line in list(lines):
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(d, dict) and d.get("id") == i and ("result" in d or "error" in d):
+                return d
+        time.sleep(0.05)
+    return None

@@ -689,3 +689,44 @@ class UsageBarTests(unittest.TestCase):
         self.assertEqual(self.bar(2), "▍░░░░░░░░░░░░░░░░░░░")
         self.assertNotEqual(self.bar(1), self.bar(0))
         self.assertEqual(self.bar(0.1), "▏░░░░░░░░░░░░░░░░░░░")
+
+
+class AdviceTests(unittest.TestCase):
+    def advice(self, raw):
+        import datetime
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("ai_usage_html", SKILL / "html_report.py")
+        html_report = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(html_report)
+        return html_report.advice(textwrap.dedent(raw), datetime.datetime(2026, 10, 23, 10, 0))
+
+    def test_tightest_window_and_week_warning(self):
+        lines = self.advice("""\
+            ### CLAUDE
+            5h      16.0% used  resets Oct 23 at 1:49pm  bar x
+            week    85.0% used  resets Oct 26 at 4:59pm  bar x
+            ### GROK
+            week       <1% used  window weekly  resets 10-30 01:11 (6d14h)  bar x
+            ### GEMINI
+            gemini  30.0% used  window weekly  pool gemini  resets 10-30 (6d14h)  bar x
+            cl+gpt  20.0% used  window weekly  pool x  resets 10-30 (6d14h)  bar x
+            """)
+        self.assertEqual(lines, [
+            "> **Warning:** Claude week is 85% used; resets in 3d6h.",
+            "> **→ Use Grok right now:** 100% left in its tightest window."])
+
+    def test_near_tie_goes_to_higher_cursorbench_score_but_not_aa(self):
+        raw = """\
+            ### CLAUDE
+            week    10.0% used  resets Oct 26 at 4:59pm  bar x
+            ### CHATGPT
+            outer    5.0% used  window 168h  resets 10-30 01:11 (6d14h)  bar x
+            ### CURSORBENCH
+            bench   claude  Opus 5.5 High  score 56.0%  cost $3.97  cp 14.1
+            bench   codex  GPT-6.1 Sol High  {}
+            """
+        self.assertIn("Use Claude", self.advice(raw.format("score 40.0%  cost $1.00  cp 40.0"))[-1])
+        self.assertIn("Use ChatGPT", self.advice(raw.format("aa 50  cost $0.32  cp 157.4  (AA)"))[-1])
+
+    def test_no_usage_block_no_advice(self):
+        self.assertEqual(self.advice("### CLAUDE\nnot installed\n"), [])

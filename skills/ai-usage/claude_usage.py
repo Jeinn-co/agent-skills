@@ -43,7 +43,8 @@ except Exception:
     pass
 print("plan: %s" % (plan or "unknown"))
 
-raw = run("-p", "--output-format", "json", "/usage")
+# --strict-mcp-config: /usage needs no MCP server, and starting them took ~2.5s of ~4.4s.
+raw = run("-p", "--output-format", "json", "--strict-mcp-config", "/usage")
 env = {}
 try:
     env = json.loads(raw)

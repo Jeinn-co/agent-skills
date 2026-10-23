@@ -131,3 +131,77 @@ Dead ends (checked 2026-10-02):
 2. **`/credits`** — paid G1 credits only; on a free account it errors `no credits info found`.
 3. **`--output-format json`** on a real turn — carries token counts, not the model id.
 4. **IDE conversation files** under `~/.gemini/antigravity/conversations/*.pb` — encrypted.
+
+## Requirements (moved from SKILL.md)
+
+Do not install anything and do not ask the user to log in. Just run the script and
+report what comes back.
+
+- **Python 3.9+**. The POSIX shim selects `python3` before `python`; Windows uses the
+  `py -3` launcher when available. `run.py` then re-launches every probe with that exact
+  interpreter.
+- **At least one** of `claude`, `codex`, `grok`, `muse`, or the Antigravity CLI
+  (`~/.gemini/bin/agy`), already signed in. Zero of them is
+  still a valid run: every row prints `not installed`.
+- **Subprocess and network access.** The host must allow local process launches, and
+  each installed provider CLI must be able to reach its own service. The only direct
+  HTTP requests the Python code makes are one GET of the public page
+  `https://cursor.com/cursorbench` (`cursorbench.py`), for a current model
+  CursorBench does not list, one GET of its public Artificial Analysis release page
+  (`https://artificialanalysis.ai/models/releases/<model id>`), and, for step 0 only,
+  one GET of this skill's published `SKILL.md` on `raw.githubusercontent.com`; no
+  credential is sent.
+
+If a provider prints `not installed`, show that status in its usage block and Now
+cell, but still show its Qualified model, cost and CP from the public benchmarks.
+Do not suggest installing it unless the user asks. If a provider is
+installed but its call fails, report the failure for that row and still print the
+others; never substitute a number from memory or from an earlier run.
+
+## Where each number comes from
+
+All five are live. No browser, no stored credentials, no cookie access.
+Verified 2026-09-12 on macOS, and 2026-09-14 on a zh-TW Windows 11 machine (PowerShell,
+Python 3.12) — that run surfaced and fixed a UnicodeDecodeError in the Claude probe
+(see Limitations in README).
+
+| Provider | Method |
+|---|---|
+| Claude | `claude -p "/usage" < /dev/null` — print mode routes the built-in slash command |
+| ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` — see `codex_usage.py` |
+| Grok | `grok agent stdio` → JSON-RPC `_x.ai/billing` — see `grok_usage.py` |
+| Muse | `muse serve` → one tiny turn, then MSP `usage/read` — see `muse_usage.py` |
+| Gemini | `~/.gemini/bin/agy -p "/usage"` — the Antigravity CLI's built-in slash command, see `agy_usage.py` |
+
+Three of the five are the CLI's own local agent server answering over stdio, and the
+other two (Claude, Gemini) route the CLI's own `/usage` command in print mode, so the
+numbers are the same ones the TUI shows. Nothing is cached and nothing is scraped.
+
+**Gemini runs the Antigravity CLI at `~/.gemini/bin/agy`, never the `agy` on PATH.**
+The Antigravity IDE installs a launcher with the same name; running it opens the
+editor. `/usage` makes no model call and leaves no conversation. A signed-out agy opens
+the Google sign-in page in a browser, so the probe only starts agy when the CLI's own log
+shows a signed-in run; otherwise it prints `agy not signed in here … skipped so no
+browser opens`. Report that row as not signed in; do not suggest a fix unless asked. The
+probe sets `AGY_CLI_DISABLE_AUTO_UPDATE=1` so the CLI does not update itself.
+
+**Muse costs one model call per run.** Muse keeps no usage on disk and reports it only
+with a model response, so `muse_usage.py` sends `Reply with the single word: ok` at
+`minimal` effort, using the non-contributor twin of the default model when the catalog
+lists one. That spends a sliver of Muse quota and leaves one session in Muse's history,
+rooted in `<temp>/ai-usage-muse-probe`; `session_info.py muse` skips those sessions.
+It is skipped if the model response does not arrive within the launcher's 20-second
+budget. It runs with `MUSE_NO_AUTO_UPDATE=1` so the launcher does not
+self-update.
+
+After each usage block, `session_info.py <cli>` prints three lines read from that CLI's
+newest local session file (no network, nothing launched): `session` (last write time),
+`model`, `effort`. These are what the CLI recorded for its last turn, not config
+defaults. See the docstring in `session_info.py` for the files
+and fields. A `?` means the file did not carry that field — print `?`, never a guess.
+One exception: Muse records no effort for TUI turns unless `/effort` was used, and then
+runs at its documented default (`muse --help`: "default: high"); the probe prints
+`effort  high (default)`. Print it as `effort high (default)`; CursorBench looks it up
+as High.
+`no local session` means that CLI has never run here; print it as one row.
+

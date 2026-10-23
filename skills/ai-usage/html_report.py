@@ -148,6 +148,39 @@ def figure(text):
     return name, score, "$" + found.group(2), found.group(4), "(AA)" in found.group(5)
 
 
+def advice(raw, now=None):
+    """The chat lines: a warning per week window over 80%, then `→ Use <tool> right now`."""
+    now = now or datetime.datetime.now()
+    data = parse(raw)
+    clis = {name: cli for cli, name in CLI_NAMES.items()}
+    lines, ranked = [], []
+    for p in data["providers"]:
+        for w in p["windows"]:
+            if w["label"] != "5h" and w["pct"] > 80:
+                left = relative(w["reset"], now) if w["reset"] else ""
+                lines.append("> **Warning:** %s %s is %s used%s." % (
+                    p["name"], w["label"], w["shown"], "; resets in " + left if left else ""))
+        # Gemini's cl+gpt pool serves other vendors' models, so only its gemini pool counts.
+        pcts = [0 if w["shown"] == "<1%" else w["pct"] for w in p["windows"]
+                if p["name"] != "Gemini" or w["label"] == "gemini"]
+        if pcts:
+            bench = data["bench"].get(clis.get(p["name"]), "")
+            score = re.search(r"score ([\d.]+)%", bench)
+            ranked.append((100 - max(pcts), float(score.group(1)) if score and "(AA)" not in bench
+                           else None, p["name"]))
+    if not ranked:
+        return lines
+    ranked.sort(key=lambda item: -item[0])
+    best = ranked[0]
+    if len(ranked) > 1:
+        second = ranked[1]
+        if (best[0] - second[0] <= 10 and best[1] is not None and second[1] is not None
+                and second[1] > best[1]):
+            best = second
+    lines.append("> **→ Use %s right now:** %d%% left in its tightest window." % (best[2], round(best[0])))
+    return lines
+
+
 def level(pct):
     return "red" if pct >= 80 else "amber" if pct >= 50 else "green"
 

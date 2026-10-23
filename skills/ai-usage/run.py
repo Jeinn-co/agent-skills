@@ -186,21 +186,22 @@ def benchmark(now):
 
 # Setup decides the output format; html unless `--set-output md` was saved.
 HTML = output_format() == "html"
-if HTML:
-    # Keep a copy of everything printed so html_report can render the same data.
-    import io
-    _real_stdout = sys.stdout
-    _captured = io.StringIO()
+# Keep a copy of everything printed so html_report can build the advice and the page.
+import io
+_real_stdout = sys.stdout
+_captured = io.StringIO()
 
-    class _Tee:
-        def write(self, text):
-            _captured.write(text)
-            return _real_stdout.write(text)
 
-        def flush(self):
-            _real_stdout.flush()
+class _Tee:
+    def write(self, text):
+        _captured.write(text)
+        return _real_stdout.write(text)
 
-    sys.stdout = _Tee()
+    def flush(self):
+        _real_stdout.flush()
+
+
+sys.stdout = _Tee()
 
 try:
     print("### ai-usage %s" % portable.VERSION)
@@ -234,9 +235,13 @@ try:
         print()
         print("### CURSORBENCH")
         print(bench.result(), end="")
+    import html_report
+    print()
+    print("### ADVICE")
+    for line in html_report.advice(_captured.getvalue()):
+        print(line)
     if HTML:
         import tempfile, webbrowser
-        import html_report
         out = Path(tempfile.gettempdir()) / "ai-usage" / "report.html"
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(html_report.render(_captured.getvalue()), encoding="utf-8")

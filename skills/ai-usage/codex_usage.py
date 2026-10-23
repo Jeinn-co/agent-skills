@@ -56,23 +56,14 @@ def send(i, m, params=None):
 if not send(1, "initialize", {"clientInfo": {"name": "uu", "title": "uu",
                                             "version": "1"}}):
     die("codex exited before answering; signed in? try `codex login`")
-time.sleep(1.5)
+
+
+if not portable.rpc_reply(out, 1):
+    die("no initialize answer in 10s; exit code %s" % p.poll())
 if not send(2, "account/rateLimits/read"):
     die("codex exited before answering; signed in? try `codex login`")
 
-res = None
-for _ in range(40):
-    time.sleep(0.25)
-    for l in out:
-        try:
-            d = json.loads(l)
-        except Exception:
-            continue
-        if d.get("id") == 2 and "result" in d:
-            res = d["result"]
-            break
-    if res:
-        break
+res = (portable.rpc_reply(out, 2) or {}).get("result")
 p.kill()
 
 if not res:

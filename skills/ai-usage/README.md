@@ -187,7 +187,9 @@ Read top to bottom:
 5. **Compare models** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
 In chat the agent shows only the recommendation — **→** which tool to use right now (the
-one with the most usage left in its tightest window; benchmark score breaks a near tie) and why, after a **⚠** line when a weekly window is over 80% — and a link to the page.
+one with the most usage left in its tightest window; benchmark score breaks a near tie) and why, after a **Warning** line when a weekly window is over 80% — and a link to the page.
+The launcher works these lines out itself (`### ADVICE`), so the agent only copies them and
+loads a short `SKILL.md`; running `./run.sh` in a terminal shows the same lines at no token cost.
 `setup` can switch the output to Markdown, which renders the whole report in chat as
 tables and opens no page.
 

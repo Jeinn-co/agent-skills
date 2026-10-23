@@ -163,7 +163,7 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
 5. **Compare models** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
 對話框裡只顯示推薦 —— **→** 現在該用哪一個（看最緊的視窗誰剩最多額度，差距 10 點內才比跑分）、附一句理由；週視窗超過 80% 時前面多一行
-**⚠** —— 以及報表連結。`setup` 可以改成 Markdown，整份報表直接以表格顯示在對話框裡，不開網頁。
+**Warning** —— 以及報表連結。這幾行由 launcher 自己算好（`### ADVICE`），agent 只照抄，載入的 `SKILL.md` 也很短；直接在終端機跑 `./run.sh` 一樣看得到，不耗 token。`setup` 可以改成 Markdown，整份報表直接以表格顯示在對話框裡，不開網頁。
 
 它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
 的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude、Grok、Muse 和 Gemini 的數字。

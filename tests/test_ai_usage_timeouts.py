@@ -49,7 +49,7 @@ class LookupTimeoutTests(unittest.TestCase):
     def run_launcher(self, slow_provider=False, slow_bench=False, require_parallel=False):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory)
-            for name in ("run.py", "portable.py"):
+            for name in ("run.py", "portable.py", "html_report.py"):
                 shutil.copyfile(SKILL / name, target / name)
             for name in ("claude_usage.py", "codex_usage.py", "grok_usage.py",
                          "muse_usage.py", "agy_usage.py"):
