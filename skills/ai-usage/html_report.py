@@ -259,18 +259,25 @@ def render(raw, now=None):
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", "".join(cards)), ("bench", "".join(bench_rows)),
-                       ("skipped", skipped), ("compare", esc(COMPARE))):
+                       ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK)):
         page = page.replace("@@%s@@" % key, value)
     return page
 
+
+# Tailwind CSS 3.4 Slate with green/amber/red/blue; every text colour is at least 4.5:1
+# on its card. Dark is used when the OS is dark, unless `data-theme` on <html> forces one.
+DARK = ("--bg:#0f172a;--card:#1e293b;--text:#f1f5f9;--muted:#94a3b8;--line:#334155;"
+        "--track:#334155;--tick:#64748b;--green:#4ade80;--amber:#fbbf24;--red:#f87171;"
+        "--accent:#60a5fa")
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI Usage</title>
 <style>
-:root{--bg:#e9e4de;--card:#fbf9f6;--text:#2b2926;--muted:#69635c;--line:#d3cbc1;--track:#dad2c8;--tick:#9a8f82;--green:#6f8f69;--amber:#b5893f;--red:#a65f59;--accent:#55718d}
-@media (prefers-color-scheme:dark){:root{--bg:#1d1c1a;--card:#2b2926;--text:#f4efe8;--muted:#c0b8ae;--line:#47433e;--track:#4b4742;--tick:#8a8379;--green:#acc7a5;--amber:#e3c088;--red:#dc9d96;--accent:#a9bfd4}}
+:root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--tick:#94a3b8;--green:#15803d;--amber:#b45309;--red:#dc2626;--accent:#2563eb}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
+:root[data-theme=dark]{@@dark@@}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}

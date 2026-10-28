@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.14.0"
+  version: "1.15.0"
 ---
 
 
@@ -41,14 +41,16 @@ not run the report.
 Run the launcher (no arguments; `fresh` only means do not reuse an earlier answer).
 Each provider has a 20-second budget; never extend it.
 
-- **HTML output** (default): the last line is `### HTML <path>`. Print only, with no
-  preamble or recap:
+- **HTML output** (default): the last line is `### HTML <target>`, an
+  `http://127.0.0.1:…/` URL (the local page with a Refresh button) or a file path. Print
+  only, with no preamble or recap:
   1. the `### ADVICE` lines as they are (a `> **Warning:**` line when a week window is
      over 80%, then the `> **→ Use … right now:**` line); nothing when the block is empty;
   2. `_Not checked (setup): <names>_` when a `### skipped <ids>` line exists
      (ids: claude Claude, codex ChatGPT, grok Grok, muse Muse, agy Gemini);
-  3. `**Report:** [Open the HTML report](file:///<path with forward slashes>)`, plus a
-     short note when the line says `(could not open a browser)`.
+  3. `**Report:** [Open the HTML report](<target>)`: the URL as printed, or
+     `file:///<path with forward slashes>` for a path. Add a short note for each
+     parenthesised note on that line (`Refresh unavailable: …`, `could not open a browser`).
 - **Markdown output** (no `### HTML` line, setup saved `md`): read
   `references/markdown-report.md` and render the report it describes.
 

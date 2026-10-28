@@ -132,6 +132,27 @@ benchmark lookup has its own 20-second budget; if it times out, usage is still s
 and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
 report for 90 seconds.
 
+### Refresh in the browser
+
+When the report is HTML, `/ai-usage` also starts a small local server in the background
+(`run.py --serve`, Python standard library only) and opens `http://127.0.0.1:47821/`
+instead of the file:
+
+- **Refresh** re-runs the report and swaps it in. While it runs, the old report is
+  cleared and the page shows `Fetching data…`; a failed run shows the error, never the
+  old numbers. Reloading the page only re-reads the last report.
+- `Updated MM-DD HH:MM:SS` is when the report on screen was written.
+- **Auto / Light / Dark** picks the colours; Auto follows the OS, and the choice is kept
+  in that browser.
+- The server listens on 127.0.0.1 only, refuses other host names and framing by other
+  sites, and starts a run only for a request that carries its own header.
+
+The server keeps running after the report, and later reports reuse it. To stop it, end
+its Python process (`run.py --serve --no-open`), or run `run.py --serve` yourself and
+press Ctrl+C. If port 47821 is taken, or held by a server from another copy of this
+skill, the report opens the file as before and says why Refresh is unavailable. Tested
+on Windows 11; on Windows the server has no window. macOS is not yet tested.
+
 ### Skill updates
 
 Before each run the agent first compares this skill with the `SKILL.md` published on
@@ -161,7 +182,7 @@ Choose every provider to go back to the default. Outside an agent:
 ## What it prints
 
 `/ai-usage` with demo data. By default the report opens as an HTML page in your browser
-(Morandi palette, light and dark mode), drawn by Python at no model-token cost:
+(Tailwind Slate palette, light and dark mode), drawn by Python at no model-token cost:
 
 ![ai-usage report](images/demo.png)
 

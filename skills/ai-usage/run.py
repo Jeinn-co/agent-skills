@@ -7,7 +7,7 @@ or worse, a Microsoft Store stub that opens the store instead of running anythin
 
 Verified 2026-09-12 on macOS, 2026-09-14 on Windows 11. See README for platform notes.
 """
-import json, os, re, shutil, subprocess, sys, urllib.request
+import json, os, re, shutil, subprocess, sys, tempfile, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -148,6 +148,268 @@ if len(sys.argv) == 3 and sys.argv[1] == "--set-output":
 if len(sys.argv) == 3 and sys.argv[1] == "--set-providers":
     print("providers=" + ",".join(set_providers(sys.argv[2])))
     sys.exit(0)
+# Local report page with a Refresh button that re-runs the report (reload only re-reads
+# the last one). Fixed port so /ai-usage can tell whether one is already running.
+SERVE_PORT = 47821
+SERVE_URL = "http://127.0.0.1:%d/" % SERVE_PORT
+PAGE = Path(tempfile.gettempdir()) / "ai-usage" / "report.html"
+# /ping answer: version and location, so a server left from an older or moved copy of
+# this skill is not mistaken for this one (its Refresh would run that other run.py).
+PING = ("ai-usage %s %s" % (portable.VERSION, HERE)).encode("utf-8")
+# Set on the child run that the server starts: HTML page, no new browser tab.
+SERVED = os.environ.get("AI_USAGE_SERVED") == "1"
+# `/` is this shell: the last report in an iframe plus a Refresh button. Reload only
+# re-reads the last report; the button re-runs it, then reloads just the iframe.
+SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>AI Usage</title>
+<style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
+--page:#020617;--edge:#334155;--frame:#0f172a;--btn:#334155}}
+:root[data-theme=dark]{color-scheme:dark;--page:#020617;--edge:#334155;--frame:#0f172a;
+--btn:#334155}
+html,body{margin:0;height:100%}body{box-sizing:border-box;padding:16px;display:flex;
+flex-direction:column;gap:12px;background:var(--page)}
+iframe{flex:1;min-height:0;width:100%;box-sizing:border-box;border:1px solid var(--edge);
+border-radius:12px;background:var(--frame)}
+#bar{display:flex;justify-content:space-between;gap:12px;align-items:center;
+font:12px system-ui,sans-serif;color:CanvasText}
+#bar h1{font-size:20px;font-weight:600;margin:0 0 2px}#meta{opacity:.7}
+#updated:not(:empty)::after{content:" · "}#tools{display:flex;gap:8px}
+button,select{padding:5px 12px;border:0;border-radius:12px;font:inherit;background:var(--btn);
+color:inherit;cursor:pointer}</style>
+</head><body><header id="bar"><div><h1>AI Usage</h1><div id="meta"><span id="updated"></span><span>ai-usage __VERSION__</span></div></div>
+<div id="tools"><select id="theme" aria-label="Theme"><option value="auto">Auto</option>
+<option value="light">Light</option><option value="dark">Dark</option></select>
+<button id="refresh">Refresh</button></div></header><iframe id="report"></iframe><script>
+const frame = document.getElementById("report"), button = document.getElementById("refresh");
+const picker = document.getElementById("theme");
+let theme = "auto";  // Auto follows the OS; the choice is kept per browser
+try { theme = localStorage.getItem("aiu-theme") || "auto"; } catch (e) {}
+picker.value = theme;
+const applyTheme = doc => {
+  if (theme === "auto") delete doc.documentElement.dataset.theme;
+  else doc.documentElement.dataset.theme = theme;
+};
+// Puts the theme on the page before it renders, so it never flashes in the other one.
+const show = html => {
+  frame.srcdoc = theme === "auto" ? html :
+    html.replace(/<html\\b/i, '<html data-theme="' + theme + '"');
+};
+applyTheme(document);
+picker.onchange = () => {
+  theme = picker.value;
+  try { localStorage.setItem("aiu-theme", theme); } catch (e) {}
+  applyTheme(document);
+  if (frame.contentDocument) applyTheme(frame.contentDocument);
+};
+const stamp = ms => {  // when the shown report was produced, in local time
+  const d = new Date(ms), p = n => String(n).padStart(2, "0");
+  document.getElementById("updated").textContent = ms ? "Updated " + p(d.getMonth() + 1) + "-" +
+    p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) : "";
+};
+stamp(__UPDATED__);
+frame.onload = () => {
+  const main = frame.contentDocument.querySelector("main");
+  if (main) {
+    main.querySelector("h1")?.remove();
+    main.querySelector(".sub")?.remove();
+    frame.contentDocument.body.style.paddingTop = "20px";
+  }
+};
+// Replaces the report while fetching or after a failure, so old numbers never look current.
+const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style>' + text;
+fetch("/last?" + Date.now())
+  .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText))
+  .then(show)
+  .catch(e => show(notice("Could not load the report (" + e + ").")));
+button.onclick = () => {
+  button.disabled = true;
+  button.textContent = "Refreshing\\u2026";
+  stamp(0);
+  show(notice("Fetching data\\u2026"));
+  fetch("/report", {method: "POST", headers: {"X-AI-Usage": "1"}})
+    .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText))
+    .then(written => fetch("/last?" + Date.now()).then(r => r.ok ? r.text() :
+      Promise.reject(r.status + " " + r.statusText)).then(html => {
+      show(html);
+      stamp(Number(written));
+      button.textContent = "Refresh";
+    }))
+    .catch(e => {
+      show(notice("Fetch failed (" + e + "). Press Retry."));
+      button.textContent = "Retry";
+    })
+    .finally(() => { button.disabled = false; });
+};
+</script></body></html>"""
+# Placeholder pages in the iframe (fetching, failed, no report yet). `data-theme` on
+# <html> forces light or dark; without it the OS setting decides.
+NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a}"
+              "@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--b:#0f172a;--t:#f1f5f9}}"
+              ":root[data-theme=dark]{--b:#0f172a;--t:#f1f5f9}"
+              "body{margin:0;height:100vh;display:grid;place-items:center;"
+              "font:15px system-ui,sans-serif;background:var(--b);color:var(--t)}")
+EMPTY_PAGE = ('<!doctype html><html><head><meta charset="utf-8"><style>%s</style></head>'
+              "<body>No report yet. Press Refresh.</body></html>" % NOTICE_CSS)
+
+
+def ping():
+    """What answers /ping on SERVE_PORT: PING for this copy, other bytes, or None."""
+    try:  # no proxy: a corporate HTTP_PROXY must not intercept 127.0.0.1
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(SERVE_URL + "ping", timeout=0.5) as reply:
+            return reply.read()
+    except OSError:
+        return None
+
+
+def start_server():
+    """Start `--serve` detached so it outlives this run; True once it answers."""
+    args = [sys.executable, str(HERE / "run.py"), "--serve", "--no-open"]
+    quiet = dict(stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                 stderr=subprocess.DEVNULL, close_fds=True)
+    try:
+        if os.name == "nt":
+            # CREATE_NO_WINDOW (not DETACHED_PROCESS): the server keeps a hidden console
+            # its CLI children share; with no console each child opens its own window.
+            # CREATE_BREAKAWAY_FROM_JOB so a host that runs commands in a job object does
+            # not kill it when the command ends.
+            try:
+                subprocess.Popen(args, creationflags=0x08000000 | 0x01000000, **quiet)
+            except OSError:
+                # The job forbids breakaway. The server then stays in it and may stop
+                # when the host's command ends; the next run just starts it again.
+                subprocess.Popen(args, creationflags=0x08000000, **quiet)
+        else:
+            subprocess.Popen(args, start_new_session=True, **quiet)
+    except OSError:
+        return False
+    for _ in range(30):
+        if ping() == PING:
+            return True
+        time.sleep(0.1)
+    return False
+
+
+def write_page(html):
+    """Swap in a complete report so a reader never sees half a page."""
+    PAGE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = PAGE.with_name("report.%d.tmp" % os.getpid())
+    try:
+        tmp.write_text(html, encoding="utf-8")
+        for attempt in range(10):
+            try:
+                os.replace(tmp, PAGE)
+                return
+            except PermissionError:  # Windows: the server is reading the page right now
+                if attempt == 9:
+                    raise
+                time.sleep(0.1)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+if "--serve" in sys.argv:
+    import threading, webbrowser
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    # Threaded so /ping and /last answer during a ~10 s refresh; this lock still keeps
+    # refreshes to one at a time.
+    refresh_lock = threading.Lock()
+
+    def written_ms():
+        """When the report on disk was written (ms since epoch), "0" if there is none."""
+        try:
+            return str(int(PAGE.stat().st_mtime * 1000))
+        except OSError:
+            return "0"
+
+    class Handler(BaseHTTPRequestHandler):
+        def local(self):
+            # DNS-rebinding guard: only answer pages that address us as localhost.
+            if self.headers.get("Host") in ("127.0.0.1:%d" % SERVE_PORT,
+                                            "localhost:%d" % SERVE_PORT):
+                return True
+            self.send_error(403)
+            return False
+
+        def do_GET(self):
+            path = self.path.partition("?")[0]
+            if not self.local():
+                return
+            if path == "/ping":
+                self.reply(PING, "text/plain; charset=utf-8")
+            elif path == "/":
+                self.reply(SHELL.replace("__UPDATED__", written_ms())
+                           .replace("__VERSION__", portable.VERSION)
+                           .replace("__NOTICE_CSS__", NOTICE_CSS).encode("utf-8"),
+                           "text/html; charset=utf-8")
+            elif path == "/last":
+                try:
+                    body = PAGE.read_bytes()
+                except OSError:
+                    body = EMPTY_PAGE.encode("utf-8")
+                self.reply(body, "text/html; charset=utf-8")
+            else:
+                self.send_error(404)
+
+        def do_POST(self):
+            # The custom header makes a cross-site request need a CORS preflight, which
+            # this server never grants, so other pages cannot start runs.
+            if not self.local():
+                return
+            if self.path != "/report" or self.headers.get("X-AI-Usage") != "1":
+                self.send_error(404)
+                return
+            with refresh_lock:
+                try:
+                    code = portable.run_bounded(
+                        [sys.executable, str(HERE / "run.py")],
+                        timeout=4 * portable.CALL_TIMEOUT, stdout=subprocess.DEVNULL,
+                        env=dict(os.environ, AI_USAGE_SERVED="1")).returncode
+                except (subprocess.TimeoutExpired, OSError) as exc:
+                    code = exc
+            if code != 0:  # the old report and its time stay on the page
+                self.send_error(500, "report failed: %s" % code)
+                return
+            self.reply(written_ms().encode("ascii"), "text/plain")
+
+        def end_headers(self):
+            # No framing by other sites, so none can trick a click on Refresh.
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
+            super().end_headers()
+
+        def reply(self, body, ctype):
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = None
+    holder = ping()
+    if holder == PING:
+        print("already serving %s" % SERVE_URL)
+    elif holder:
+        sys.exit("port %d is held by another ai-usage server (%s); stop that process first"
+                 % (SERVE_PORT, holder.decode("utf-8", "replace")))
+    else:
+        try:
+            server = ThreadingHTTPServer(("127.0.0.1", SERVE_PORT), Handler)
+        except OSError as exc:
+            sys.exit("port %d is busy (%s)" % (SERVE_PORT, exc))
+        print("serving %s  (Refresh re-runs the report, Ctrl+C stops)" % SERVE_URL, flush=True)
+    if "--no-open" not in sys.argv:
+        webbrowser.open(SERVE_URL)
+    if server:
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+    sys.exit(0)
 
 SKIPPED = [cli for cli in IDS if cli not in selected()]
 PROBES = tuple(probe for probe in PROBES if probe[2] not in SKIPPED)
@@ -185,7 +447,7 @@ def benchmark(now):
         return "bench failed (lookup timed out after %gs; skipped)\n" % portable.CALL_TIMEOUT
 
 # Setup decides the output format; html unless `--set-output md` was saved.
-HTML = output_format() == "html"
+HTML = output_format() == "html" or SERVED
 # Keep a copy of everything printed so html_report can build the advice and the page.
 import io
 _real_stdout = sys.stdout
@@ -241,13 +503,23 @@ try:
     for line in html_report.advice(_captured.getvalue()):
         print(line)
     if HTML:
-        import tempfile, webbrowser
-        out = Path(tempfile.gettempdir()) / "ai-usage" / "report.html"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(html_report.render(_captured.getvalue()), encoding="utf-8")
-        opened = webbrowser.open(out.as_uri())
+        import webbrowser
+        write_page(html_report.render(_captured.getvalue()))
+        # Prefer the local server, whose page has a Refresh button; fall back to the file.
+        note = ""
+        if SERVED:
+            shown, opened = PAGE, True
+        else:
+            holder = ping()
+            if holder == PING or (holder is None and start_server()):
+                shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
+            else:
+                shown, opened = PAGE, webbrowser.open(PAGE.as_uri())
+                note = ("  (Refresh unavailable: port %d is held by another ai-usage server; "
+                        "stop it)" % SERVE_PORT if holder else
+                        "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
         print()
-        print("### HTML %s%s" % (out, "" if opened else "  (could not open a browser)"))
+        print("### HTML %s%s%s" % (shown, note, "" if opened else "  (could not open a browser)"))
 except BrokenPipeError:
     # someone piped us into `head` and walked away. Point the fd at devnull so the
     # interpreter's shutdown flush does not print a second traceback on top.

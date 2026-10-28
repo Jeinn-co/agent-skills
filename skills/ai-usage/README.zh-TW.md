@@ -119,6 +119,22 @@ benchmark 也與用量查詢同時進行。報表仍維持固定順序，等待�
 Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmark 表格。
 沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
 
+### 在瀏覽器裡刷新
+
+報表是 HTML 時，`/ai-usage` 會在背景啟動一個本機小服務（`run.py --serve`，只用 Python
+標準函式庫），改開 `http://127.0.0.1:47821/`，不再開檔案：
+
+- 按 **Refresh** 會重跑報表並換上新的。跑的期間舊報表會清空，只顯示 `Fetching data…`；
+  失敗時顯示錯誤訊息，不會留著舊數字。重新整理頁面只會重讀上一次的報表。
+- `Updated MM-DD HH:MM:SS` 是畫面上這份報表寫入的時間。
+- **Auto / Light / Dark** 切換配色；Auto 跟著系統，選擇會記在該瀏覽器。
+- 服務只聽 127.0.0.1，拒絕其他主機名稱與其他網站嵌入，只有帶自訂 header 的請求才會重跑。
+
+報表跑完後服務會繼續執行，之後的報表會沿用它。要停掉就結束它的 Python 程序
+（`run.py --serve --no-open`），或自己執行 `run.py --serve` 再按 Ctrl+C。port 47821
+被佔用、或被另一份 skill 的服務佔住時，報表照舊開檔案，並說明為什麼不能用 Refresh。
+已在 Windows 11 測過，Windows 上服務不會開視窗；macOS 尚未測試。
+
 ### Skill 更新
 
 每次執行前，agent 會先比對 GitHub `main` 上發佈的 `SKILL.md`（`run.py --check-skill`，
@@ -140,7 +156,7 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
 
 ## 輸出長什麼樣
 
-`/ai-usage` 的示範資料。預設會在瀏覽器打開 HTML 報表（莫蘭迪配色、深淺色模式），由 Python
+`/ai-usage` 的示範資料。預設會在瀏覽器打開 HTML 報表（Tailwind Slate 配色、深淺色模式），由 Python
 產生、不耗模型 token：
 
 ![ai-usage 報表](images/demo.png)
