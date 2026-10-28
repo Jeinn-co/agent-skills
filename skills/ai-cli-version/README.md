@@ -137,10 +137,13 @@ background (`run.py --serve`, Python standard library only) and opens
   error, never the old versions. Reloading the page only re-reads the last report.
 - **Update** appears on each row with an update, and **Update all (N)** at the top when
   there are two or more. While an updater runs, its row shows the elapsed seconds and
-  the updater's own latest output line (no updater reports a percentage), and Update all
-  can queue the remaining tools. Clicking several row buttons queues them in click order;
-  Update all adds the rest. Updaters run one at a time, Refresh stays disabled until the
-  queue finishes, and a failure does not stop the rest. When one finishes, the server
+  the updater's own latest output line (no updater reports a percentage). Update all
+  queues every tool with an update and runs them one at a time. While updates run, only
+  cancelling works: a queued row's button reads `Queued · Cancel` and takes just that tool
+  off the queue, and the top button reads `Cancel queued (N)` and drops every tool that
+  has not started. The running row, the other rows and Refresh stay disabled until the
+  queue ends, and the one already running always finishes, since stopping an installer
+  halfway could leave a broken install. A failure does not stop the rest. When one finishes, the server
   re-checks just that tool and the page swaps in
   just its row (`Updated just now`, or the error and a **Retry** button); the rest of the
   report stays as it is. The page sends only the tool name: the server re-checks that

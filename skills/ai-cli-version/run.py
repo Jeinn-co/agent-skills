@@ -29,7 +29,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.12.0"
+VERSION = "1.13.0"
 
 TIMEOUT = 20
 HOME = os.path.expanduser("~")
@@ -552,19 +552,22 @@ const failures = {};
 // shortcut: queued clicks live in this tab; use a server queue if they must survive reload.
 const queue = [], pending = new Set();
 let busy = false, updating = false, current = "";
+// While updates run, the same button cancels the ones not started yet; the running one
+// always finishes, since stopping an installer halfway could leave a broken install.
 const syncButtons = () => {
   button.disabled = busy || updating;
   const rows = [...(frame.contentDocument?.querySelectorAll("tr[data-tool]") || [])];
-  const remaining = rows.filter(row => !pending.has(row.dataset.tool));
-  allButton.hidden = rows.length < 2;
-  allButton.disabled = busy || !remaining.length;
-  allButton.textContent = updating ? "Queue remaining (" + remaining.length + ")" :
-    "Update all (" + rows.length + ")";
+  allButton.hidden = rows.length < 2 && !queue.length;
+  allButton.disabled = busy || (updating && !queue.length);
+  allButton.textContent = !updating ? "Update all (" + rows.length + ")" :
+    queue.length ? "Cancel queued (" + queue.length + ")" : "Finishing\\u2026";
+  // While updates run, only a queued row's button works, and it cancels just that tool;
+  // the running row and rows outside the queue stay disabled until the queue ends.
   frame.contentDocument?.querySelectorAll("button.acv-up").forEach(b => {
-    const tool = b.dataset.tool;
-    b.disabled = busy || pending.has(tool);
-    if (pending.has(tool) && tool !== current) b.textContent = "Queued";
-    else if (!pending.has(tool) && b.textContent === "Queued") {
+    const tool = b.dataset.tool, queued = pending.has(tool) && tool !== current;
+    b.disabled = busy || (updating && !queued);
+    if (queued) b.textContent = "Queued \\u00b7 Cancel";
+    else if (!pending.has(tool) && b.textContent.startsWith("Queued")) {
       b.textContent = failures[tool] ? "Retry" : "Update";
     }
   });
@@ -602,9 +605,10 @@ const decorate = doc => {
     const up = doc.createElement("button");
     up.className = "acv-up";
     up.dataset.tool = tool;
-    up.textContent = pending.has(tool) && tool !== current ? "Queued" :
+    up.textContent = pending.has(tool) && tool !== current ? "Queued \\u00b7 Cancel" :
       failures[tool] ? "Retry" : "Update";
-    up.onclick = () => enqueueTools([tool]);
+    up.onclick = () => pending.has(tool) && tool !== current ? cancelQueued([tool]) :
+      enqueueTools([tool]);
     (cell.querySelector("code") || cell.firstElementChild || cell).after(up);
     if (failures[tool]) {
       const err = doc.createElement("div");
@@ -613,7 +617,6 @@ const decorate = doc => {
       cell.appendChild(err);
     }
   }
-  allButton.onclick = () => enqueueTools(rows.map(row => row.dataset.tool));
   syncButtons();
 };
 frame.onload = () => decorate(frame.contentDocument);
@@ -635,9 +638,9 @@ const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style
 const load = () => fetch("/last?" + Date.now())
   .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText));
 load().then(show).catch(e => show(notice("Could not load the report (" + e + ").")));
-// Clicks join one queue; the server also serializes requests from other tabs.
+// Update or Update all starts the queue; the server also serializes other tabs' requests.
 const enqueueTools = tools => {
-  if (busy) return;
+  if (busy || updating) return;  // nothing joins a queue that is already running
   for (const tool of tools) {
     if (pending.has(tool)) continue;
     pending.add(tool);
@@ -646,6 +649,22 @@ const enqueueTools = tools => {
   syncButtons();
   if (!updating && queue.length) void updateTools();
 };
+// Drops queued tools that have not started (all of them by default); the running one
+// carries on.
+const cancelQueued = (tools = [...queue]) => {
+  for (const tool of tools) {
+    const at = queue.indexOf(tool);
+    if (at < 0) continue;
+    queue.splice(at, 1);
+    pending.delete(tool);
+  }
+  syncButtons();
+};
+allButton.onclick = () => {
+  if (updating) cancelQueued();
+  else enqueueTools([...frame.contentDocument.querySelectorAll("tr[data-tool]")]
+    .map(row => row.dataset.tool));
+};
 const updateTools = async () => {
   updating = true;
   syncButtons();
@@ -653,6 +672,7 @@ const updateTools = async () => {
   while (queue.length) {
     const tool = queue.shift();
     current = tool;
+    syncButtons();  // the running row's button off, the queue count without it
     const doc = frame.contentDocument;
     const row = doc.querySelector('tr[data-tool="' + CSS.escape(tool) + '"]');
     if (!row) {
