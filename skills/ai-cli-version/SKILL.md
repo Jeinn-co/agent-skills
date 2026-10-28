@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.10.0"
+  version: "1.10.1"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -65,6 +65,11 @@ The prompt is the `### SUMMARY` lines after its blank line; it appears only when
 - A subsequent exact `y` or `Y` authorizes every `update_cmd` from the immediately
   preceding report whose status was `update available`. Run those commands separately,
   so one failure does not prevent the remaining updates.
+- On Windows, run each `update_cmd` with a PowerShell tool, not Git Bash or another MSYS
+  shell. Those shells put Git's GNU `tar` ahead of `System32\tar.exe` on PATH, so the
+  Codex installer extracts nothing and fails with `did not contain the expected package
+  layout`. If only a Bash shell is available, put `/c/Windows/System32` first on PATH for
+  that command.
 - `Esc` or `Escape` skips all updates. Confirm that no updates were run.
 - Any other reply is not authorization. Repeat the two valid choices without updating.
 - After `y`, show success or failure for every selected tool, then run the check-only
