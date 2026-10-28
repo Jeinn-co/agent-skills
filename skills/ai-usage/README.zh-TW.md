@@ -130,8 +130,9 @@ Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmar
 - **Auto / Light / Dark** 切換配色；Auto 跟著系統，選擇會記在該瀏覽器。
 - 服務只聽 127.0.0.1，拒絕其他主機名稱與其他網站嵌入，只有帶自訂 header 的請求才會重跑。
 
-報表跑完後服務會繼續執行，之後的報表會沿用它。要停掉就結束它的 Python 程序
-（`run.py --serve --no-open`），或自己執行 `run.py --serve` 再按 Ctrl+C。port 47821
+報表跑完後服務會繼續執行，之後的報表會沿用它。要停掉就結束它的 Python 程序，也就是
+執行 `run.py --serve --no-open` 的那一個。在終端機執行 `run.py --serve` 只有在服務還沒在跑時
+才會在前景啟動（按 Ctrl+C 停止）；已經有服務在跑時，它只會說明後就結束。port 47821
 被佔用、或被另一份 skill 的服務佔住時，報表照舊開檔案，並說明為什麼不能用 Refresh。
 已在 Windows 11 測過，Windows 上服務不會開視窗；macOS 尚未測試。
 

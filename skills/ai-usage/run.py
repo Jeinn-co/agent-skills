@@ -163,9 +163,9 @@ SERVED = os.environ.get("AI_USAGE_SERVED") == "1"
 SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>AI Usage</title>
 <style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
---page:#020617;--edge:#334155;--frame:#0f172a;--btn:#334155}}
-:root[data-theme=dark]{color-scheme:dark;--page:#020617;--edge:#334155;--frame:#0f172a;
---btn:#334155}
+--page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569}}
+:root[data-theme=dark]{color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;
+--btn:#475569}
 html,body{margin:0;height:100%}body{box-sizing:border-box;padding:16px;display:flex;
 flex-direction:column;gap:12px;background:var(--page)}
 iframe{flex:1;min-height:0;width:100%;box-sizing:border-box;border:1px solid var(--edge);
@@ -182,8 +182,11 @@ color:inherit;cursor:pointer}</style>
 <button id="refresh">Refresh</button></div></header><iframe id="report"></iframe><script>
 const frame = document.getElementById("report"), button = document.getElementById("refresh");
 const picker = document.getElementById("theme");
+const THEMES = ["auto", "light", "dark"];
 let theme = "auto";  // Auto follows the OS; the choice is kept per browser
 try { theme = localStorage.getItem("aiu-theme") || "auto"; } catch (e) {}
+// The value is spliced into the report's HTML, so only a known name may pass.
+if (!THEMES.includes(theme)) theme = "auto";
 picker.value = theme;
 const applyTheme = doc => {
   if (theme === "auto") delete doc.documentElement.dataset.theme;
@@ -196,7 +199,7 @@ const show = html => {
 };
 applyTheme(document);
 picker.onchange = () => {
-  theme = picker.value;
+  theme = THEMES.includes(picker.value) ? picker.value : "auto";
   try { localStorage.setItem("aiu-theme", theme); } catch (e) {}
   applyTheme(document);
   if (frame.contentDocument) applyTheme(frame.contentDocument);
@@ -244,8 +247,8 @@ button.onclick = () => {
 # Placeholder pages in the iframe (fetching, failed, no report yet). `data-theme` on
 # <html> forces light or dark; without it the OS setting decides.
 NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a}"
-              "@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--b:#0f172a;--t:#f1f5f9}}"
-              ":root[data-theme=dark]{--b:#0f172a;--t:#f1f5f9}"
+              "@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--b:#1e293b;--t:#f1f5f9}}"
+              ":root[data-theme=dark]{--b:#1e293b;--t:#f1f5f9}"
               "body{margin:0;height:100vh;display:grid;place-items:center;"
               "font:15px system-ui,sans-serif;background:var(--b);color:var(--t)}")
 EMPTY_PAGE = ('<!doctype html><html><head><meta charset="utf-8"><style>%s</style></head>'

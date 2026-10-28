@@ -266,9 +266,9 @@ def render(raw, now=None):
 
 # Tailwind CSS 3.4 Slate with green/amber/red/blue; every text colour is at least 4.5:1
 # on its card. Dark is used when the OS is dark, unless `data-theme` on <html> forces one.
-DARK = ("--bg:#0f172a;--card:#1e293b;--text:#f1f5f9;--muted:#94a3b8;--line:#334155;"
-        "--track:#334155;--tick:#64748b;--green:#4ade80;--amber:#fbbf24;--red:#f87171;"
-        "--accent:#60a5fa")
+DARK = ("--bg:#1e293b;--card:#334155;--text:#f1f5f9;--muted:#cbd5e1;--line:#475569;"
+        "--track:#475569;--tick:#94a3b8;--green:#4ade80;--amber:#fbbf24;--red:#fca5a5;"
+        "--accent:#93c5fd")
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
