@@ -114,10 +114,35 @@ py -3 run.py      # Windows；沒有 `py` 就用 `python run.py`
 使用英文。單獨輸入 `/ai-cli-version` 不沿用先前對話語言。腳本本身不偵測作業系統顯示語言，
 也不翻譯原始輸出。工具名稱、版本、日期、指令及錯誤代碼維持原樣，更新按鍵仍是 `y` 和 `Esc`。
 
+### 在瀏覽器裡刷新
+
+報表是 HTML 時，`/ai-cli-version` 會在背景啟動一個本機小服務（`run.py --serve`，只用
+Python 標準函式庫），改開 `http://127.0.0.1:47822/`，不再開檔案：
+
+- 按 **Refresh** 會重新檢查並換上新報表。跑的期間舊報表會清空，顯示
+  `Checking 1 of 5 tools…` 和進度條，每檢查完一個工具就往前推進；失敗時顯示錯誤訊息，
+  不會留著舊版本。重新整理頁面只會重讀上一次的報表。
+- 有更新的那一列會出現 **Update** 按鈕；兩個以上時，上方會有 **Update all (N)**。執行中
+  該列顯示 `Updating… 12s`；Update all 會一個接一個跑，其中一個失敗也不影響其他。跑完後
+  頁面會自動重新檢查，各列就會顯示新版本；失敗的那一列會留下錯誤訊息和 **Retry** 按鈕。
+  頁面只送工具名稱：服務會先重新檢查該工具，已是最新就不動作，否則用跟 `update_cmd`
+  相同的更新程式執行，而且不經過 shell（Windows 上會把 `System32` 放在 PATH 最前面，
+  讓 Codex 安裝程式用到 Windows 自己的 `tar`）。在 agent 裡更新仍然要等 `y` / `Esc`。
+- `Updated MM-DD HH:MM:SS` 是畫面上這份報表寫入的時間。
+- **Auto / Light / Dark** 切換配色；Auto 跟著系統，選擇會記在該瀏覽器。
+- 服務只聽 127.0.0.1，拒絕其他主機名稱與其他網站嵌入，只有帶自訂 header 的請求才會檢查或更新。
+
+報表跑完後服務會繼續執行，之後的報表會沿用它。要停掉就結束它的 Python 程序，也就是
+執行 `run.py --serve --no-open` 的那一個。在終端機執行 `run.py --serve` 只有在服務還沒在跑時
+才會在前景啟動（按 Ctrl+C 停止）；已經有服務在跑時，它只會說明後就結束。port 47822
+被佔用、或被另一份 skill 的服務佔住時，報表照舊開檔案，並說明為什麼不能用 Refresh。
+已在 Windows 11 測過，Windows 上服務不會開視窗；macOS 尚未測試。
+
 ## 輸出範例
 
 `/ai-cli-version` 的示範資料 —— 五個 CLI 都檢查過，其中兩個有更新。預設會在瀏覽器打開
-HTML 報表（莫蘭迪配色、深淺色模式），由 Python 產生、不耗模型 token：
+HTML 報表（Tailwind Slate 配色、深淺色模式），由 Python 產生、不耗模型 token。下圖是本機頁面，
+可以看到 Update 按鈕、Update all、Refresh 和主題切換：
 
 ![ai-cli-version 報表](images/demo.png)
 

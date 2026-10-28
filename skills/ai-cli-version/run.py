@@ -21,11 +21,14 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
+import time
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.10.1"
+VERSION = "1.11.0"
 
 TIMEOUT = 20
 HOME = os.path.expanduser("~")
@@ -429,6 +432,24 @@ def set_tools(arg):
     return picked
 
 
+def stop_tree(proc):
+    """Stop a child started with start_new_session (POSIX) and every process under it."""
+    if os.name == "nt":
+        try:
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           timeout=3)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    proc.kill()
+    proc.wait()
+
+
 def check_tool(name):
     """Isolate each check so its total deadline can stop CLI descendants too."""
     kwargs = {"start_new_session": True} if os.name != "nt" else {}
@@ -439,20 +460,7 @@ def check_tool(name):
     try:
         out, err = proc.communicate(timeout=TIMEOUT)
     except subprocess.TimeoutExpired:
-        if os.name == "nt":
-            try:
-                subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                               timeout=3)
-            except (OSError, subprocess.TimeoutExpired):
-                pass
-        else:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-        proc.kill()
-        proc.wait()
+        stop_tree(proc)
         proc.stdout.close()
         proc.stderr.close()
         return "%s\tcheck failed (lookup timed out after %gs; skipped)\n" % (name, TIMEOUT)
@@ -460,6 +468,439 @@ def check_tool(name):
         reason = err.strip().splitlines()
         return "%s\tcheck failed (%s)\n" % (name, reason[-1] if reason else "no result")
     return out
+
+
+# Local report page with a Refresh button that re-runs the check and shows progress
+# (reload only re-reads the last report). Fixed port so a run can reuse a running server;
+# one above ai-usage's 47821.
+SERVE_PORT = 47822
+SERVE_URL = "http://127.0.0.1:%d/" % SERVE_PORT
+HERE = os.path.dirname(os.path.abspath(__file__))
+PAGE = os.path.join(tempfile.gettempdir(), "ai-cli-version", "report.html")
+# /ping answer: version and location, so a server left from an older or moved copy of
+# this skill is not mistaken for this one (its Refresh would run that other run.py).
+PING = ("ai-cli-version %s %s" % (VERSION, HERE)).encode("utf-8")
+# Set on the run the server starts: HTML page, no browser tab.
+SERVED = os.environ.get("AI_CLI_VERSION_SERVED") == "1"
+# Placeholder pages in the iframe. `data-theme` on <html> forces light or dark.
+NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a;--tr:#e2e8f0;--a:#2563eb}"
+              "@media(prefers-color-scheme:dark){:root:not([data-theme=light])"
+              "{--b:#1e293b;--t:#f1f5f9;--tr:#475569;--a:#93c5fd}}"
+              ":root[data-theme=dark]{--b:#1e293b;--t:#f1f5f9;--tr:#475569;--a:#93c5fd}"
+              "body{margin:0;height:100vh;display:grid;place-items:center;"
+              "font:15px system-ui,sans-serif;background:var(--b);color:var(--t)}"
+              ".bar{width:280px;height:6px;margin-top:12px;border-radius:9px;overflow:hidden;"
+              "background:var(--tr)}#fill{height:100%;width:0;background:var(--a);"
+              "transition:width .3s}")
+EMPTY_PAGE = ('<!doctype html><html><head><meta charset="utf-8"><style>%s</style></head>'
+              "<body>No report yet. Press Refresh.</body></html>" % NOTICE_CSS)
+# `/`: the last report in an iframe, a Refresh button and a theme switch.
+SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>CLI Versions</title>
+<style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
+--page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569}}
+:root[data-theme=dark]{color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;
+--btn:#475569}
+html,body{margin:0;height:100%}body{box-sizing:border-box;padding:16px;display:flex;
+flex-direction:column;gap:12px;background:var(--page)}
+iframe{flex:1;min-height:0;width:100%;box-sizing:border-box;border:1px solid var(--edge);
+border-radius:12px;background:var(--frame)}
+#bar{display:flex;justify-content:space-between;gap:12px;align-items:center;
+font:12px system-ui,sans-serif;color:CanvasText}
+#bar h1{font-size:20px;font-weight:600;margin:0 0 2px}#meta{opacity:.7}
+#updated:not(:empty)::after{content:" · "}#tools{display:flex;gap:8px}
+button,select{padding:5px 12px;border:0;border-radius:12px;font:inherit;background:var(--btn);
+color:inherit;cursor:pointer}button:disabled{opacity:.6;cursor:default}
+#all{background:#2563eb;color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) #all{background:#93c5fd;
+color:#0f172a}}:root[data-theme=dark] #all{background:#93c5fd;color:#0f172a}</style>
+</head><body><header id="bar"><div><h1>CLI Versions</h1><div id="meta"><span id="updated"></span><span>ai-cli-version __VERSION__</span></div></div>
+<div id="tools"><select id="theme" aria-label="Theme"><option value="auto">Auto</option>
+<option value="light">Light</option><option value="dark">Dark</option></select>
+<button id="all" hidden></button><button id="refresh">Refresh</button></div></header>
+<iframe id="report"></iframe><script>
+const frame = document.getElementById("report"), button = document.getElementById("refresh");
+const allButton = document.getElementById("all");
+const picker = document.getElementById("theme");
+const THEMES = ["auto", "light", "dark"];
+let theme = "auto";  // Auto follows the OS; the choice is kept per browser
+try { theme = localStorage.getItem("ai-cli-version-theme") || "auto"; } catch (e) {}
+// The value is spliced into the report's HTML, so only a known name may pass.
+if (!THEMES.includes(theme)) theme = "auto";
+picker.value = theme;
+const applyTheme = doc => {
+  if (theme === "auto") delete doc.documentElement.dataset.theme;
+  else doc.documentElement.dataset.theme = theme;
+};
+// Puts the theme on the page before it renders, so it never flashes in the other one.
+const show = html => {
+  frame.srcdoc = theme === "auto" ? html :
+    html.replace(/<html\\b/i, '<html data-theme="' + theme + '"');
+};
+applyTheme(document);
+picker.onchange = () => {
+  theme = THEMES.includes(picker.value) ? picker.value : "auto";
+  try { localStorage.setItem("ai-cli-version-theme", theme); } catch (e) {}
+  applyTheme(document);
+  if (frame.contentDocument) applyTheme(frame.contentDocument);
+};
+const stamp = ms => {  // when the shown report was written, in local time
+  const d = new Date(ms), p = n => String(n).padStart(2, "0");
+  document.getElementById("updated").textContent = ms ? "Updated " + p(d.getMonth() + 1) + "-" +
+    p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) : "";
+};
+stamp(__UPDATED__);
+// Last update error per tool, shown on its row again after the re-check.
+const failures = {};
+let busy = false;
+const setBusy = on => {
+  busy = on;
+  button.disabled = allButton.disabled = on;
+  frame.contentDocument?.querySelectorAll("button.acv-up").forEach(b => { b.disabled = on; });
+};
+const ROW_CSS = ".acv-up{margin-left:8px;padding:2px 12px;border:0;border-radius:999px;" +
+  "font:inherit;font-size:13px;font-weight:500;background:var(--accent);color:var(--card);" +
+  "cursor:pointer}.acv-up:disabled{opacity:.6;cursor:default}" +
+  ".acv-err{color:var(--bad);font-size:13px;margin-top:4px}" +
+  ".acv-run{color:var(--muted);font-size:13px;margin-top:4px}";
+// Adds an Update button to every row with an update, plus Update all when there are two
+// or more. Only the tool name goes to the server, which looks up the updater itself.
+frame.onload = () => {
+  const doc = frame.contentDocument, main = doc.querySelector("main");
+  if (main) {  // the shell already shows the title and version
+    main.querySelector("h1")?.remove();
+    main.querySelector(".top")?.remove();
+    doc.body.style.paddingTop = "20px";
+  }
+  const style = doc.createElement("style");
+  style.textContent = ROW_CSS;
+  doc.head.appendChild(style);
+  const rows = [...doc.querySelectorAll("tr[data-tool]")];
+  for (const row of rows) {
+    const tool = row.dataset.tool, cell = row.lastElementChild;
+    const up = doc.createElement("button");
+    up.className = "acv-up";
+    up.textContent = failures[tool] ? "Retry" : "Update";
+    up.disabled = busy;
+    up.onclick = () => updateTools([tool]);
+    (cell.querySelector("code") || cell.firstElementChild || cell).after(up);
+    if (failures[tool]) {
+      const err = doc.createElement("div");
+      err.className = "acv-err";
+      err.textContent = "Update failed: " + failures[tool];
+      cell.appendChild(err);
+    }
+  }
+  allButton.hidden = rows.length < 2;
+  allButton.textContent = "Update all (" + rows.length + ")";
+  allButton.onclick = () => updateTools(rows.map(row => row.dataset.tool));
+};
+// Replaces the report while checking or after a failure, so old versions never look current.
+const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style>' + text;
+const load = () => fetch("/last?" + Date.now())
+  .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText));
+load().then(show).catch(e => show(notice("Could not load the report (" + e + ").")));
+// One updater at a time, in row order; a failure does not stop the rest. Re-checks after.
+const updateTools = async tools => {
+  setBusy(true);
+  for (const tool of tools) {
+    const doc = frame.contentDocument;
+    const row = doc.querySelector('tr[data-tool="' + CSS.escape(tool) + '"]');
+    if (!row) continue;
+    const cell = row.lastElementChild, up = row.querySelector("button.acv-up");
+    cell.querySelector(".acv-err")?.remove();
+    const status = doc.createElement("div");
+    status.className = "acv-run";
+    status.textContent = "Updating\\u2026";
+    cell.appendChild(status);
+    if (up) up.textContent = "Updating\\u2026";
+    const start = Date.now();
+    const tick = setInterval(() => {
+      status.textContent = "Updating\\u2026 " + Math.round((Date.now() - start) / 1000) + "s";
+    }, 500);
+    try {
+      const r = await fetch("/update?tool=" + encodeURIComponent(tool),
+                            {method: "POST", headers: {"X-AI-CLI-Version": "1"}});
+      const result = await r.json().catch(() => ({ok: false, error: r.status + " " + r.statusText}));
+      if (result.ok) delete failures[tool];
+      else failures[tool] = result.error || "unknown error";
+    } catch (e) {
+      failures[tool] = String(e);
+    }
+    clearInterval(tick);
+  }
+  await refresh();
+};
+const refresh = () => {
+  setBusy(true);
+  button.textContent = "Refreshing\\u2026";
+  stamp(0);
+  show(notice('<div><div id="text">Checking\\u2026</div><div class="bar"><div id="fill"></div></div></div>'));
+  const poll = setInterval(() => {
+    fetch("/progress").then(r => r.json()).then(p => {
+      const doc = frame.contentDocument, text = doc && doc.getElementById("text");
+      if (!text || !p.total) return;
+      text.textContent = "Checking " + p.done + " of " + p.total + " tools\\u2026";
+      doc.getElementById("fill").style.width = (100 * p.done / p.total) + "%";
+    }).catch(() => {});
+  }, 400);
+  return fetch("/report", {method: "POST", headers: {"X-AI-CLI-Version": "1"}})
+    .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText))
+    .then(written => load().then(html => {
+      show(html);
+      stamp(Number(written));
+      button.textContent = "Refresh";
+    }))
+    .catch(e => {
+      show(notice("Check failed (" + e + "). Press Retry."));
+      button.textContent = "Retry";
+    })
+    .finally(() => { clearInterval(poll); setBusy(false); });
+};
+button.onclick = () => refresh();
+</script></body></html>"""
+
+
+UPDATE_TIMEOUT = 300
+
+
+def update_plan(name):
+    """(argv, extra env) for `name`'s updater: what its update_cmd runs, without a shell,
+    so no quoting rules or shell PATH apply. None as argv when it is not installed."""
+    if name == "muse":
+        return argv("muse", "--version"), {"MUSE_SYNC_UPDATE": "1"}
+    if name == "agy":
+        cli = os.path.join(HOME, ".gemini", "bin", "agy.exe" if os.name == "nt" else "agy")
+        return ([cli, "update"] if os.path.isfile(cli) else None), {}
+    return argv(name, "update"), {}
+
+
+def run_update(name):
+    """Run `name`'s updater when a fresh check still offers an update."""
+    row = check_tool(name)
+    if "status=up to date" in row:
+        return {"ok": True, "output": "already up to date"}
+    if "status=update available" not in row:
+        return {"ok": False, "error": row.strip().split("\t")[-1][:300]}
+    args, extra = update_plan(name)
+    if not args:
+        return {"ok": False, "error": "not installed"}
+    env = dict(os.environ, **extra)
+    if os.name == "nt":
+        # Windows' own tar first: Git's GNU tar on PATH makes the Codex installer fail.
+        system32 = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32")
+        env["PATH"] = system32 + os.pathsep + env.get("PATH", "")
+    kwargs = {"start_new_session": True} if os.name != "nt" else {}
+    proc = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, encoding="utf-8", errors="replace",
+                            env=env, **kwargs)
+    try:
+        out, _ = proc.communicate(timeout=UPDATE_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        stop_tree(proc)
+        proc.stdout.close()
+        return {"ok": False, "error": "timed out after %ds" % UPDATE_TIMEOUT}
+    last = ([line.strip() for line in out.splitlines() if line.strip()] or [""])[-1][:300]
+    if proc.returncode:
+        return {"ok": False, "error": last or "exit %d" % proc.returncode}
+    return {"ok": True, "output": last}
+
+
+def ping():
+    """What answers /ping on SERVE_PORT: PING for this copy, other bytes, or None."""
+    try:  # no proxy: a corporate HTTP_PROXY must not intercept 127.0.0.1
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(SERVE_URL + "ping", timeout=0.5) as reply:
+            return reply.read()
+    except OSError:
+        return None
+
+
+def start_server():
+    """Start `--serve` detached so it outlives this run; True once it answers."""
+    args = [sys.executable, __file__, "--serve", "--no-open"]
+    quiet = dict(stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                 stderr=subprocess.DEVNULL, close_fds=True)
+    try:
+        if os.name == "nt":
+            # CREATE_NO_WINDOW (not DETACHED_PROCESS): the server keeps a hidden console
+            # its CLI children share; with no console each child opens its own window.
+            # CREATE_BREAKAWAY_FROM_JOB so a host that runs commands in a job object does
+            # not kill it when the command ends.
+            try:
+                subprocess.Popen(args, creationflags=0x08000000 | 0x01000000, **quiet)
+            except OSError:
+                # The job forbids breakaway. The server then stays in it and may stop
+                # when the host's command ends; the next run just starts it again.
+                subprocess.Popen(args, creationflags=0x08000000, **quiet)
+        else:
+            subprocess.Popen(args, start_new_session=True, **quiet)
+    except OSError:
+        return False
+    for _ in range(30):
+        if ping() == PING:
+            return True
+        time.sleep(0.1)
+    return False
+
+
+def write_page(html):
+    """Swap in a complete report so a reader never sees half a page."""
+    os.makedirs(os.path.dirname(PAGE), exist_ok=True)
+    tmp = "%s.%d.tmp" % (PAGE, os.getpid())
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(html)
+        for attempt in range(10):
+            try:
+                os.replace(tmp, PAGE)
+                return
+            except PermissionError:  # Windows: the server is reading the page right now
+                if attempt == 9:
+                    raise
+                time.sleep(0.1)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+
+def written_ms():
+    """When the report on disk was written (ms since epoch), "0" if there is none."""
+    try:
+        return str(int(os.path.getmtime(PAGE) * 1000))
+    except OSError:
+        return "0"
+
+
+def serve():
+    import threading
+    import webbrowser
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    # Threaded so /ping, /last and /progress answer during a refresh; the lock keeps
+    # refreshes to one at a time.
+    refresh_lock = threading.Lock()
+    progress = {"done": 0, "total": 0}
+
+    def refresh():
+        """Re-run the check, counting tool rows as they print. Returns the exit code."""
+        progress.update(done=0, total=len(selected_tools()))
+        kwargs = {"start_new_session": True} if os.name != "nt" else {}
+        proc = subprocess.Popen([sys.executable, __file__], stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, encoding="utf-8", errors="replace",
+                                env=dict(os.environ, AI_CLI_VERSION_SERVED="1"), **kwargs)
+        # Every check runs in parallel under its own TIMEOUT; this bounds the whole run.
+        timer = threading.Timer(3 * TIMEOUT, stop_tree, [proc])
+        timer.start()
+        try:
+            for line in proc.stdout:
+                if line.split("\t", 1)[0] in CHECKS:
+                    progress["done"] += 1
+            proc.wait()
+        finally:
+            timer.cancel()
+            proc.stdout.close()
+        return proc.returncode
+
+    class Handler(BaseHTTPRequestHandler):
+        def local(self):
+            # DNS-rebinding guard: only answer pages that address us as localhost.
+            if self.headers.get("Host") in ("127.0.0.1:%d" % SERVE_PORT,
+                                            "localhost:%d" % SERVE_PORT):
+                return True
+            self.send_error(403)
+            return False
+
+        def do_GET(self):
+            path = self.path.partition("?")[0]
+            if not self.local():
+                return
+            if path == "/ping":
+                self.reply(PING, "text/plain; charset=utf-8")
+            elif path == "/":
+                page = (SHELL.replace("__UPDATED__", written_ms())
+                        .replace("__VERSION__", VERSION).replace("__NOTICE_CSS__", NOTICE_CSS))
+                self.reply(page.encode("utf-8"), "text/html; charset=utf-8")
+            elif path == "/last":
+                try:
+                    with open(PAGE, "rb") as fh:
+                        body = fh.read()
+                except OSError:
+                    body = EMPTY_PAGE.encode("utf-8")
+                self.reply(body, "text/html; charset=utf-8")
+            elif path == "/progress":
+                self.reply(json.dumps(progress).encode("ascii"), "application/json")
+            else:
+                self.send_error(404)
+
+        def do_POST(self):
+            # The custom header makes a cross-site request need a CORS preflight, which
+            # this server never grants, so other pages cannot start runs or updates.
+            if not self.local():
+                return
+            path, _, query = self.path.partition("?")
+            if path not in ("/report", "/update") or self.headers.get("X-AI-CLI-Version") != "1":
+                self.send_error(404)
+                return
+            if path == "/update":
+                # Only a known tool name is accepted; the updater comes from update_plan.
+                name = urllib.parse.parse_qs(query).get("tool", [""])[0]
+                if name not in CHECKS:
+                    self.send_error(404)
+                    return
+                with refresh_lock:  # never update while a check or another update runs
+                    try:
+                        result = run_update(name)
+                    except OSError as exc:
+                        result = {"ok": False, "error": str(exc)}
+                self.reply(json.dumps(result).encode("utf-8"), "application/json")
+                return
+            with refresh_lock:
+                try:
+                    code = refresh()
+                except OSError as exc:
+                    code = exc
+            if code != 0:  # the old report and its time stay on disk
+                self.send_error(500, "check failed: %s" % code)
+                return
+            self.reply(written_ms().encode("ascii"), "text/plain")
+
+        def end_headers(self):
+            # No framing by other sites, so none can trick a click on Refresh.
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
+            super().end_headers()
+
+        def reply(self, body, ctype):
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = None
+    holder = ping()
+    if holder == PING:
+        print("already serving %s" % SERVE_URL)
+    elif holder:
+        raise SystemExit("port %d is held by another ai-cli-version server (%s); stop that "
+                         "process first" % (SERVE_PORT, holder.decode("utf-8", "replace")))
+    else:
+        try:
+            server = ThreadingHTTPServer(("127.0.0.1", SERVE_PORT), Handler)
+        except OSError as exc:
+            raise SystemExit("port %d is busy (%s)" % (SERVE_PORT, exc))
+        print("serving %s  (Refresh re-runs the check, Ctrl+C stops)" % SERVE_URL, flush=True)
+    if "--no-open" not in sys.argv:
+        webbrowser.open(SERVE_URL)
+    if server:
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            pass
 
 
 def main():
@@ -489,6 +930,9 @@ def main():
     if len(sys.argv) == 3 and sys.argv[1] == "--set-tools":
         print("tools=" + ",".join(set_tools(sys.argv[2])))
         return
+    if "--serve" in sys.argv:
+        serve()
+        return
     tools = selected_tools()
     lines = [f"### ai-cli-version {VERSION}"]
     skipped = [name for name in CHECKS if name not in tools]
@@ -506,15 +950,24 @@ def main():
     import html_report
     print("### SUMMARY")
     print(chr(10).join(html_report.summary(lines)), flush=True)
-    if output_format() == "html":
-        import tempfile
+    if output_format() == "html" or SERVED:
         import webbrowser
-        out = os.path.join(tempfile.gettempdir(), "ai-cli-version", "report.html")
-        os.makedirs(os.path.dirname(out), exist_ok=True)
-        with open(out, "w", encoding="utf-8") as fh:
-            fh.write(html_report.render(lines))
-        opened = webbrowser.open("file:///" + out.replace(os.sep, "/").lstrip("/"))
-        print("### HTML %s%s" % (out, "" if opened else "  (could not open a browser)"))
+        write_page(html_report.render(lines))
+        # Prefer the local server, whose page has a Refresh button; fall back to the file.
+        note = ""
+        if SERVED:
+            shown, opened = PAGE, True
+        else:
+            holder = ping()
+            if holder == PING or (holder is None and start_server()):
+                shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
+            else:
+                shown = PAGE
+                opened = webbrowser.open("file:///" + PAGE.replace(os.sep, "/").lstrip("/"))
+                note = ("  (Refresh unavailable: port %d is held by another ai-cli-version "
+                        "server; stop it)" % SERVE_PORT if holder else
+                        "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
+        print("### HTML %s%s%s" % (shown, note, "" if opened else "  (could not open a browser)"))
 
 
 if __name__ == "__main__":

@@ -19,12 +19,14 @@ npx skills add Jeinn-co/agent-skills@ai-cli-version
 | [`ai-usage`](skills/ai-usage/) | One report for how much of your Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) subscription is left — percent used, when each window resets, what top-up you have, which model and effort each CLI is on now, and the CursorBench score, cost and CP of the model each CLI runs. `setup` picks which providers to report. Both skills first check GitHub for a newer version of themselves and ask before updating. | [README](skills/ai-usage/README.md) · [Traditional Chinese](skills/ai-usage/README.zh-TW.md) |
 | [`ai-cli-version`](skills/ai-cli-version/) | Whether your Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date — installed version and when you installed it, latest version and when it was released. When updates are available, choose `y` to update all or `Esc` to skip; `setup` picks which CLIs to check. Tested on Windows and macOS; Linux not yet tested. | [README](skills/ai-cli-version/README.md) · [Traditional Chinese](skills/ai-cli-version/README.zh-TW.md) |
 
-`/ai-usage` — the HTML report that opens in your browser (demo data):
+`/ai-usage` — the HTML report that opens in your browser (demo data). It opens on a
+local page with a Refresh button and an Auto / Light / Dark switch:
 
 ![ai-usage report](skills/ai-usage/images/demo.png)
 
-`/ai-cli-version` with all five CLIs checked (demo data). When one is outdated, as here,
-the agent also asks `y` / `Esc` in chat before updating:
+`/ai-cli-version` with all five CLIs checked (demo data), on its local page. When one is
+outdated, as here, press **Update** on that row (or **Update all**) on the page, or answer
+`y` / `Esc` in chat:
 
 ![ai-cli-version report](skills/ai-cli-version/images/demo.png)
 

@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.10.1"
+  version: "1.11.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -40,12 +40,14 @@ follow it; do not run the check or any updater.
 
 Run the launcher with no arguments. Each tool has a 20-second budget; never extend it.
 
-- **HTML output** (default): the last line is `### HTML <path>`. Print only, with no
-  preamble or recap:
+- **HTML output** (default): the last line is `### HTML <target>`, an
+  `http://127.0.0.1:…/` URL (the local page with a Refresh button) or a file path. Print
+  only, with no preamble or recap:
   1. the `### SUMMARY` lines up to the first blank line, as they are (summary and any
      `Not checked (setup)` line);
-  2. `**Report:** [Open the HTML report](file:///<path with forward slashes>)`, plus a
-     short note when the line says `(could not open a browser)`;
+  2. `**Report:** [Open the HTML report](<target>)`: the URL as printed, or
+     `file:///<path with forward slashes>` for a path. Add a short note for each
+     parenthesised note on that line (`Refresh unavailable: …`, `could not open a browser`);
   3. the remaining `### SUMMARY` lines, the y/Esc update prompt, when there are any.
 - **Markdown output** (no `### HTML` line, setup saved `md`): read
   `references/markdown-report.md` and render the report it describes.

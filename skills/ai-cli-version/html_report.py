@@ -76,11 +76,13 @@ def render(lines, now=None):
             badge = '<span class="badge ok">up to date</span>'
         else:
             badge = '<span class="badge muted">%s</span>' % esc(status)
+        # data-tool marks rows the served page gives an Update button.
+        marker = ' data-tool="%s"' % esc(r["name"]) if status == "update available" else ""
         body.append(
-            "<tr><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span></td>"
+            "<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span></td>"
             "<td><b>%s</b> <span class=\"sub\">released %s</span></td><td>%s"
             "<div class=\"sub\">channel %s</div></td></tr>"
-            % (label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")),
+            % (marker, label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")),
                esc(r.get("latest", "?")), esc(released), badge, esc(r.get("channel", "?"))))
     if outdated:
         summary = '<p class="summary up">%d update%s available: %s</p>' % (
@@ -94,18 +96,25 @@ def render(lines, now=None):
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(version)),
                        ("rows", "".join(body)), ("summary", summary), ("foot", foot),
-                       ("skipped", skip), ("compare", esc(COMPARE))):
+                       ("skipped", skip), ("compare", esc(COMPARE)), ("dark", DARK)):
         page = page.replace("@@%s@@" % key, value)
     return page
 
+
+# Tailwind CSS 3.4 Slate with green/amber/red/blue, the same palette as ai-usage; every
+# text colour is at least 4.5:1 on its card. Dark is used when the OS is dark, unless
+# `data-theme` on <html> (set by the served page's Auto / Light / Dark switch) forces one.
+DARK = ("--bg:#1e293b;--card:#334155;--text:#f1f5f9;--muted:#cbd5e1;--line:#475569;"
+        "--track:#475569;--ok:#4ade80;--up:#fbbf24;--bad:#fca5a5;--accent:#93c5fd")
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CLI Versions</title>
 <style>
-:root{--bg:#e9e4de;--card:#fbf9f6;--text:#2b2926;--muted:#69635c;--line:#d3cbc1;--track:#dad2c8;--ok:#6f8f69;--up:#b5893f;--bad:#a65f59;--accent:#55718d}
-@media (prefers-color-scheme:dark){:root{--bg:#1d1c1a;--card:#2b2926;--text:#f4efe8;--muted:#c0b8ae;--line:#47433e;--track:#4b4742;--ok:#acc7a5;--up:#e3c088;--bad:#dc9d96;--accent:#a9bfd4}}
+:root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--ok:#15803d;--up:#b45309;--bad:#dc2626;--accent:#2563eb}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
+:root[data-theme=dark]{@@dark@@}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}.top{color:var(--muted);margin:0 0 16px}

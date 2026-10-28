@@ -126,11 +126,45 @@ The script does not detect the OS display language or translate its raw output.
 Tool names, versions, dates, commands and error codes stay unchanged, as do the
 update choices `y` and `Esc`.
 
+### Refresh in the browser
+
+When the report is HTML, `/ai-cli-version` also starts a small local server in the
+background (`run.py --serve`, Python standard library only) and opens
+`http://127.0.0.1:47822/` instead of the file:
+
+- **Refresh** re-runs the check and swaps the new report in. While it runs, the old
+  report is cleared and the page shows `Checking 1 of 5 tools…` with a progress bar that
+  fills as each tool finishes; a failed run shows the error, never the old versions.
+  Reloading the page only re-reads the last report.
+- **Update** appears on each row with an update, and **Update all (N)** at the top when
+  there are two or more. The row shows `Updating… 12s` while its updater runs; Update all
+  runs them one at a time, and a failure does not stop the rest. When they finish the
+  page re-checks by itself, so the rows show the new versions; a failed row keeps its
+  error and a **Retry** button. The page sends only the tool name: the server re-checks
+  that tool first, does nothing if it is already current, and runs the same updater as
+  its `update_cmd` without a shell (on Windows with `System32` first on PATH, so the
+  Codex installer finds Windows' own `tar`). In the agent, updating still waits for
+  `y` / `Esc`.
+- `Updated MM-DD HH:MM:SS` is when the report on screen was written.
+- **Auto / Light / Dark** picks the colours; Auto follows the OS, and the choice is kept
+  in that browser.
+- The server listens on 127.0.0.1 only, refuses other host names and framing by other
+  sites, and starts a check or an update only for a request that carries its own header.
+
+The server keeps running after the report, and later reports reuse it. To stop it, end
+its Python process, the one running `run.py --serve --no-open`. Running `run.py --serve`
+in a terminal starts it in the foreground (Ctrl+C stops it) only when none is running;
+with one already running it says so and exits. If port 47822 is taken, or held by a
+server from another copy of this skill, the report opens the file as before and says why
+Refresh is unavailable. Tested on Windows 11; on Windows the server has no window. macOS
+is not yet tested.
+
 ## What it prints
 
 `/ai-cli-version` with demo data — all five CLIs checked, two updates available. By
-default the report opens as an HTML page in your browser (Morandi palette, light and dark
-mode), drawn by Python at no model-token cost:
+default the report opens as an HTML page in your browser (Tailwind Slate palette, light
+and dark mode), drawn by Python at no model-token cost. Shown here on the local page,
+with its Update buttons, Update all, Refresh and theme switch:
 
 ![ai-cli-version report](images/demo.png)
 
