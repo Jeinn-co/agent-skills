@@ -39,9 +39,13 @@ def summary(lines):
     """The chat lines: the → summary, any `Not checked` line, and the y/Esc prompt."""
     _, skipped, rows = parse(lines)
     outdated = [NAMES[r["name"]] for r in rows if r.get("status") == "update available"]
+    failed = [NAMES[r["name"]] for r in rows if r.get("note") not in (None, "not installed")]
     n = len(outdated)
     out = ["> **→ %d update%s available:** %s." % (n, "" if n == 1 else "s", ", ".join(outdated))
-           if n else "> **All up to date.**"]
+           if n else ("> **Check failed:** %s." % ", ".join(failed) if failed else
+                      "> **All up to date.**")]
+    if failed and n:
+        out.append("_Check failed: %s_" % ", ".join(failed))
     if skipped:
         out.append("_Not checked (setup): %s_" % ", ".join(skipped))
     if n:
@@ -58,11 +62,13 @@ def render(lines, now=None):
     outdated = []
     for r in rows:
         label = esc(NAMES[r["name"]])
+        # data-row lets the served page swap one row after an update.
+        row_id = ' data-row="%s"' % esc(r["name"])
         if "note" in r:
             kind = "muted" if r["note"] == "not installed" else "bad"
-            body.append('<tr><td>%s</td><td colspan="2" class="%s">%s</td>'
+            body.append('<tr%s><td>%s</td><td colspan="2" class="%s">%s</td>'
                         '<td><span class="badge %s">%s</span></td></tr>'
-                        % (label, kind, esc(r["note"]), kind,
+                        % (row_id, label, kind, esc(r["note"]), kind,
                            "not installed" if kind == "muted" else "check failed"))
             continue
         released = r.get("released", "?")
@@ -77,18 +83,22 @@ def render(lines, now=None):
         else:
             badge = '<span class="badge muted">%s</span>' % esc(status)
         # data-tool marks rows the served page gives an Update button.
-        marker = ' data-tool="%s"' % esc(r["name"]) if status == "update available" else ""
+        marker = row_id + (' data-tool="%s"' % esc(r["name"]) if status == "update available" else "")
         body.append(
             "<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span></td>"
             "<td><b>%s</b> <span class=\"sub\">released %s</span></td><td>%s"
             "<div class=\"sub\">channel %s</div></td></tr>"
             % (marker, label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")),
                esc(r.get("latest", "?")), esc(released), badge, esc(r.get("channel", "?"))))
+    failed = [NAMES[r["name"]] for r in rows if r.get("note") not in (None, "not installed")]
+    parts = []
     if outdated:
-        summary = '<p class="summary up">%d update%s available: %s</p>' % (
-            len(outdated), "" if len(outdated) == 1 else "s", esc(", ".join(outdated)))
-    else:
-        summary = '<p class="summary ok">All up to date</p>'
+        parts.append("%d update%s available: %s" % (
+            len(outdated), "" if len(outdated) == 1 else "s", ", ".join(outdated)))
+    if failed:
+        parts.append("Check failed: %s" % ", ".join(failed))
+    kind = "up" if outdated else "bad" if failed else "ok"
+    summary = '<p class="summary %s">%s</p>' % (kind, esc(" · ".join(parts) or "All up to date"))
     grok = any(r["name"] == "grok" and "note" not in r for r in rows)
     foot = ('<p class="foot">* Grok release time is approximate (third-party mirror); official: '
             'x.ai/build/changelog</p>' if grok else "")
@@ -118,7 +128,7 @@ PAGE = """<!doctype html>
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}.top{color:var(--muted);margin:0 0 16px}
-.summary{font-size:17px;font-weight:500;margin:0 0 18px}.summary.ok{color:var(--ok)}.summary.up{color:var(--up)}
+.summary{font-size:17px;font-weight:500;margin:0 0 18px}.summary.ok{color:var(--ok)}.summary.up{color:var(--up)}.summary.bad{color:var(--bad)}
 .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 table{border-collapse:collapse;width:100%}th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);
 vertical-align:top}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}tr:last-child td{border-bottom:0}

@@ -22,13 +22,14 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.11.0"
+VERSION = "1.12.0"
 
 TIMEOUT = 20
 HOME = os.path.expanduser("~")
@@ -483,15 +484,11 @@ PING = ("ai-cli-version %s %s" % (VERSION, HERE)).encode("utf-8")
 # Set on the run the server starts: HTML page, no browser tab.
 SERVED = os.environ.get("AI_CLI_VERSION_SERVED") == "1"
 # Placeholder pages in the iframe. `data-theme` on <html> forces light or dark.
-NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a;--tr:#e2e8f0;--a:#2563eb}"
-              "@media(prefers-color-scheme:dark){:root:not([data-theme=light])"
-              "{--b:#1e293b;--t:#f1f5f9;--tr:#475569;--a:#93c5fd}}"
-              ":root[data-theme=dark]{--b:#1e293b;--t:#f1f5f9;--tr:#475569;--a:#93c5fd}"
+NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a}"
+              "@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--b:#1e293b;--t:#f1f5f9}}"
+              ":root[data-theme=dark]{--b:#1e293b;--t:#f1f5f9}"
               "body{margin:0;height:100vh;display:grid;place-items:center;"
-              "font:15px system-ui,sans-serif;background:var(--b);color:var(--t)}"
-              ".bar{width:280px;height:6px;margin-top:12px;border-radius:9px;overflow:hidden;"
-              "background:var(--tr)}#fill{height:100%;width:0;background:var(--a);"
-              "transition:width .3s}")
+              "font:15px system-ui,sans-serif;background:var(--b);color:var(--t)}")
 EMPTY_PAGE = ('<!doctype html><html><head><meta charset="utf-8"><style>%s</style></head>'
               "<body>No report yet. Press Refresh.</body></html>" % NOTICE_CSS)
 # `/`: the last report in an iframe, a Refresh button and a theme switch.
@@ -552,37 +549,62 @@ const stamp = ms => {  // when the shown report was written, in local time
 stamp(__UPDATED__);
 // Last update error per tool, shown on its row again after the re-check.
 const failures = {};
-let busy = false;
-const setBusy = on => {
-  busy = on;
-  button.disabled = allButton.disabled = on;
-  frame.contentDocument?.querySelectorAll("button.acv-up").forEach(b => { b.disabled = on; });
+// shortcut: queued clicks live in this tab; use a server queue if they must survive reload.
+const queue = [], pending = new Set();
+let busy = false, updating = false, current = "";
+const syncButtons = () => {
+  button.disabled = busy || updating;
+  const rows = [...(frame.contentDocument?.querySelectorAll("tr[data-tool]") || [])];
+  const remaining = rows.filter(row => !pending.has(row.dataset.tool));
+  allButton.hidden = rows.length < 2;
+  allButton.disabled = busy || !remaining.length;
+  allButton.textContent = updating ? "Queue remaining (" + remaining.length + ")" :
+    "Update all (" + rows.length + ")";
+  frame.contentDocument?.querySelectorAll("button.acv-up").forEach(b => {
+    const tool = b.dataset.tool;
+    b.disabled = busy || pending.has(tool);
+    if (pending.has(tool) && tool !== current) b.textContent = "Queued";
+    else if (!pending.has(tool) && b.textContent === "Queued") {
+      b.textContent = failures[tool] ? "Retry" : "Update";
+    }
+  });
 };
+const setBusy = on => { busy = on; syncButtons(); };
 const ROW_CSS = ".acv-up{margin-left:8px;padding:2px 12px;border:0;border-radius:999px;" +
   "font:inherit;font-size:13px;font-weight:500;background:var(--accent);color:var(--card);" +
   "cursor:pointer}.acv-up:disabled{opacity:.6;cursor:default}" +
   ".acv-err{color:var(--bad);font-size:13px;margin-top:4px}" +
-  ".acv-run{color:var(--muted);font-size:13px;margin-top:4px}";
-// Adds an Update button to every row with an update, plus Update all when there are two
-// or more. Only the tool name goes to the server, which looks up the updater itself.
-frame.onload = () => {
-  const doc = frame.contentDocument, main = doc.querySelector("main");
-  if (main) {  // the shell already shows the title and version
-    main.querySelector("h1")?.remove();
-    main.querySelector(".top")?.remove();
-    doc.body.style.paddingTop = "20px";
+  ".acv-run{color:var(--muted);font-size:13px;margin-top:4px;max-width:420px;" +
+  "overflow:hidden;text-overflow:ellipsis;white-space:nowrap}";
+// Adds an Update button to each row with an update that has none yet, plus Update all
+// when there are two or more. Only the tool name goes to the server, which looks up the
+// updater itself. Runs again after a row is swapped in.
+const decorate = doc => {
+  if (!doc.getElementById("acv-style")) {
+    const main = doc.querySelector("main");
+    if (main) {  // the shell already shows the title and version
+      main.querySelector("h1")?.remove();
+      main.querySelector(".top")?.remove();
+      doc.body.style.paddingTop = "20px";
+    }
+    const style = doc.createElement("style");
+    style.id = "acv-style";
+    style.textContent = ROW_CSS;
+    doc.head.appendChild(style);
   }
-  const style = doc.createElement("style");
-  style.textContent = ROW_CSS;
-  doc.head.appendChild(style);
+  for (const row of doc.querySelectorAll("tr[data-row]")) {
+    if (failures[row.dataset.row]) row.dataset.tool = row.dataset.row;
+  }
   const rows = [...doc.querySelectorAll("tr[data-tool]")];
   for (const row of rows) {
+    if (row.querySelector("button.acv-up")) continue;
     const tool = row.dataset.tool, cell = row.lastElementChild;
     const up = doc.createElement("button");
     up.className = "acv-up";
-    up.textContent = failures[tool] ? "Retry" : "Update";
-    up.disabled = busy;
-    up.onclick = () => updateTools([tool]);
+    up.dataset.tool = tool;
+    up.textContent = pending.has(tool) && tool !== current ? "Queued" :
+      failures[tool] ? "Retry" : "Update";
+    up.onclick = () => enqueueTools([tool]);
     (cell.querySelector("code") || cell.firstElementChild || cell).after(up);
     if (failures[tool]) {
       const err = doc.createElement("div");
@@ -591,22 +613,54 @@ frame.onload = () => {
       cell.appendChild(err);
     }
   }
-  allButton.hidden = rows.length < 2;
-  allButton.textContent = "Update all (" + rows.length + ")";
-  allButton.onclick = () => updateTools(rows.map(row => row.dataset.tool));
+  allButton.onclick = () => enqueueTools(rows.map(row => row.dataset.tool));
+  syncButtons();
+};
+frame.onload = () => decorate(frame.contentDocument);
+// Puts one re-checked row, and the summary above the table, in place without reloading.
+const swapRow = (tool, html) => {
+  const doc = frame.contentDocument, fresh = new DOMParser().parseFromString(html, "text/html");
+  const pick = d => d.querySelector('tr[data-row="' + CSS.escape(tool) + '"]');
+  const oldRow = pick(doc), newRow = pick(fresh);
+  if (!oldRow || !newRow) return null;
+  const row = doc.importNode(newRow, true);
+  oldRow.replaceWith(row);
+  const oldSummary = doc.querySelector(".summary"), newSummary = fresh.querySelector(".summary");
+  if (oldSummary && newSummary) oldSummary.replaceWith(doc.importNode(newSummary, true));
+  decorate(doc);
+  return row;
 };
 // Replaces the report while checking or after a failure, so old versions never look current.
 const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style>' + text;
 const load = () => fetch("/last?" + Date.now())
   .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText));
 load().then(show).catch(e => show(notice("Could not load the report (" + e + ").")));
-// One updater at a time, in row order; a failure does not stop the rest. Re-checks after.
-const updateTools = async tools => {
-  setBusy(true);
+// Clicks join one queue; the server also serializes requests from other tabs.
+const enqueueTools = tools => {
+  if (busy) return;
   for (const tool of tools) {
+    if (pending.has(tool)) continue;
+    pending.add(tool);
+    queue.push(tool);
+  }
+  syncButtons();
+  if (!updating && queue.length) void updateTools();
+};
+const updateTools = async () => {
+  updating = true;
+  syncButtons();
+  let reloadAll = false;
+  while (queue.length) {
+    const tool = queue.shift();
+    current = tool;
     const doc = frame.contentDocument;
     const row = doc.querySelector('tr[data-tool="' + CSS.escape(tool) + '"]');
-    if (!row) continue;
+    if (!row) {
+      pending.delete(tool);
+      current = "";
+      syncButtons();
+      continue;
+    }
     const cell = row.lastElementChild, up = row.querySelector("button.acv-up");
     cell.querySelector(".acv-err")?.remove();
     const status = doc.createElement("div");
@@ -615,35 +669,52 @@ const updateTools = async tools => {
     cell.appendChild(status);
     if (up) up.textContent = "Updating\\u2026";
     const start = Date.now();
+    let line = "";
     const tick = setInterval(() => {
-      status.textContent = "Updating\\u2026 " + Math.round((Date.now() - start) / 1000) + "s";
+      fetch("/progress").then(r => r.json()).then(p => {
+        line = p.tool === tool ? p.line || "" : "";
+      }).catch(() => {});
+      status.textContent = Math.round((Date.now() - start) / 1000) + "s" + (line ? " \\u00b7 " + line : "");
+      status.title = line;
     }, 500);
+    let result;
     try {
       const r = await fetch("/update?tool=" + encodeURIComponent(tool),
                             {method: "POST", headers: {"X-AI-CLI-Version": "1"}});
-      const result = await r.json().catch(() => ({ok: false, error: r.status + " " + r.statusText}));
-      if (result.ok) delete failures[tool];
-      else failures[tool] = result.error || "unknown error";
+      result = await r.json().catch(() => ({ok: false, error: r.status + " " + r.statusText}));
     } catch (e) {
-      failures[tool] = String(e);
+      result = {ok: false, error: String(e)};
     }
     clearInterval(tick);
+    if (result.ok) delete failures[tool];
+    else failures[tool] = result.error || "unknown error";
+    pending.delete(tool);
+    current = "";
+    const swapped = result.page ? swapRow(tool, result.page) : null;
+    if (result.written) stamp(Number(result.written));
+    if (swapped && !failures[tool]) {
+      const note = doc.createElement("div");
+      note.className = "acv-run";
+      note.textContent = "Updated just now";
+      swapped.lastElementChild.appendChild(note);
+    } else if (!swapped) {
+      reloadAll = true;  // no saved lines: fall back to a full check
+      status.textContent = failures[tool] ? "Failed: " + failures[tool] : "Done";
+      status.title = status.textContent;
+      if (up) up.textContent = failures[tool] ? "Retry" : "Updated";
+    }
+    syncButtons();
   }
-  await refresh();
+  updating = false;
+  decorate(frame.contentDocument);
+  if (reloadAll) await refresh();
+  else setBusy(false);
 };
 const refresh = () => {
   setBusy(true);
   button.textContent = "Refreshing\\u2026";
   stamp(0);
-  show(notice('<div><div id="text">Checking\\u2026</div><div class="bar"><div id="fill"></div></div></div>'));
-  const poll = setInterval(() => {
-    fetch("/progress").then(r => r.json()).then(p => {
-      const doc = frame.contentDocument, text = doc && doc.getElementById("text");
-      if (!text || !p.total) return;
-      text.textContent = "Checking " + p.done + " of " + p.total + " tools\\u2026";
-      doc.getElementById("fill").style.width = (100 * p.done / p.total) + "%";
-    }).catch(() => {});
-  }, 400);
+  show(notice("Checking versions\\u2026"));
   return fetch("/report", {method: "POST", headers: {"X-AI-CLI-Version": "1"}})
     .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText))
     .then(written => load().then(html => {
@@ -655,7 +726,7 @@ const refresh = () => {
       show(notice("Check failed (" + e + "). Press Retry."));
       button.textContent = "Retry";
     })
-    .finally(() => { clearInterval(poll); setBusy(false); });
+    .finally(() => { setBusy(false); });
 };
 button.onclick = () => refresh();
 </script></body></html>"""
@@ -675,8 +746,13 @@ def update_plan(name):
     return argv(name, "update"), {}
 
 
-def run_update(name):
-    """Run `name`'s updater when a fresh check still offers an update."""
+ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
+
+
+def run_update(name, on_line=lambda line: None):
+    """Run `name`'s updater when a fresh check still offers an update. Each output line
+    goes to on_line as it arrives, so the page can show which step the updater is on."""
+    on_line("checking for the update")
     row = check_tool(name)
     if "status=up to date" in row:
         return {"ok": True, "output": "already up to date"}
@@ -694,13 +770,28 @@ def run_update(name):
     proc = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, encoding="utf-8", errors="replace",
                             env=env, **kwargs)
-    try:
-        out, _ = proc.communicate(timeout=UPDATE_TIMEOUT)
-    except subprocess.TimeoutExpired:
+    timed_out = threading.Event()
+
+    def give_up():
+        timed_out.set()
         stop_tree(proc)
+
+    timer = threading.Timer(UPDATE_TIMEOUT, give_up)
+    timer.start()
+    last = ""
+    try:
+        # Text mode splits on "\r" too, so installers' redrawn progress lines arrive one by one.
+        for line in proc.stdout:
+            line = ANSI.sub("", line).strip()
+            if line:
+                last = line[:300]
+                on_line(last)
+        proc.wait()
+    finally:
+        timer.cancel()
         proc.stdout.close()
+    if timed_out.is_set():
         return {"ok": False, "error": "timed out after %ds" % UPDATE_TIMEOUT}
-    last = ([line.strip() for line in out.splitlines() if line.strip()] or [""])[-1][:300]
     if proc.returncode:
         return {"ok": False, "error": last or "exit %d" % proc.returncode}
     return {"ok": True, "output": last}
@@ -744,24 +835,33 @@ def start_server():
     return False
 
 
-def write_page(html):
-    """Swap in a complete report so a reader never sees half a page."""
-    os.makedirs(os.path.dirname(PAGE), exist_ok=True)
-    tmp = "%s.%d.tmp" % (PAGE, os.getpid())
+# The check's raw lines behind the report, so the server can redraw one tool's row.
+LINES = PAGE + ".lines"
+
+
+def write_atomic(path, text):
+    """Swap in a complete file so a reader never sees half of it."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = "%s.%d.tmp" % (path, os.getpid())
     try:
         with open(tmp, "w", encoding="utf-8") as fh:
-            fh.write(html)
+            fh.write(text)
         for attempt in range(10):
             try:
-                os.replace(tmp, PAGE)
+                os.replace(tmp, path)
                 return
-            except PermissionError:  # Windows: the server is reading the page right now
+            except PermissionError:  # Windows: the server is reading the file right now
                 if attempt == 9:
                     raise
                 time.sleep(0.1)
     finally:
         if os.path.exists(tmp):
             os.remove(tmp)
+
+
+def write_page(html, lines):
+    write_atomic(LINES, json.dumps(lines))
+    write_atomic(PAGE, html)
 
 
 def written_ms():
@@ -773,34 +873,46 @@ def written_ms():
 
 
 def serve():
-    import threading
     import webbrowser
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    # Threaded so /ping, /last and /progress answer during a refresh; the lock keeps
-    # refreshes to one at a time.
+    # Keep checks and updates in one queue, including requests from other tabs.
     refresh_lock = threading.Lock()
-    progress = {"done": 0, "total": 0}
+    progress = {"active": ("", "")}
+
+    sys.path.insert(0, HERE)
+    import html_report
+
+    def redraw_row(name):
+        """Re-check one tool, put its new row into the saved report and return the page;
+        None when the saved lines are missing or do not include that tool."""
+        fresh = [line for line in check_tool(name).splitlines() if line.strip()]
+        try:
+            with open(LINES, encoding="utf-8") as fh:
+                lines = json.load(fh)
+        except (OSError, ValueError):
+            return None
+        kept = [line for line in lines if line.split("\t", 1)[0] != name]
+        if len(kept) == len(lines):
+            return None
+        at = next(i for i, line in enumerate(lines) if line.split("\t", 1)[0] == name)
+        lines = kept[:at] + fresh + kept[at:]
+        page = html_report.render(lines)
+        write_page(page, lines)
+        return page
 
     def refresh():
-        """Re-run the check, counting tool rows as they print. Returns the exit code."""
-        progress.update(done=0, total=len(selected_tools()))
+        """Re-run the check. Returns its exit code, or a reason when it timed out."""
         kwargs = {"start_new_session": True} if os.name != "nt" else {}
-        proc = subprocess.Popen([sys.executable, __file__], stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL, encoding="utf-8", errors="replace",
+        proc = subprocess.Popen([sys.executable, __file__], stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
                                 env=dict(os.environ, AI_CLI_VERSION_SERVED="1"), **kwargs)
-        # Every check runs in parallel under its own TIMEOUT; this bounds the whole run.
-        timer = threading.Timer(3 * TIMEOUT, stop_tree, [proc])
-        timer.start()
         try:
-            for line in proc.stdout:
-                if line.split("\t", 1)[0] in CHECKS:
-                    progress["done"] += 1
-            proc.wait()
-        finally:
-            timer.cancel()
-            proc.stdout.close()
-        return proc.returncode
+            # Every check runs in parallel under its own TIMEOUT; this bounds the whole run.
+            return proc.wait(timeout=3 * TIMEOUT)
+        except subprocess.TimeoutExpired:
+            stop_tree(proc)
+            return "timed out after %ds" % (3 * TIMEOUT)
 
     class Handler(BaseHTTPRequestHandler):
         def local(self):
@@ -829,7 +941,9 @@ def serve():
                     body = EMPTY_PAGE.encode("utf-8")
                 self.reply(body, "text/html; charset=utf-8")
             elif path == "/progress":
-                self.reply(json.dumps(progress).encode("ascii"), "application/json")
+                tool, line = progress["active"]
+                self.reply(json.dumps({"tool": tool, "line": line}).encode("utf-8"),
+                           "application/json")
             else:
                 self.send_error(404)
 
@@ -848,11 +962,21 @@ def serve():
                 if name not in CHECKS:
                     self.send_error(404)
                     return
-                with refresh_lock:  # never update while a check or another update runs
+                with refresh_lock:
+                    progress["active"] = (name, "checking for the update")
+
+                    def on_line(line):
+                        progress["active"] = (name, line)
                     try:
-                        result = run_update(name)
-                    except OSError as exc:
-                        result = {"ok": False, "error": str(exc)}
+                        try:
+                            result = run_update(name, on_line)
+                        except OSError as exc:
+                            result = {"ok": False, "error": str(exc)}
+                        on_line("checking the installed version")
+                        result["page"] = redraw_row(name)
+                        result["written"] = written_ms()
+                    finally:
+                        progress["active"] = ("", "")
                 self.reply(json.dumps(result).encode("utf-8"), "application/json")
                 return
             with refresh_lock:
@@ -952,7 +1076,7 @@ def main():
     print(chr(10).join(html_report.summary(lines)), flush=True)
     if output_format() == "html" or SERVED:
         import webbrowser
-        write_page(html_report.render(lines))
+        write_page(html_report.render(lines), lines)
         # Prefer the local server, whose page has a Refresh button; fall back to the file.
         note = ""
         if SERVED:

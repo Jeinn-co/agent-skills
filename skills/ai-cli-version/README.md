@@ -132,19 +132,21 @@ When the report is HTML, `/ai-cli-version` also starts a small local server in t
 background (`run.py --serve`, Python standard library only) and opens
 `http://127.0.0.1:47822/` instead of the file:
 
-- **Refresh** re-runs the check and swaps the new report in. While it runs, the old
-  report is cleared and the page shows `Checking 1 of 5 tools…` with a progress bar that
-  fills as each tool finishes; a failed run shows the error, never the old versions.
-  Reloading the page only re-reads the last report.
+- **Refresh** re-checks every tool and swaps the new report in. While it runs, the old
+  report is cleared and the page shows `Checking versions…`; a failed run shows the
+  error, never the old versions. Reloading the page only re-reads the last report.
 - **Update** appears on each row with an update, and **Update all (N)** at the top when
-  there are two or more. The row shows `Updating… 12s` while its updater runs; Update all
-  runs them one at a time, and a failure does not stop the rest. When they finish the
-  page re-checks by itself, so the rows show the new versions; a failed row keeps its
-  error and a **Retry** button. The page sends only the tool name: the server re-checks
-  that tool first, does nothing if it is already current, and runs the same updater as
-  its `update_cmd` without a shell (on Windows with `System32` first on PATH, so the
-  Codex installer finds Windows' own `tar`). In the agent, updating still waits for
-  `y` / `Esc`.
+  there are two or more. While an updater runs, its row shows the elapsed seconds and
+  the updater's own latest output line (no updater reports a percentage), and Update all
+  can queue the remaining tools. Clicking several row buttons queues them in click order;
+  Update all adds the rest. Updaters run one at a time, Refresh stays disabled until the
+  queue finishes, and a failure does not stop the rest. When one finishes, the server
+  re-checks just that tool and the page swaps in
+  just its row (`Updated just now`, or the error and a **Retry** button); the rest of the
+  report stays as it is. The page sends only the tool name: the server re-checks that
+  tool first, does nothing if it is already current, and runs the same updater as its
+  `update_cmd` without a shell (on Windows with `System32` first on PATH, so the Codex
+  installer finds Windows' own `tar`). In the agent, updating still waits for `y` / `Esc`.
 - `Updated MM-DD HH:MM:SS` is when the report on screen was written.
 - **Auto / Light / Dark** picks the colours; Auto follows the OS, and the choice is kept
   in that browser.
