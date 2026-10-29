@@ -159,9 +159,10 @@ background (`run.py --serve`, Python standard library only) and opens
 The server keeps running after the report, and later reports reuse it. To stop it, end
 its Python process, the one running `run.py --serve --no-open`. Running `run.py --serve`
 in a terminal starts it in the foreground (Ctrl+C stops it) only when none is running;
-with one already running it says so and exits. If port 47822 is taken, or held by a
-server from another copy of this skill, the report opens the file as before and says why
-Refresh is unavailable. Tested on Windows 11; on Windows the server has no window. macOS
+with one already running it says so and exits. A server left by an older version of the
+same copy (after a skill update) is stopped and replaced. If port 47822 is taken, or held
+by a server from another copy of this skill, the report opens the file as before and says
+why Refresh is unavailable. Tested on Windows 11; on Windows the server has no window. macOS
 is not yet tested.
 
 ## What it prints
