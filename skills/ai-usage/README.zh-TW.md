@@ -165,7 +165,8 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
 
 由上往下看：
 
-1. **每家一張卡片，上下排列** —— Claude、ChatGPT、Grok、Muse、Gemini。每個視窗有一條彩色
+1. **每家一張卡片，上下排列** —— Claude、ChatGPT、Grok、Muse、Gemini，附內嵌 SVG 產品圖示
+   （LobeHub Icons，MIT），不需額外載入圖片。每個視窗有一條彩色
    進度條（依百分比漸變：0% 綠、50% 黃、100% 紅）、已用百分比與重置時間。Grok 只有一個週視窗；
    Gemini 有兩個週額度池（`gemini` 是 Gemini 模型，`cl+gpt` 是 Antigravity 另外提供的 Claude
    與 GPT 模型）；其他三家是 5 小時加一週。
