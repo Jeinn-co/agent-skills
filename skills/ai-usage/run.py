@@ -265,6 +265,44 @@ def ping():
         return None
 
 
+def port_pid():
+    """PID listening on SERVE_PORT, or None when it cannot be found."""
+    try:
+        if os.name == "nt":  # match the foreign address, not the state: netstat localises it
+            out = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
+                                 text=True, timeout=5).stdout
+            for row in out.splitlines():
+                cols = row.split()
+                if len(cols) == 5 and cols[1] == "127.0.0.1:%d" % SERVE_PORT \
+                        and cols[2] == "0.0.0.0:0":
+                    return int(cols[4])
+        else:
+            out = subprocess.run(["lsof", "-t", "-sTCP:LISTEN", "-iTCP:%d" % SERVE_PORT],
+                                 capture_output=True, text=True, timeout=5).stdout.split()
+            return int(out[0]) if out else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        pass
+    return None
+
+
+def take_over(holder):
+    """Stop a server left running by an older version of this same copy, so updating the
+    skill does not leave Refresh broken. Returns what holds the port afterwards."""
+    if holder in (None, PING) or holder.split(b" ", 2)[2:] != [str(HERE).encode("utf-8")]:
+        return holder  # free, ours, or another copy's server: leave it alone
+    pid = port_pid()
+    if pid:
+        try:
+            os.kill(pid, 15)  # SIGTERM; TerminateProcess on Windows
+        except OSError:
+            return holder
+        for _ in range(30):
+            if ping() is None:
+                return None
+            time.sleep(0.1)
+    return ping()
+
+
 def start_server():
     """Start `--serve` detached so it outlives this run; True once it answers."""
     args = [sys.executable, str(HERE / "run.py"), "--serve", "--no-open"]
@@ -393,7 +431,7 @@ if "--serve" in sys.argv:
             pass
 
     server = None
-    holder = ping()
+    holder = take_over(ping())
     if holder == PING:
         print("already serving %s" % SERVE_URL)
     elif holder:
@@ -513,13 +551,13 @@ try:
         if SERVED:
             shown, opened = PAGE, True
         else:
-            holder = ping()
+            holder = take_over(ping())
             if holder == PING or (holder is None and start_server()):
                 shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
             else:
                 shown, opened = PAGE, webbrowser.open(PAGE.as_uri())
-                note = ("  (Refresh unavailable: port %d is held by another ai-usage server; "
-                        "stop it)" % SERVE_PORT if holder else
+                note = ("  (Refresh unavailable: port %d is held by %s; stop it)"
+                        % (SERVE_PORT, holder.decode("utf-8", "replace")) if holder else
                         "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
         print()
         print("### HTML %s%s%s" % (shown, note, "" if opened else "  (could not open a browser)"))
