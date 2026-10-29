@@ -75,7 +75,7 @@ Render the report as **Markdown**, not inside a code block: a heading, a usage t
 `Now` list, the Qualified table, footnotes, the `→` line and the links. Bars stay in
 inline code so every font draws them at the same width. Sample:
 
-### Usage — 09-12 01:08 · ai-usage 1.15.1
+### Usage — 09-12 01:08 · ai-usage 1.16.0
 
 | Provider | Window | Used | Bar | Resets |
 |---|---|--:|---|---|

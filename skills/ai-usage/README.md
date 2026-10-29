@@ -191,7 +191,7 @@ Choose every provider to go back to the default. Outside an agent:
 Read top to bottom:
 
 1. **One card per provider**, stacked — Claude, ChatGPT, Grok, Muse and Gemini. Each
-   window has a colour bar (green below 50%, amber 50–79%, red from 80%), the percent
+   window has a colour bar that shifts from green (0%) through yellow (50%) to red (100%), the percent
    used and the reset clock. Grok has one weekly window; Gemini has two weekly pools
    (`gemini` for Gemini models, `cl+gpt` for the Claude and GPT models Antigravity also
    offers); the others have a 5-hour window and a week.

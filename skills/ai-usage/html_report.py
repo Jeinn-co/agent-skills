@@ -183,8 +183,9 @@ def advice(raw, now=None):
     return lines
 
 
-def level(pct):
-    return "red" if pct >= 80 else "amber" if pct >= 50 else "green"
+def hue(pct):
+    # 0% green (120) -> 50% yellow (60) -> 100% red (0), continuous.
+    return round(120 * (1 - min(max(pct, 0), 100) / 100.0))
 
 
 def render(raw, now=None):
@@ -197,10 +198,10 @@ def render(raw, now=None):
             when = w["reset"]
             shown = clock(when, now) if when else ""
             rows.append(
-                '<div class="row"><div class="lbl">%s</div>'
-                '<div class="track"><div class="fill %s" style="width:%.1f%%"></div></div>'
-                '<div class="pct %s">%s</div><div class="reset">%s</div></div>'
-                % (esc(w["label"]), level(w["pct"]), min(w["pct"], 100), level(w["pct"]),
+                '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
+                '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
+                '<div class="pct">%s</div><div class="reset">%s</div></div>'
+                % (hue(w["pct"]), esc(w["label"]), min(w["pct"], 100),
                    esc(w["shown"]), esc(shown)))
             left = remaining_minutes(when, now) if when else None
             if left is not None:
@@ -264,10 +265,11 @@ def render(raw, now=None):
     return page
 
 
-# Tailwind CSS 3.4 Slate with green/amber/red/blue; every text colour is at least 4.5:1
+# Tailwind CSS 3.4 Slate with blue; usage colour is an HSL hue from hue(), and its
+# lightness (--tl) keeps every text colour at least 4.5:1
 # on its card. Dark is used when the OS is dark, unless `data-theme` on <html> forces one.
 DARK = ("--bg:#1e293b;--card:#334155;--text:#f1f5f9;--muted:#cbd5e1;--line:#475569;"
-        "--track:#475569;--tick:#94a3b8;--green:#4ade80;--amber:#fbbf24;--red:#fca5a5;"
+        "--track:#475569;--tick:#94a3b8;--fl:55%;--tl:78%;"
         "--accent:#93c5fd")
 
 PAGE = """<!doctype html>
@@ -275,7 +277,7 @@ PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI Usage</title>
 <style>
-:root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--tick:#94a3b8;--green:#15803d;--amber:#b45309;--red:#dc2626;--accent:#2563eb}
+:root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--tick:#94a3b8;--fl:45%;--tl:25%;--accent:#2563eb}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
 :root[data-theme=dark]{@@dark@@}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
@@ -300,9 +302,8 @@ font-variant-numeric:tabular-nums}.scale span{position:absolute;transform:transl
 .clock{width:13px;height:13px;margin-right:5px;vertical-align:-2px;fill:none;stroke:currentColor;
 stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .left{grid-column:3/5;text-align:left;white-space:nowrap;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
-.fill{height:100%;border-radius:999px}.fill.green{background:var(--green)}.fill.amber{background:var(--amber)}
-.fill.red{background:var(--red)}.pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
-.pct.green{color:var(--green)}.pct.amber{color:var(--amber)}.pct.red{color:var(--red)}
+.fill{height:100%;border-radius:999px;background:hsl(var(--h) 80% var(--fl))}
+.pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:hsl(var(--h) 85% var(--tl))}
 .reset{white-space:nowrap;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}.rel{opacity:.8}
 .note{color:var(--muted);font-style:italic;margin:6px 0}
 .now{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
