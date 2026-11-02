@@ -29,7 +29,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.14.1"
+VERSION = "1.14.2"
 
 TIMEOUT = 20
 HOME = os.path.expanduser("~")
