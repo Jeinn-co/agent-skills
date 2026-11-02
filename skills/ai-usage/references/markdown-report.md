@@ -96,6 +96,10 @@ inline code so every font draws them at the same width. Sample:
 - Muse — `muse-spark-1.3` · effort high · 2m ago
 - Gemini — `gemini-3.8-flash` · effort high · 5m ago
 
+#### Model and effort guide
+
+Before the Qualified table, include the single model and effort recommendation table from `html_report.py` in the report language. Preserve the documented default marker, model names, effort names, the review date and reference links; availability depends on the model picker.
+
 #### Qualified (CursorBench)
 
 _Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score_

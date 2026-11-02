@@ -175,11 +175,13 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    例如 `2h32m left`。用量條跑在時間條前面，就代表用得比時間過得快。
 3. **Now** —— 該 CLI 最新一個本機 session 的 model 與 effort，以及這家自己的用量頁連結
    （Claude、ChatGPT、Grok）。
-4. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是
+4. **Model and effort guide** —— 根據下方參考資料整理的寫程式、規劃與 review 起點，
+   ★ 標示文件中的預設 effort。建議附有查閱日期，不代表你的目前設定。
+5. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是
    挑選規則選出的那一檔。兩邊各有分數、`$`（依 API 價格的每題成本）與 CP（分數 ÷ `$`）。
    `*` 表示這家沒有任何一檔到 50%，改列它的最高分。CursorBench 沒收錄的 model（例如上圖的
    GPT-6.1 Sol）改用 Artificial Analysis，顯示 `AA <指數>`。
-5. **Compare models** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
+6. **Compare models** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
 對話框裡只顯示推薦 —— **→** 現在該用哪一個（看最緊的視窗誰剩最多額度，免費或沒有方案名稱（如 Gemini 的 `?`）不算，差距 10 點內才比跑分）、附一句理由；週視窗超過 80% 時前面多一行
 **Warning** —— 以及報表連結。這幾行由 launcher 自己算好（`### ADVICE`），agent 只照抄，載入的 `SKILL.md` 也很短；直接在終端機跑 `./run.sh` 一樣看得到，不耗 token。`setup` 可以改成 Markdown，整份報表直接以表格顯示在對話框裡，不開網頁。

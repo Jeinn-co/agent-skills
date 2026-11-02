@@ -291,14 +291,14 @@ def render(raw, now=None):
 # on its card. Dark is used when the OS is dark, unless `data-theme` on <html> forces one.
 DARK = ("--bg:#1e293b;--card:#334155;--text:#f1f5f9;--muted:#cbd5e1;--line:#475569;"
         "--track:#475569;--tick:#94a3b8;--fl:55%;--tl:78%;"
-        "--accent:#93c5fd")
+        "--accent:#93c5fd;--anth:rgba(217,119,87,.16);--oai:rgba(16,163,127,.16)")
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI Usage</title>
 <style>
-:root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--tick:#94a3b8;--fl:45%;--tl:25%;--accent:#2563eb}
+:root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--tick:#94a3b8;--fl:45%;--tl:25%;--accent:#2563eb;--anth:rgba(217,119,87,.07);--oai:rgba(16,163,127,.07)}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
 :root[data-theme=dark]{@@dark@@}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
@@ -336,10 +336,31 @@ border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);fon
 tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums}.score{color:var(--muted)}
 .foot{color:var(--muted);font-size:14px;margin:8px 0}.muted{color:var(--muted)}
 .links{margin-top:20px}a{color:var(--accent)}
+tr.anth td{background:var(--anth)}tr.oai td{background:var(--oai)}tr.key td{font-weight:600}
+.warn{font-size:14px;margin:0 0 10px;padding:8px 12px;border-left:3px solid #f59e0b;background:rgba(245,158,11,.1);border-radius:6px}
 @media (max-width:480px){.row{grid-template-columns:44px 1fr 40px}.reset{grid-column:2/4}.left{grid-column:2/4}}
 </style></head><body><main>
 <h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
+<h3>Model and effort guide</h3>
+<p class="std">Recommendations based on the references below, reviewed 2026-11-02. Availability depends on your plan and model picker.</p>
+<p class="warn"><b>Start with Medium–High for coding.</b> Avoid Xhigh and Max by habit; use them when the task needs deeper reasoning or a lower effort falls short.</p>
+<div class="tablewrap"><table><thead><tr><th>CLI</th><th>Model</th><th>Effort</th><th>Suggested use</th></tr></thead><tbody>
+<tr class="anth"><td>Claude Code</td><td>Haiku 5.5</td><td>Low</td><td>Quick questions and small changes</td></tr>
+<tr class="anth key"><td>Claude Code</td><td>Sonnet 5.5</td><td>Medium ★</td><td>Coding: scoped day-to-day work</td></tr>
+<tr class="anth key"><td>Claude Code</td><td>Sonnet 5.5</td><td>High</td><td>Review and debugging: edge cases</td></tr>
+<tr class="anth key"><td>Claude Code</td><td>Opus 5.5</td><td>Medium ★</td><td>Plan: complex features and architecture</td></tr>
+<tr class="anth"><td>Claude Code</td><td>Opus 5.5</td><td>High–Max</td><td>Difficult debugging and security analysis</td></tr>
+<tr class="oai"><td>Codex</td><td>GPT-6 Luna</td><td>Low</td><td>Small edits and scoped problems</td></tr>
+<tr class="oai key"><td>Codex</td><td>GPT-6.1 Terra</td><td>Medium–High</td><td>Coding: scoped fixes and computer use</td></tr>
+<tr class="oai key"><td>Codex</td><td>GPT-6.1 Sol</td><td>Medium ★</td><td>Plan and review: complex, multi-file work</td></tr>
+<tr class="oai key"><td>Codex</td><td>GPT-6 Astra</td><td>Medium–High</td><td>Complex projects and difficult review</td></tr>
+</tbody></table></div>
+<p class="foot">★ = documented default effort: Claude Code for Sonnet 5.5 and Opus 5.5; OpenAI API for GPT-6.1 Sol. Codex settings can differ from the API default. Availability depends on your plan. Higher effort generally takes more time and usage; compare results before using it routinely.
+Claude: use <code>/model</code> and <code>/effort</code>. Codex: use <code>/model</code>.
+Sources: <a href="https://code.claude.com/docs/en/model-config">Claude Code</a> ·
+<a href="https://developers.openai.com/api/docs/guides/model-selection">OpenAI model selection</a> ·
+<a href="https://developers.openai.com/api/docs/guides/reasoning">OpenAI reasoning</a>.</p>
 <h3>Qualified (CursorBench)</h3>
 <p class="std">Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score</p>
 <div class="tablewrap"><table><thead><tr><th>Provider</th><th>Now</th><th class="num">Now $</th>

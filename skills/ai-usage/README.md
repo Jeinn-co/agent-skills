@@ -204,12 +204,15 @@ Read top to bottom:
    faster than it runs out.
 3. **Now** — the model and effort of that CLI's newest local session, plus a link to the
    provider's own usage page (Claude, ChatGPT, Grok).
-4. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran
+4. **Model and effort guide** — coding, planning and review starting points based on
+   the linked references, with documented default efforts marked ★. The guide has a
+   review date and does not reflect your current configuration.
+5. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran
    last; *Qualified* is the effort the pick rule chooses. Each side shows its score,
    `$` (cost per task at API prices) and CP (score ÷ `$`). `*` marks a provider with
    nothing at 50%, so its highest score is shown. A model CursorBench does not list, like
    GPT-6.1 Sol above, falls back to Artificial Analysis and shows `AA <index>`.
-5. **Compare models** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
+6. **Compare models** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
 In chat the agent shows only the recommendation — **→** which tool to use right now (the
 one with the most usage left in its tightest window, free or unnamed plans such as Gemini's `?` skipped; benchmark score breaks a near tie) and why, after a **Warning** line when a weekly window is over 80% — and a link to the page.
