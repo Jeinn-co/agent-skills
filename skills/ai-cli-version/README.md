@@ -136,20 +136,25 @@ background (`run.py --serve`, Python standard library only) and opens
   report is cleared and the page shows `Checking versions…`; a failed run shows the
   error, never the old versions. Reloading the page only re-reads the last report.
 - **Update** appears on each row with an update, and **Update all (N)** at the top when
-  there are two or more. While an updater runs, its row shows the elapsed seconds and
-  the updater's own latest output line (no updater reports a percentage). Update all
-  queues every tool with an update and runs them one at a time. While updates run, only
-  cancelling works: a queued row's button reads `Queued · Cancel` and takes just that tool
-  off the queue, and the top button reads `Cancel queued (N)` and drops every tool that
-  has not started. The running row, the other rows and Refresh stay disabled until the
-  queue ends, and the one already running always finishes, since stopping an installer
-  halfway could leave a broken install. A failure does not stop the rest. When one finishes, the server
-  re-checks just that tool and the page swaps in
-  just its row (`Updated just now`, or the error and a **Retry** button); the rest of the
-  report stays as it is. The page sends only the tool name: the server re-checks that
-  tool first, does nothing if it is already current, and runs the same updater as its
-  `update_cmd` without a shell (on Windows with `System32` first on PATH, so the Codex
-  installer finds Windows' own `tar`). In the agent, updating still waits for `y` / `Esc`.
+  there are two or more:
+  - **Update** on a row runs just that tool. **Update all** queues every tool with an
+    update and runs them one at a time; a failure does not stop the rest.
+  - While an updater runs, its row shows the elapsed seconds and the updater's own
+    latest output line (no updater reports a percentage).
+  - While updates run, only cancelling works. A queued row's button reads
+    `Queued · Cancel` and takes just that tool off the queue; the top button reads
+    `Cancel queued (N)` and drops every tool that has not started. The running row, the
+    other rows and Refresh stay disabled until the queue ends.
+  - The tool already running always finishes, since stopping an installer halfway could
+    leave a broken install. The queue lives in that browser tab: reloading the page drops
+    the tools that have not started.
+  - When a tool finishes, the server re-checks just that tool and the page swaps in just
+    its row (`Updated just now`, or the error and a **Retry** button); the rest of the
+    report stays as it is.
+  - The page sends only the tool name. The server re-checks that tool first, does
+    nothing if it is already current, and runs the same updater as its `update_cmd`
+    without a shell (on Windows with `System32` first on PATH, so the Codex installer
+    finds Windows' own `tar`). In the agent, updating still waits for `y` / `Esc`.
 - `Updated MM-DD HH:MM:SS` is when the report on screen was written.
 - **Auto / Light / Dark** picks the colours; Auto follows the OS, and the choice is kept
   in that browser.

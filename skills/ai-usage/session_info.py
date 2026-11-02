@@ -8,7 +8,11 @@ no credentials, nothing launched. Field names found 2026-09-22 on Windows 11:
 
   claude  ~/.claude/projects/<proj>/<id>.jsonl
           assistant lines: message.model, effort, perTurnEffort
-  codex   ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl
+  codex   ~/.codex/state_*.sqlite (found 2026-10-29): newest row of `threads` by
+          updated_at: model, reasoning_effort. Rollout files stop being touched after a
+          thread's first turns (a thread updated 10-29 kept a 10-27 mtime), so the newest
+          file can be an older thread. Fallback when the index is missing or unreadable:
+          ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl,
           last {"type":"turn_context"}: payload.model, effort
   grok    ~/.grok/sessions/<cwd>/<id>/summary.json: current_model_id, reasoning_effort
   muse    ~/.local/share/muse/sessions/YYYY/MM/DD/<id>/session.jsonl (found 2026-09-24):
@@ -33,7 +37,7 @@ no credentials, nothing launched. Field names found 2026-09-22 on Windows 11:
 Every value is what the CLI recorded for its last turn, not what the config defaults to.
 A field the files do not carry prints `?` rather than a guess.
 """
-import datetime, json, os, re, sys
+import datetime, json, os, re, sqlite3, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -110,6 +114,19 @@ def claude():
 
 
 def codex():
+    db = newest((HOME / ".codex").glob("state_*.sqlite"))
+    if db:
+        try:
+            con = sqlite3.connect("file:%s?mode=ro" % db[1].as_posix(), uri=True)
+            try:
+                row = con.execute("SELECT updated_at, model, reasoning_effort FROM threads"
+                                  " WHERE model IS NOT NULL ORDER BY updated_at DESC LIMIT 1").fetchone()
+            finally:
+                con.close()
+            if row:
+                return report(row[0], row[1], row[2])
+        except sqlite3.Error:
+            pass
     hit = newest((HOME / ".codex" / "sessions").rglob("rollout-*.jsonl"))
     if not hit:
         return print("no local session")
