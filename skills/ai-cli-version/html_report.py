@@ -75,41 +75,56 @@ def logo(cli):
             'fill-rule="evenodd" clip-rule="evenodd" d="%s"/></svg>' % (color, path))
 
 
-def render(lines, now=None):
-    now = now or datetime.datetime.now()
-    version, skipped, rows = parse(lines)
-    body = []
-    outdated = []
-    for r in rows:
-        label = logo(r["name"]) + esc(NAMES[r["name"]])
-        # data-row lets the served page swap one row after an update.
-        row_id = ' data-row="%s"' % esc(r["name"])
-        if "note" in r:
-            kind = "muted" if r["note"] == "not installed" else "bad"
-            body.append('<tr%s><td>%s</td><td colspan="2" class="%s">%s</td>'
-                        '<td><span class="badge %s">%s</span></td></tr>'
-                        % (row_id, label, kind, esc(r["note"]), kind,
-                           "not installed" if kind == "muted" else "check failed"))
-            continue
-        released = r.get("released", "?")
-        if r["name"] == "grok" and released != "?":
-            released = "≤ " + released + " *"
-        status = r.get("status", "?")
-        if status == "update available":
-            outdated.append(NAMES[r["name"]])
-            badge = ('<span class="badge up">update</span> <code>%s</code>' % esc(r.get("update_cmd", "")))
-        elif status == "up to date":
-            badge = '<span class="badge ok">up to date</span>'
-        else:
-            badge = '<span class="badge muted">%s</span>' % esc(status)
-        # data-tool marks rows the served page gives an Update button.
-        marker = row_id + (' data-tool="%s"' % esc(r["name"]) if status == "update available" else "")
-        body.append(
-            "<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span></td>"
+# The cells of a row that is being checked; the served page also puts it into a row whose
+# last check timed out, while that tool is checked again.
+SKELETON = '<td colspan="3"><div class="skel"></div></td>'
+
+
+def row(r, loading=False):
+    """One tool's <tr>; `loading` draws the skeleton instead of its versions."""
+    label = logo(r["name"]) + esc(NAMES[r["name"]])
+    # data-row lets the served page swap one row after a check or an update.
+    row_id = ' data-row="%s"' % esc(r["name"])
+    if loading:
+        return "<tr%s><td>%s</td>%s</tr>" % (row_id, label, SKELETON)
+    if "note" in r:
+        kind = "muted" if r["note"] == "not installed" else "bad"
+        # data-timeout: the served page checks this tool again with a longer budget.
+        late = ' data-timeout' if "timed out after" in r["note"] else ""
+        return ('<tr%s%s><td>%s</td><td colspan="2" class="%s">%s</td>'
+                '<td><span class="badge %s">%s</span></td></tr>'
+                % (row_id, late, label, kind, esc(r["note"]), kind,
+                   "not installed" if kind == "muted" else "check failed"))
+    released = r.get("released", "?")
+    if r["name"] == "grok" and released != "?":
+        released = "≤ " + released + " *"
+    status = r.get("status", "?")
+    if status == "update available":
+        badge = ('<span class="badge up">update</span> <code>%s</code>' % esc(r.get("update_cmd", "")))
+    elif status == "up to date":
+        badge = '<span class="badge ok">up to date</span>'
+    else:
+        badge = '<span class="badge muted">%s</span>' % esc(status)
+    # data-tool marks rows the served page gives an Update button.
+    marker = row_id + (' data-tool="%s"' % esc(r["name"]) if status == "update available" else "")
+    return ("<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span></td>"
             "<td><b>%s</b> <span class=\"sub\">released %s</span></td><td>%s"
             "<div class=\"sub\">channel %s</div></td></tr>"
             % (marker, label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")),
                esc(r.get("latest", "?")), esc(released), badge, esc(r.get("channel", "?"))))
+
+
+def row_html(lines):
+    """The <tr> for the one tool in `lines` (that tool's check output)."""
+    return row(parse(lines)[2][0])
+
+
+def render(lines, now=None, loading=False):
+    """The whole page; `loading` shows every tool's row as a skeleton."""
+    now = now or datetime.datetime.now()
+    version, skipped, rows = parse(lines)
+    body = "".join(row(r, loading) for r in rows)
+    outdated = [NAMES[r["name"]] for r in rows if r.get("status") == "update available"]
     failed = [NAMES[r["name"]] for r in rows if r.get("note") not in (None, "not installed")]
     parts = []
     if outdated:
@@ -117,15 +132,18 @@ def render(lines, now=None):
             len(outdated), "" if len(outdated) == 1 else "s", ", ".join(outdated)))
     if failed:
         parts.append("Check failed: %s" % ", ".join(failed))
-    kind = "up" if outdated else "bad" if failed else "ok"
-    summary = '<p class="summary %s">%s</p>' % (kind, esc(" · ".join(parts) or "All up to date"))
-    grok = any(r["name"] == "grok" and "note" not in r for r in rows)
+    if loading:
+        summary = '<p class="summary muted">Checking versions…</p>'
+    else:
+        kind = "up" if outdated else "bad" if failed else "ok"
+        summary = '<p class="summary %s">%s</p>' % (kind, esc(" · ".join(parts) or "All up to date"))
+    grok = not loading and any(r["name"] == "grok" and "note" not in r for r in rows)
     foot = ('<p class="foot">* Grok release time is approximate (third-party mirror); official: '
             'x.ai/build/changelog</p>' if grok else "")
     skip = ('<p class="foot">Not checked (setup): %s</p>' % esc(", ".join(skipped)) if skipped else "")
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(version)),
-                       ("rows", "".join(body)), ("summary", summary), ("foot", foot),
+                       ("rows", body), ("summary", summary), ("foot", foot),
                        ("skipped", skip), ("compare", esc(COMPARE)), ("dark", DARK)):
         page = page.replace("@@%s@@" % key, value)
     return page
@@ -148,7 +166,11 @@ PAGE = """<!doctype html>
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}.top{color:var(--muted);margin:0 0 16px}
-.summary{font-size:17px;font-weight:500;margin:0 0 18px}.summary.ok{color:var(--ok)}.summary.up{color:var(--up)}.summary.bad{color:var(--bad)}
+.summary{font-size:17px;font-weight:500;margin:0 0 18px}.summary.ok{color:var(--ok)}.summary.up{color:var(--up)}.summary.bad{color:var(--bad)}.summary.muted{color:var(--muted)}
+.skel{height:10px;margin:8px 0;border-radius:999px;background:linear-gradient(90deg,var(--track) 30%,var(--card) 50%,var(--track) 70%);
+background-size:300% 100%;animation:shimmer 1.4s linear infinite}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
+@media (prefers-reduced-motion:reduce){.skel{animation:none}}
 .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 table{border-collapse:collapse;width:100%}.logo{width:16px;height:16px;margin-right:8px;vertical-align:-3px}th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);
 vertical-align:top}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}tr:last-child td{border-bottom:0}
@@ -162,7 +184,7 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:14px;background:var(-
 @@summary@@
 <div class="tablewrap"><table><thead><tr><th>Tool</th><th>Installed</th><th>Latest</th><th>Status</th></tr></thead>
 <tbody>@@rows@@</tbody></table></div>
-@@foot@@@@skipped@@
+<div id="foot">@@foot@@@@skipped@@</div>
 <p>Compare models: <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 </main></body></html>
 """

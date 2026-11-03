@@ -132,9 +132,13 @@ When the report is HTML, `/ai-cli-version` also starts a small local server in t
 background (`run.py --serve`, Python standard library only) and opens
 `http://127.0.0.1:47822/` instead of the file:
 
-- **Refresh** re-checks every tool and swaps the new report in. While it runs, the old
-  report is cleared and the page shows `Checking versions…`; a failed run shows the
-  error, never the old versions. Reloading the page only re-reads the last report.
+- **Refresh** shows a skeleton for every row, then checks each tool with its own
+  request: a row fills in as soon as its tool answers, never waiting for the others. The
+  page gives each check up to **90 seconds** instead of 20. A row that fails says so in
+  place; old versions are never shown as current. Reloading the page only re-reads the
+  last report.
+- A row whose check timed out in the chat report (20 s) is checked again with the page's
+  90-second budget as soon as the page opens, behind a skeleton.
 - **Update** appears on each row with an update, and **Update all (N)** at the top when
   there are two or more:
   - **Update** on a row runs just that tool. **Update all** queues every tool with an

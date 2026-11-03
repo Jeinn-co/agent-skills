@@ -29,9 +29,14 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.14.2"
+VERSION = "1.15.0"
 
-TIMEOUT = 20
+# Seconds per check. The chat report keeps 20; the browser page, which shows each tool
+# as soon as it answers, passes a longer one to its probes in AI_CLI_VERSION_TIMEOUT.
+TIMEOUT = float(os.environ.get("AI_CLI_VERSION_TIMEOUT") or 20)
+# Per-check budget on the page: each row checks on its own, so a slow tool only keeps
+# its own skeleton up and can be given longer than the chat report's 20 s.
+PAGE_TIMEOUT = 90
 HOME = os.path.expanduser("~")
 # Both CLIs let the user move their home directory; the installers honour these variables.
 CLAUDE_DIR = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(HOME, ".claude")
@@ -451,29 +456,30 @@ def stop_tree(proc):
     proc.wait()
 
 
-def check_tool(name):
+def check_tool(name, timeout=TIMEOUT):
     """Isolate each check so its total deadline can stop CLI descendants too."""
     kwargs = {"start_new_session": True} if os.name != "nt" else {}
     proc = subprocess.Popen([sys.executable, __file__, "--probe", name],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             encoding="utf-8", errors="replace",
+                            env=dict(os.environ, AI_CLI_VERSION_TIMEOUT="%g" % timeout),
                             **kwargs)
     try:
-        out, err = proc.communicate(timeout=TIMEOUT)
+        out, err = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         stop_tree(proc)
         proc.stdout.close()
         proc.stderr.close()
-        return "%s\tcheck failed (lookup timed out after %gs; skipped)\n" % (name, TIMEOUT)
+        return "%s\tcheck failed (lookup timed out after %gs; skipped)\n" % (name, timeout)
     if proc.returncode:
         reason = err.strip().splitlines()
         return "%s\tcheck failed (%s)\n" % (name, reason[-1] if reason else "no result")
     return out
 
 
-# Local report page with a Refresh button that re-runs the check and shows progress
-# (reload only re-reads the last report). Fixed port so a run can reuse a running server;
-# one above ai-usage's 47821.
+# Local report page with a Refresh button that checks every tool again, one request per
+# tool (reload only re-reads the last report). Fixed port so a run can reuse a running
+# server; one above ai-usage's 47821.
 SERVE_PORT = 47822
 SERVE_URL = "http://127.0.0.1:%d/" % SERVE_PORT
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -481,8 +487,6 @@ PAGE = os.path.join(tempfile.gettempdir(), "ai-cli-version", "report.html")
 # /ping answer: version and location, so a server left from an older or moved copy of
 # this skill is not mistaken for this one (its Refresh would run that other run.py).
 PING = ("ai-cli-version %s %s" % (VERSION, HERE)).encode("utf-8")
-# Set on the run the server starts: HTML page, no browser tab.
-SERVED = os.environ.get("AI_CLI_VERSION_SERVED") == "1"
 # Placeholder pages in the iframe. `data-theme` on <html> forces light or dark.
 NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a}"
               "@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--b:#1e293b;--t:#f1f5f9}}"
@@ -491,7 +495,9 @@ NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a}"
               "font:15px system-ui,sans-serif;background:var(--b);color:var(--t)}")
 EMPTY_PAGE = ('<!doctype html><html><head><meta charset="utf-8"><style>%s</style></head>'
               "<body>No report yet. Press Refresh.</body></html>" % NOTICE_CSS)
-# `/`: the last report in an iframe, a Refresh button and a theme switch.
+# `/`: the last report in an iframe, a Refresh button and a theme switch. Refresh shows
+# skeleton rows and checks each tool with its own request, so every row fills in as soon
+# as its tool answers.
 SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>CLI Versions</title>
 <style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
@@ -520,6 +526,7 @@ const frame = document.getElementById("report"), button = document.getElementByI
 const allButton = document.getElementById("all");
 const picker = document.getElementById("theme");
 const THEMES = ["auto", "light", "dark"];
+const SKELETON = __SKELETON__;
 let theme = "auto";  // Auto follows the OS; the choice is kept per browser
 try { theme = localStorage.getItem("ai-cli-version-theme") || "auto"; } catch (e) {}
 // The value is spliced into the report's HTML, so only a known name may pass.
@@ -530,10 +537,12 @@ const applyTheme = doc => {
   else doc.documentElement.dataset.theme = theme;
 };
 // Puts the theme on the page before it renders, so it never flashes in the other one.
-const show = html => {
+// Resolves with the frame's document once the page has loaded.
+const show = html => new Promise(done => {
+  frame.addEventListener("load", () => done(frame.contentDocument), {once: true});
   frame.srcdoc = theme === "auto" ? html :
     html.replace(/<html\\b/i, '<html data-theme="' + theme + '"');
-};
+});
 applyTheme(document);
 picker.onchange = () => {
   theme = THEMES.includes(picker.value) ? picker.value : "auto";
@@ -620,6 +629,13 @@ const decorate = doc => {
   syncButtons();
 };
 frame.onload = () => decorate(frame.contentDocument);
+// Puts the summary above the table and the notes below it from a freshly saved page.
+const swapSummary = (doc, fresh) => {
+  for (const sel of [".summary", "#foot"]) {
+    const old = doc.querySelector(sel), now = fresh.querySelector(sel);
+    if (old && now) old.replaceWith(doc.importNode(now, true));
+  }
+};
 // Puts one re-checked row, and the summary above the table, in place without reloading.
 const swapRow = (tool, html) => {
   const doc = frame.contentDocument, fresh = new DOMParser().parseFromString(html, "text/html");
@@ -628,16 +644,63 @@ const swapRow = (tool, html) => {
   if (!oldRow || !newRow) return null;
   const row = doc.importNode(newRow, true);
   oldRow.replaceWith(row);
-  const oldSummary = doc.querySelector(".summary"), newSummary = fresh.querySelector(".summary");
-  if (oldSummary && newSummary) oldSummary.replaceWith(doc.importNode(newSummary, true));
+  swapSummary(doc, fresh);
   decorate(doc);
   return row;
 };
-// Replaces the report while checking or after a failure, so old versions never look current.
+// Replaces the report after a failure, so old versions never look current.
 const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style>' + text;
-const load = () => fetch("/last?" + Date.now())
-  .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText));
-load().then(show).catch(e => show(notice("Could not load the report (" + e + ").")));
+const ok = r => r.ok ? r : Promise.reject(r.status + " " + r.statusText);
+const get = path => fetch(path + "?" + Date.now()).then(ok).then(r => r.text());
+const post = (path, body) => fetch(path, {method: "POST", body: JSON.stringify(body || {}),
+  headers: {"X-AI-CLI-Version": "1", "Content-Type": "application/json"}}).then(ok).then(r => r.json());
+// One request per tool, none waiting for another: each row is swapped in as soon as its
+// tool answers. A failed request says so on its row; once all have answered, the merged
+// report is saved and its summary shown.
+const check = (doc, tools) => {
+  const lines = [];
+  return Promise.all(tools.map(tool => post("/row", {tool}).then(r => {
+    lines.push(...r.lines);
+    const holder = doc.createElement("tbody");
+    holder.innerHTML = r.html;
+    doc.querySelector('tr[data-row="' + CSS.escape(tool) + '"]')?.replaceWith(holder.firstElementChild);
+    decorate(doc);
+  }, e => {
+    lines.push(tool + "\\tcheck failed (" + e + ")");
+    const cell = doc.querySelector('tr[data-row="' + CSS.escape(tool) + '"] .skel')?.parentElement;
+    if (cell) {
+      cell.className = "bad";
+      cell.textContent = "check failed (" + e + ")";
+    }
+  }))).then(() => post("/finish", {lines})).then(r => {
+    swapSummary(doc, new DOMParser().parseFromString(r.page, "text/html"));
+    decorate(doc);
+    stamp(Number(r.written));
+  });
+};
+get("/last")
+  .then(show, e => show(notice("Could not load the report (" + e + ").")))
+  .then(doc => {
+    // A row whose check ran out of the chat report's 20 s is checked again here, with
+    // the page's longer budget.
+    const late = [...doc.querySelectorAll("tr[data-timeout]")];
+    if (!late.length) return;
+    for (const row of late) {
+      row.removeAttribute("data-timeout");
+      while (row.children.length > 1) row.lastElementChild.remove();
+      row.insertAdjacentHTML("beforeend", SKELETON);
+    }
+    setBusy(true);
+    button.textContent = "Refreshing\\u2026";
+    stamp(0);
+    check(doc, late.map(row => row.dataset.row))
+      .then(() => { button.textContent = "Refresh"; })
+      .catch(e => {
+        show(notice("Check failed (" + e + "). Press Retry."));
+        button.textContent = "Retry";
+      })
+      .finally(() => { setBusy(false); });
+  });
 // Update or Update all starts the queue; the server also serializes other tabs' requests.
 const enqueueTools = tools => {
   if (busy || updating) return;  // nothing joins a queue that is already running
@@ -734,14 +797,9 @@ const refresh = () => {
   setBusy(true);
   button.textContent = "Refreshing\\u2026";
   stamp(0);
-  show(notice("Checking versions\\u2026"));
-  return fetch("/report", {method: "POST", headers: {"X-AI-CLI-Version": "1"}})
-    .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText))
-    .then(written => load().then(html => {
-      show(html);
-      stamp(Number(written));
-      button.textContent = "Refresh";
-    }))
+  return get("/skeleton").then(show)
+    .then(doc => check(doc, [...doc.querySelectorAll("tr[data-row]")].map(row => row.dataset.row)))
+    .then(() => { button.textContent = "Refresh"; })
     .catch(e => {
       show(notice("Check failed (" + e + "). Press Retry."));
       button.textContent = "Retry";
@@ -773,7 +831,7 @@ def run_update(name, on_line=lambda line: None):
     """Run `name`'s updater when a fresh check still offers an update. Each output line
     goes to on_line as it arrives, so the page can show which step the updater is on."""
     on_line("checking for the update")
-    row = check_tool(name)
+    row = check_tool(name, PAGE_TIMEOUT)
     if "status=up to date" in row:
         return {"ok": True, "output": "already up to date"}
     if "status=update available" not in row:
@@ -930,47 +988,67 @@ def written_ms():
         return "0"
 
 
+def head_lines(tools):
+    """A report's first lines: version, and the tools setup leaves out."""
+    lines = [f"### ai-cli-version {VERSION}"]
+    skipped = [name for name in CHECKS if name not in tools]
+    if skipped:
+        lines.append("### skipped " + ",".join(skipped))
+    return lines
+
+
+def saved_lines():
+    """The check lines behind the saved report, or [] when there are none."""
+    try:
+        with open(LINES, encoding="utf-8") as fh:
+            lines = json.load(fh)
+    except (OSError, ValueError):
+        return []
+    return lines if isinstance(lines, list) else []
+
+
 def serve():
     import webbrowser
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    # Keep checks and updates in one queue, including requests from other tabs.
+    # Updates run one at a time, including requests from other tabs; saves of the
+    # report never interleave with them.
     refresh_lock = threading.Lock()
     progress = {"active": ("", "")}
 
     sys.path.insert(0, HERE)
     import html_report
 
+    def tool_of(line):
+        return line.split("\t", 1)[0] if isinstance(line, str) and "\t" in line else None
+
     def redraw_row(name):
         """Re-check one tool, put its new row into the saved report and return the page;
         None when the saved lines are missing or do not include that tool."""
-        fresh = [line for line in check_tool(name).splitlines() if line.strip()]
-        try:
-            with open(LINES, encoding="utf-8") as fh:
-                lines = json.load(fh)
-        except (OSError, ValueError):
-            return None
-        kept = [line for line in lines if line.split("\t", 1)[0] != name]
+        fresh = [line for line in check_tool(name, PAGE_TIMEOUT).splitlines() if line.strip()]
+        lines = saved_lines()
+        kept = [line for line in lines if tool_of(line) != name]
         if len(kept) == len(lines):
             return None
-        at = next(i for i, line in enumerate(lines) if line.split("\t", 1)[0] == name)
+        at = next(i for i, line in enumerate(lines) if tool_of(line) == name)
         lines = kept[:at] + fresh + kept[at:]
         page = html_report.render(lines)
         write_page(page, lines)
         return page
 
-    def refresh():
-        """Re-run the check. Returns its exit code, or a reason when it timed out."""
-        kwargs = {"start_new_session": True} if os.name != "nt" else {}
-        proc = subprocess.Popen([sys.executable, __file__], stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL,
-                                env=dict(os.environ, AI_CLI_VERSION_SERVED="1"), **kwargs)
-        try:
-            # Every check runs in parallel under its own TIMEOUT; this bounds the whole run.
-            return proc.wait(timeout=3 * TIMEOUT)
-        except subprocess.TimeoutExpired:
-            stop_tree(proc)
-            return "timed out after %ds" % (3 * TIMEOUT)
+    def merged(fresh):
+        """The saved report's lines with every tool in `fresh` replaced by its new lines,
+        in setup's tool order."""
+        tools = selected_tools()
+        by_tool = {}
+        for line in saved_lines():
+            by_tool.setdefault(tool_of(line), []).append(line)
+        new = {}
+        for line in fresh:
+            if tool_of(line) in tools:
+                new.setdefault(tool_of(line), []).append(line)
+        by_tool.update(new)
+        return head_lines(tools) + [line for name in tools for line in by_tool.get(name, [])]
 
     class Handler(BaseHTTPRequestHandler):
         def local(self):
@@ -989,8 +1067,15 @@ def serve():
                 self.reply(PING, "text/plain; charset=utf-8")
             elif path == "/":
                 page = (SHELL.replace("__UPDATED__", written_ms())
-                        .replace("__VERSION__", VERSION).replace("__NOTICE_CSS__", NOTICE_CSS))
+                        .replace("__VERSION__", VERSION)
+                        .replace("__SKELETON__", json.dumps(html_report.SKELETON))
+                        .replace("__NOTICE_CSS__", NOTICE_CSS))
                 self.reply(page.encode("utf-8"), "text/html; charset=utf-8")
+            elif path == "/skeleton":
+                tools = selected_tools()
+                lines = head_lines(tools) + ["%s\tchecking" % name for name in tools]
+                self.reply(html_report.render(lines, loading=True).encode("utf-8"),
+                           "text/html; charset=utf-8")
             elif path == "/last":
                 try:
                     with open(PAGE, "rb") as fh:
@@ -1011,7 +1096,8 @@ def serve():
             if not self.local():
                 return
             path, _, query = self.path.partition("?")
-            if path not in ("/report", "/update") or self.headers.get("X-AI-CLI-Version") != "1":
+            if (path not in ("/row", "/finish", "/update")
+                    or self.headers.get("X-AI-CLI-Version") != "1"):
                 self.send_error(404)
                 return
             if path == "/update":
@@ -1037,15 +1123,32 @@ def serve():
                         progress["active"] = ("", "")
                 self.reply(json.dumps(result).encode("utf-8"), "application/json")
                 return
-            with refresh_lock:
-                try:
-                    code = refresh()
-                except OSError as exc:
-                    code = exc
-            if code != 0:  # the old report and its time stay on disk
-                self.send_error(500, "check failed: %s" % code)
+            try:
+                body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0))
+                                  or b"{}")
+            except ValueError:
+                body = None
+            if not isinstance(body, dict):
+                self.send_error(400)
                 return
-            self.reply(written_ms().encode("ascii"), "text/plain")
+            if path == "/row":  # one tool, under the page's longer budget
+                name = body.get("tool")
+                if name not in selected_tools():
+                    self.send_error(404)
+                    return
+                lines = [line for line in check_tool(name, PAGE_TIMEOUT).splitlines()
+                         if line.strip()] or ["%s\tcheck failed (no result)" % name]
+                self.send_json({"lines": lines, "html": html_report.row_html(lines)})
+                return
+            fresh = body.get("lines")  # /finish: save what the page checked
+            with refresh_lock:
+                lines = merged(fresh if isinstance(fresh, list) else [])
+                page = html_report.render(lines)
+                write_page(page, lines)
+            self.send_json({"page": page, "written": written_ms()})
+
+        def send_json(self, data):
+            self.reply(json.dumps(data).encode("utf-8"), "application/json")
 
         def end_headers(self):
             # No framing by other sites, so none can trick a click on Refresh.
@@ -1116,10 +1219,7 @@ def main():
         serve()
         return
     tools = selected_tools()
-    lines = [f"### ai-cli-version {VERSION}"]
-    skipped = [name for name in CHECKS if name not in tools]
-    if skipped:
-        lines.append("### skipped " + ",".join(skipped))
+    lines = head_lines(tools)
     print(chr(10).join(lines), flush=True)
     with ThreadPoolExecutor(max_workers=len(tools)) as pool:
         # Submit every selected check before collecting; keep the report's tool order.
@@ -1132,23 +1232,20 @@ def main():
     import html_report
     print("### SUMMARY")
     print(chr(10).join(html_report.summary(lines)), flush=True)
-    if output_format() == "html" or SERVED:
+    if output_format() == "html":
         import webbrowser
         write_page(html_report.render(lines), lines)
         # Prefer the local server, whose page has a Refresh button; fall back to the file.
         note = ""
-        if SERVED:
-            shown, opened = PAGE, True
+        holder = take_over(ping())
+        if holder == PING or (holder is None and start_server()):
+            shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
         else:
-            holder = take_over(ping())
-            if holder == PING or (holder is None and start_server()):
-                shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
-            else:
-                shown = PAGE
-                opened = webbrowser.open("file:///" + PAGE.replace(os.sep, "/").lstrip("/"))
-                note = ("  (Refresh unavailable: port %d is held by %s; stop it)"
-                        % (SERVE_PORT, holder.decode("utf-8", "replace")) if holder else
-                        "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
+            shown = PAGE
+            opened = webbrowser.open("file:///" + PAGE.replace(os.sep, "/").lstrip("/"))
+            note = ("  (Refresh unavailable: port %d is held by %s; stop it)"
+                    % (SERVE_PORT, holder.decode("utf-8", "replace")) if holder else
+                    "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
         print("### HTML %s%s%s" % (shown, note, "" if opened else "  (could not open a browser)"))
 
 
