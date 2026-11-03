@@ -153,13 +153,16 @@ if len(sys.argv) == 3 and sys.argv[1] == "--set-providers":
 SERVE_PORT = 47821
 SERVE_URL = "http://127.0.0.1:%d/" % SERVE_PORT
 PAGE = Path(tempfile.gettempdir()) / "ai-usage" / "report.html"
+RAW = PAGE.with_name("report.txt")  # the text behind PAGE, so the page can update one card
+# Per-lookup budget for the page. Each card fetches on its own, so a slow CLI only keeps
+# its own skeleton up and can be given longer than the chat report's 20 s.
+PAGE_TIMEOUT = 90
 # /ping answer: version and location, so a server left from an older or moved copy of
 # this skill is not mistaken for this one (its Refresh would run that other run.py).
 PING = ("ai-usage %s %s" % (portable.VERSION, HERE)).encode("utf-8")
-# Set on the child run that the server starts: HTML page, no new browser tab.
-SERVED = os.environ.get("AI_USAGE_SERVED") == "1"
 # `/` is this shell: the last report in an iframe plus a Refresh button. Reload only
-# re-reads the last report; the button re-runs it, then reloads just the iframe.
+# re-reads the last report; the button shows skeleton cards and fetches each provider
+# with its own request, so every card fills in as soon as its CLI answers.
 SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>AI Usage</title>
 <style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
@@ -183,6 +186,7 @@ color:inherit;cursor:pointer}</style>
 const frame = document.getElementById("report"), button = document.getElementById("refresh");
 const picker = document.getElementById("theme");
 const THEMES = ["auto", "light", "dark"];
+const SKELETON = __SKELETON__;
 let theme = "auto";  // Auto follows the OS; the choice is kept per browser
 try { theme = localStorage.getItem("aiu-theme") || "auto"; } catch (e) {}
 // The value is spliced into the report's HTML, so only a known name may pass.
@@ -193,10 +197,12 @@ const applyTheme = doc => {
   else doc.documentElement.dataset.theme = theme;
 };
 // Puts the theme on the page before it renders, so it never flashes in the other one.
-const show = html => {
+// Resolves with the frame's document once the page has loaded.
+const show = html => new Promise(done => {
+  frame.addEventListener("load", () => done(frame.contentDocument), {once: true});
   frame.srcdoc = theme === "auto" ? html :
     html.replace(/<html\\b/i, '<html data-theme="' + theme + '"');
-};
+});
 applyTheme(document);
 picker.onchange = () => {
   theme = THEMES.includes(picker.value) ? picker.value : "auto";
@@ -218,31 +224,65 @@ frame.onload = () => {
     frame.contentDocument.body.style.paddingTop = "20px";
   }
 };
-// Replaces the report while fetching or after a failure, so old numbers never look current.
+// Replaces the report after a failure, so old numbers never look current.
 const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style>' + text;
-fetch("/last?" + Date.now())
-  .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText))
-  .then(show)
-  .catch(e => show(notice("Could not load the report (" + e + ").")));
-button.onclick = () => {
+const ok = r => r.ok ? r : Promise.reject(r.status + " " + r.statusText);
+const get = path => fetch(path + "?" + Date.now()).then(ok).then(r => r.text());
+const post = (path, body) => fetch(path, {method: "POST", body: JSON.stringify(body || {}),
+  headers: {"X-AI-Usage": "1", "Content-Type": "application/json"}}).then(ok).then(r => r.json());
+// One request per provider (and one for the benchmark), none waiting for another. A
+// failed card says so in place; once all have answered the merged report is saved.
+const update = (doc, ids, bench) => {
+  const sections = [];
+  const jobs = ids.map(id => post("/card", {id}).then(r => {
+    sections.push(r.raw);
+    doc.querySelector('.card[data-id="' + id + '"]').outerHTML = r.html;
+  }, e => {
+    sections.push("### " + id + "\\nusage call failed (" + e + ")\\n");
+    const note = doc.createElement("div");
+    note.className = "note";
+    note.textContent = "Fetch failed (" + e + "). Press Refresh.";
+    doc.querySelector('.card[data-id="' + id + '"] .skel-body')?.replaceWith(note);
+  }));
+  if (bench) jobs.push(post("/bench").then(r => {
+    sections.push(r.raw);
+    doc.getElementById("bench").innerHTML = r.html;
+  }, e => {
+    sections.push("### CURSORBENCH\\nbench failed (" + e + ")\\n");
+    doc.getElementById("bench").innerHTML = "";
+  }));
+  return Promise.all(jobs).then(() => post("/finish", {sections})).then(r => r.written);
+};
+const busy = work => {
   button.disabled = true;
   button.textContent = "Refreshing\\u2026";
   stamp(0);
-  show(notice("Fetching data\\u2026"));
-  fetch("/report", {method: "POST", headers: {"X-AI-Usage": "1"}})
-    .then(r => r.ok ? r.text() : Promise.reject(r.status + " " + r.statusText))
-    .then(written => fetch("/last?" + Date.now()).then(r => r.ok ? r.text() :
-      Promise.reject(r.status + " " + r.statusText)).then(html => {
-      show(html);
+  return work()
+    .then(written => {
       stamp(Number(written));
       button.textContent = "Refresh";
-    }))
+    })
     .catch(e => {
       show(notice("Fetch failed (" + e + "). Press Retry."));
       button.textContent = "Retry";
     })
     .finally(() => { button.disabled = false; });
 };
+get("/last")
+  .then(show, e => show(notice("Could not load the report (" + e + ").")))
+  .then(doc => {
+    // A card whose lookup ran out of the chat report's 20 s is fetched again here,
+    // with the page's longer budget.
+    const late = [...doc.querySelectorAll(".card[data-timeout]")];
+    if (!late.length) return;
+    late.forEach(card => {
+      card.querySelectorAll(".row, .note").forEach(el => el.remove());
+      card.querySelector(".now").insertAdjacentHTML("beforebegin", SKELETON);
+    });
+    busy(() => update(doc, late.map(card => card.dataset.id), false));
+  });
+button.onclick = () => busy(() => get("/skeleton").then(show).then(doc =>
+  update(doc, [...doc.querySelectorAll(".card[data-id]")].map(card => card.dataset.id), true)));
 </script></body></html>"""
 # Placeholder pages in the iframe (fetching, failed, no report yet). `data-theme` on
 # <html> forces light or dark; without it the OS setting decides.
@@ -331,31 +371,125 @@ def start_server():
     return False
 
 
-def write_page(html):
-    """Swap in a complete report so a reader never sees half a page."""
+def write_page(html, raw):
+    """Swap in a complete report so a reader never sees half a page; RAW keeps its text."""
     PAGE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = PAGE.with_name("report.%d.tmp" % os.getpid())
+    for target, text in ((RAW, raw), (PAGE, html)):
+        tmp = target.with_name("%s.%d.tmp" % (target.stem, os.getpid()))
+        try:
+            tmp.write_text(text, encoding="utf-8")
+            for attempt in range(10):
+                try:
+                    os.replace(tmp, target)
+                    break
+                except PermissionError:  # Windows: the server is reading the page right now
+                    if attempt == 9:
+                        raise
+                    time.sleep(0.1)
+        finally:
+            tmp.unlink(missing_ok=True)
+
+
+def active():
+    """PROBES chosen in setup; read each time, since the server outlives a setup change."""
+    chosen = selected()
+    return tuple(probe for probe in PROBES if probe[2] in chosen)
+
+
+def head():
+    """A report's first lines: version, the providers setup leaves out, a blank line."""
+    skipped = [cli for cli in IDS if cli not in selected()]
+    return "### ai-usage %s\n%s\n" % (
+        portable.VERSION, "### skipped %s\n" % ",".join(skipped) if skipped else "")
+
+
+def child_env(timeout):
+    """Environment that gives a probe's own CLI calls the same budget as the probe."""
+    return dict(os.environ, AI_USAGE_TIMEOUT="%g" % timeout)
+
+
+def usage(script, timeout=portable.CALL_TIMEOUT):
     try:
-        tmp.write_text(html, encoding="utf-8")
-        for attempt in range(10):
-            try:
-                os.replace(tmp, PAGE)
-                return
-            except PermissionError:  # Windows: the server is reading the page right now
-                if attempt == 9:
-                    raise
-                time.sleep(0.1)
-    finally:
-        tmp.unlink(missing_ok=True)
+        result = portable.run_bounded(
+            [sys.executable, "-u", str(HERE / script)],
+            timeout=timeout, stdout=subprocess.PIPE, env=child_env(timeout),
+            **portable.text_kwargs())
+        return result.stdout
+    except subprocess.TimeoutExpired:
+        return "usage call timed out after %gs; skipped\n" % timeout
+
+
+def session(cli):
+    try:
+        return portable.run_bounded(
+            [sys.executable, str(HERE / "session_info.py"), cli],
+            timeout=portable.CALL_TIMEOUT, stdout=subprocess.PIPE,
+            **portable.text_kwargs()).stdout
+    except subprocess.TimeoutExpired:
+        return "session lookup timed out after %gs; skipped\n" % portable.CALL_TIMEOUT
+
+
+def benchmark(now, timeout=portable.CALL_TIMEOUT):
+    try:
+        # Buffer the table: a timed-out lookup must not leave half a set of picks.
+        return portable.run_bounded(
+            [sys.executable, str(HERE / "cursorbench.py"), *now],
+            timeout=timeout, stdout=subprocess.PIPE, env=child_env(timeout),
+            **portable.text_kwargs()).stdout
+    except subprocess.TimeoutExpired:
+        return "bench failed (lookup timed out after %gs; skipped)\n" % timeout
+
+
+def now_args(probes, infos):
+    """cursorbench.py arguments `cli=model:effort`; an empty model means no local session."""
+    now = []
+    for (_, _, cli), info in zip(probes, infos):
+        fields = dict(line.split(None, 1) for line in info.splitlines()
+                      if line.startswith(("model ", "effort ")))
+        if "model" in fields:
+            now.append("%s=%s:%s" % (cli, fields["model"].strip(),
+                                     (fields.get("effort") or "?").split()[0]))
+        else:
+            now.append("%s=:" % cli)
+    return now
+
+
+def sections_of(raw):
+    """`### NAME` -> the lines under it, for each section of a report's text."""
+    found, name = {}, None
+    for line in raw.splitlines():
+        if line.startswith("### "):
+            name = line[4:].strip()
+            found[name] = []
+        elif name is not None:
+            found[name].append(line)
+    return {key: "".join(line + "\n" for line in lines).strip("\n") + "\n"
+            for key, lines in found.items()}
+
+
+def merged(updates):
+    """The last report's text with the provider and CURSORBENCH sections in `updates`
+    put over it, laid out as the launcher prints it."""
+    try:
+        old = sections_of(RAW.read_text(encoding="utf-8"))
+    except OSError:
+        old = {}
+    probes = active()
+    known = {header for header, _, _ in probes} | {"CURSORBENCH"}
+    old.update((key, text) for key, text in sections_of(updates).items() if key in known)
+    return (head() + "\n".join("### %s\n%s" % (header, old.get(header, ""))
+                               for header, _, _ in probes)
+            + "\n### CURSORBENCH\n" + old.get("CURSORBENCH", ""))
 
 
 if "--serve" in sys.argv:
     import threading, webbrowser
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    import html_report
 
-    # Threaded so /ping and /last answer during a ~10 s refresh; this lock still keeps
-    # refreshes to one at a time.
-    refresh_lock = threading.Lock()
+    # Threaded so every card's request runs at the same time; this lock keeps the
+    # saves of finished refreshes from interleaving.
+    save_lock = threading.Lock()
 
     def written_ms():
         """When the report on disk was written (ms since epoch), "0" if there is none."""
@@ -382,7 +516,12 @@ if "--serve" in sys.argv:
             elif path == "/":
                 self.reply(SHELL.replace("__UPDATED__", written_ms())
                            .replace("__VERSION__", portable.VERSION)
+                           .replace("__SKELETON__", json.dumps(html_report.SKELETON))
                            .replace("__NOTICE_CSS__", NOTICE_CSS).encode("utf-8"),
+                           "text/html; charset=utf-8")
+            elif path == "/skeleton":
+                raw = head() + "".join("### %s\n" % header for header, _, _ in active())
+                self.reply(html_report.render(raw, loading=True).encode("utf-8"),
                            "text/html; charset=utf-8")
             elif path == "/last":
                 try:
@@ -398,21 +537,44 @@ if "--serve" in sys.argv:
             # this server never grants, so other pages cannot start runs.
             if not self.local():
                 return
-            if self.path != "/report" or self.headers.get("X-AI-Usage") != "1":
+            path = self.path.partition("?")[0]
+            if path not in ("/card", "/bench", "/finish") or self.headers.get("X-AI-Usage") != "1":
                 self.send_error(404)
                 return
-            with refresh_lock:
-                try:
-                    code = portable.run_bounded(
-                        [sys.executable, str(HERE / "run.py")],
-                        timeout=4 * portable.CALL_TIMEOUT, stdout=subprocess.DEVNULL,
-                        env=dict(os.environ, AI_USAGE_SERVED="1")).returncode
-                except (subprocess.TimeoutExpired, OSError) as exc:
-                    code = exc
-            if code != 0:  # the old report and its time stay on the page
-                self.send_error(500, "report failed: %s" % code)
+            try:
+                body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0))
+                                  or b"{}")
+            except ValueError:
+                body = None
+            if not isinstance(body, dict):
+                self.send_error(400)
                 return
-            self.reply(written_ms().encode("ascii"), "text/plain")
+            if path == "/card":  # one provider: its usage probe and its newest session
+                probe = {p[0]: p for p in active()}.get(body.get("id"))
+                if not probe:
+                    self.send_error(404)
+                    return
+                header, script, cli = probe
+                with ThreadPoolExecutor(max_workers=1) as pool:
+                    info = pool.submit(session, cli)
+                    raw = "### %s\n%s%s" % (header, usage(script, PAGE_TIMEOUT), info.result())
+                self.send_json({"raw": raw, "html": html_report.card_html(raw)})
+            elif path == "/bench":  # needs every provider's model, which is read locally
+                probes = active()
+                with ThreadPoolExecutor(max_workers=max(1, len(probes))) as pool:
+                    infos = list(pool.map(session, [cli for _, _, cli in probes]))
+                raw = "### CURSORBENCH\n" + benchmark(now_args(probes, infos), PAGE_TIMEOUT)
+                self.send_json({"raw": raw, "html": html_report.bench_html(raw)})
+            else:  # save the sections the page fetched over the last report
+                sections = body.get("sections")
+                with save_lock:
+                    raw = merged("".join(s for s in sections if isinstance(s, str))
+                                 if isinstance(sections, list) else "")
+                    write_page(html_report.render(raw), raw)
+                self.send_json({"written": written_ms()})
+
+        def send_json(self, data):
+            self.reply(json.dumps(data).encode("utf-8"), "application/json")
 
         def end_headers(self):
             # No framing by other sites, so none can trick a click on Refresh.
@@ -452,43 +614,8 @@ if "--serve" in sys.argv:
             pass
     sys.exit(0)
 
-SKIPPED = [cli for cli in IDS if cli not in selected()]
-PROBES = tuple(probe for probe in PROBES if probe[2] not in SKIPPED)
-
-
-def usage(script):
-    try:
-        result = portable.run_bounded(
-            [sys.executable, "-u", str(HERE / script)],
-            timeout=portable.CALL_TIMEOUT, stdout=subprocess.PIPE,
-            **portable.text_kwargs())
-        return result.stdout
-    except subprocess.TimeoutExpired:
-        return "usage call timed out after %gs; skipped\n" % portable.CALL_TIMEOUT
-
-
-def session(cli):
-    try:
-        return portable.run_bounded(
-            [sys.executable, str(HERE / "session_info.py"), cli],
-            timeout=portable.CALL_TIMEOUT, stdout=subprocess.PIPE,
-            **portable.text_kwargs()).stdout
-    except subprocess.TimeoutExpired:
-        return "session lookup timed out after %gs; skipped\n" % portable.CALL_TIMEOUT
-
-
-def benchmark(now):
-    try:
-        # Buffer the table: a timed-out lookup must not leave half a set of picks.
-        return portable.run_bounded(
-            [sys.executable, str(HERE / "cursorbench.py"), *now],
-            timeout=portable.CALL_TIMEOUT, stdout=subprocess.PIPE,
-            **portable.text_kwargs()).stdout
-    except subprocess.TimeoutExpired:
-        return "bench failed (lookup timed out after %gs; skipped)\n" % portable.CALL_TIMEOUT
-
 # Setup decides the output format; html unless `--set-output md` was saved.
-HTML = output_format() == "html" or SERVED
+HTML = output_format() == "html"
 # Keep a copy of everything printed so html_report can build the advice and the page.
 import io
 _real_stdout = sys.stdout
@@ -507,28 +634,17 @@ class _Tee:
 sys.stdout = _Tee()
 
 try:
-    print("### ai-usage %s" % portable.VERSION)
-    if SKIPPED:
-        print("### skipped " + ",".join(SKIPPED))
-    print()
+    print(head(), end="")
     sys.stdout.flush()
-    with ThreadPoolExecutor(max_workers=2 * len(PROBES)) as pool:
+    probes = active()
+    with ThreadPoolExecutor(max_workers=2 * len(probes)) as pool:
         # Start every CLI and local session read before waiting for any result.
-        calls = [pool.submit(usage, script) for _, script, _ in PROBES]
-        sessions = [pool.submit(session, cli) for _, _, cli in PROBES]
+        calls = [pool.submit(usage, script) for _, script, _ in probes]
+        sessions = [pool.submit(session, cli) for _, _, cli in probes]
         infos = [future.result() for future in sessions]
-        now = []  # Every provider; an empty model means no local session.
-        for (_, _, cli), info in zip(PROBES, infos):
-            fields = dict(line.split(None, 1) for line in info.splitlines()
-                          if line.startswith(("model ", "effort ")))
-            if "model" in fields:
-                now.append("%s=%s:%s" % (cli, fields["model"].strip(),
-                                         (fields.get("effort") or "?").split()[0]))
-            else:
-                now.append("%s=:" % cli)
         # Benchmark needs model/effort, not usage: overlap its network calls too.
-        bench = pool.submit(benchmark, now)
-        for i, ((header, _, _), call, info) in enumerate(zip(PROBES, calls, infos)):
+        bench = pool.submit(benchmark, now_args(probes, infos))
+        for i, ((header, _, _), call, info) in enumerate(zip(probes, calls, infos)):
             if i:
                 print()
             print("### %s" % header)
@@ -545,20 +661,17 @@ try:
         print(line)
     if HTML:
         import webbrowser
-        write_page(html_report.render(_captured.getvalue()))
+        write_page(html_report.render(_captured.getvalue()), _captured.getvalue())
         # Prefer the local server, whose page has a Refresh button; fall back to the file.
         note = ""
-        if SERVED:
-            shown, opened = PAGE, True
+        holder = take_over(ping())
+        if holder == PING or (holder is None and start_server()):
+            shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
         else:
-            holder = take_over(ping())
-            if holder == PING or (holder is None and start_server()):
-                shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
-            else:
-                shown, opened = PAGE, webbrowser.open(PAGE.as_uri())
-                note = ("  (Refresh unavailable: port %d is held by %s; stop it)"
-                        % (SERVE_PORT, holder.decode("utf-8", "replace")) if holder else
-                        "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
+            shown, opened = PAGE, webbrowser.open(PAGE.as_uri())
+            note = ("  (Refresh unavailable: port %d is held by %s; stop it)"
+                    % (SERVE_PORT, holder.decode("utf-8", "replace")) if holder else
+                    "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
         print()
         print("### HTML %s%s%s" % (shown, note, "" if opened else "  (could not open a browser)"))
 except BrokenPipeError:

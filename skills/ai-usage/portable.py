@@ -16,8 +16,10 @@ Neither has any effect on macOS or Linux.
 import atexit, json, os, shutil, signal, subprocess, sys, time
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.18.2"
-CALL_TIMEOUT = 20
+VERSION = "1.19.0"
+# Seconds per lookup. The chat report keeps 20; the browser page, which shows each
+# provider as soon as it answers, passes a longer one to its probes in AI_USAGE_TIMEOUT.
+CALL_TIMEOUT = float(os.environ.get("AI_USAGE_TIMEOUT") or 20)
 
 # 20 cells. Each cell is 5 points; the partial cell is one of 8 eighths, so the
 # scale is 0.625 points. The old 10-cell bar rounded 28% and 30% to the same glyph.

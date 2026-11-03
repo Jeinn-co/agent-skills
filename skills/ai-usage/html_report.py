@@ -120,8 +120,8 @@ def parse(raw):
             section = line[4:].strip()
             current = None
             if section in NAMES:
-                current = {"name": NAMES[section], "plan": "?", "windows": [], "notes": [],
-                           "model": None, "effort": None, "age": None}
+                current = {"id": section, "name": NAMES[section], "plan": "?", "windows": [],
+                           "notes": [], "model": None, "effort": None, "age": None}
                 report["providers"].append(current)
         elif section == "CURSORBENCH":
             found = BENCH.match(line.strip())
@@ -208,59 +208,76 @@ def logo(cli):
             'fill-rule="evenodd" clip-rule="evenodd" d="%s"/></svg>' % (color, path))
 
 
-def render(raw, now=None):
-    now = now or datetime.datetime.now()
-    data = parse(raw)
-    clis = {name: cli for cli, name in CLI_NAMES.items()}
-    cards = []
-    for p in data["providers"]:
-        rows = []
-        for w in p["windows"]:
-            when = w["reset"]
-            shown = clock(when, now) if when else ""
+# Placeholder bars while a provider is fetched; the page shell also puts it into a card
+# whose last lookup timed out, while that card is fetched again.
+SKELETON = ('<div class="skel-body"><div class="skel" style="width:85%"></div>'
+            '<div class="skel" style="width:65%"></div><div class="skel" style="width:40%"></div></div>')
+# run.py's text for a probe that ran out of time; such a card is fetched again by the page.
+TIMED_OUT = "usage call timed out"
+
+
+def card(p, now, loading=False):
+    """One provider's <section>; `loading` draws the skeleton instead of its numbers."""
+    rows = []
+    for w in [] if loading else p["windows"]:
+        when = w["reset"]
+        shown = clock(when, now) if when else ""
+        rows.append(
+            '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
+            '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
+            '<div class="pct">%s</div><div class="reset">%s</div></div>'
+            % (hue(w["pct"]), esc(w["label"]), min(w["pct"], 100),
+               esc(w["shown"]), esc(shown)))
+        left = remaining_minutes(when, now) if when else None
+        if left is not None:
+            # Time bar: full length is the window (5h or 7 days); the remaining
+            # time fills from the right, the elapsed part stays empty on the left.
+            five = w["label"] == "5h"
+            total = FIVE_HOURS if five else WEEK_MINUTES
+            share = max(0.0, min(100.0, left * 100.0 / total))
+            # One tick per hour (5h window) or per day (7-day window).
+            n = 5 if five else 7
+            unit = "h" if five else "d"
+            # Scale labels read as time left at that tick: n at the left, 0 at the reset.
+            scale = "".join(
+                '<span class="%s" style="left:%.4f%%">%s</span>'
+                % ("first" if i == 0 else "last" if i == n else "", i * 100.0 / n,
+                   "0" if i == n else "%d%s" % (n - i, unit))
+                for i in range(n + 1))
             rows.append(
-                '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
-                '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
-                '<div class="pct">%s</div><div class="reset">%s</div></div>'
-                % (hue(w["pct"]), esc(w["label"]), min(w["pct"], 100),
-                   esc(w["shown"]), esc(shown)))
-            left = remaining_minutes(when, now) if when else None
-            if left is not None:
-                # Time bar: full length is the window (5h or 7 days); the remaining
-                # time fills from the right, the elapsed part stays empty on the left.
-                five = w["label"] == "5h"
-                total = FIVE_HOURS if five else WEEK_MINUTES
-                share = max(0.0, min(100.0, left * 100.0 / total))
-                # One tick per hour (5h window) or per day (7-day window).
-                n = 5 if five else 7
-                unit = "h" if five else "d"
-                # Scale labels read as time left at that tick: n at the left, 0 at the reset.
-                scale = "".join(
-                    '<span class="%s" style="left:%.4f%%">%s</span>'
-                    % ("first" if i == 0 else "last" if i == n else "", i * 100.0 / n,
-                       "0" if i == n else "%d%s" % (n - i, unit))
-                    for i in range(n + 1))
-                rows.append(
-                    '<div class="row time"><div class="lbl"></div>'
-                    '<div class="tbar" style="--n:%d"><div class="ticks"></div>'
-                    '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
-                    '<div class="scale">%s</div></div>'
-                    '<div class="left">%s%s</div></div>'
-                    % (n, share, scale, CLOCK, esc(left_text(left))))
-        for note in p["notes"]:
-            rows.append('<div class="note">%s</div>' % esc(note))
-        now_line = ("<code>%s</code> · effort %s · %s ago" % (esc(p["model"]), esc(p["effort"] or "?"),
-                                                            esc((p["age"] or "?").replace(" ago", "")))
-                    if p["model"] else "no local session")
-        link = USAGE_PAGES.get(p["name"])
-        cards.append(
-            '<section class="card"><header><h2>%s%s</h2><span class="plan">%s</span>%s</header>%s'
+                '<div class="row time"><div class="lbl"></div>'
+                '<div class="tbar" style="--n:%d"><div class="ticks"></div>'
+                '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
+                '<div class="scale">%s</div></div>'
+                '<div class="left">%s%s</div></div>'
+                % (n, share, scale, CLOCK, esc(left_text(left))))
+    for note in [] if loading else p["notes"]:
+        rows.append('<div class="note">%s</div>' % esc(note))
+    if loading:
+        rows.append(SKELETON)
+        now_line = '<span class="skel" style="display:inline-block;width:30%;vertical-align:middle"></span>'
+    elif p["model"]:
+        now_line = "<code>%s</code> · effort %s · %s ago" % (
+            esc(p["model"]), esc(p["effort"] or "?"), esc((p["age"] or "?").replace(" ago", "")))
+    else:
+        now_line = "no local session"
+    timed_out = any(note.startswith(TIMED_OUT) for note in p["notes"])
+    clis = {name: cli for cli, name in CLI_NAMES.items()}
+    link = USAGE_PAGES.get(p["name"])
+    return ('<section class="card" data-id="%s"%s><header><h2>%s%s</h2><span class="plan">%s</span>%s</header>%s'
             '<div class="now">Now: %s</div></section>'
-            % (logo(clis[p["name"]]), esc(p["name"]), esc(p["plan"]),
+            % (esc(p["id"]), " data-timeout" if timed_out and not loading else "",
+               logo(clis[p["name"]]), esc(p["name"]), "…" if loading else esc(p["plan"]),
                '<a class="usage" href="%s" target="_blank" rel="noopener">Usage page</a>' % esc(link) if link else "",
                "".join(rows), now_line))
 
-    bench_rows = []
+
+def bench_rows(data, loading=False):
+    """The CursorBench <tr>s; `loading` gives one skeleton row per provider."""
+    if loading:
+        return "".join('<tr><td colspan="7"><div class="skel"></div></td></tr>'
+                       for _ in data["providers"])
+    rows = []
     for cli in CLI_NAMES:
         if cli not in data["pick"] and cli not in data["bench"]:
             continue
@@ -269,18 +286,35 @@ def render(raw, now=None):
         bn, bs, bc, bp, baa = figure(b) if b else ("—", "", "", "", False)
         kn, ks, kc, kp, kaa = figure(k) if k else ("—", "", "", "", False)
         closest = "rule closest" in k
-        bench_rows.append(
+        rows.append(
             "<tr><td>%s</td><td>%s <span class=\"score\">%s</span></td><td class=\"num\">%s</td>"
             "<td class=\"num\">%s</td><td>%s <span class=\"score\">%s</span>%s</td>"
             "<td class=\"num\">%s</td><td class=\"num\">%s</td></tr>"
             % (esc(CLI_NAMES[cli]), esc(bn), esc(bs), esc(bc), esc(bp), esc(kn), esc(ks),
                " *" if closest else "", esc(kc), esc(kp)))
+    return "".join(rows)
 
+
+def card_html(raw, now=None):
+    """The card for the one provider section in `raw` (`### CLAUDE` plus its lines)."""
+    return card(parse(raw)["providers"][0], now or datetime.datetime.now())
+
+
+def bench_html(raw):
+    """The CursorBench rows for `raw` (`### CURSORBENCH` plus its lines)."""
+    return bench_rows(parse(raw))
+
+
+def render(raw, now=None, loading=False):
+    """The whole page; `loading` shows every card and the bench table as skeletons."""
+    now = now or datetime.datetime.now()
+    data = parse(raw)
+    cards = "".join(card(p, now, loading) for p in data["providers"])
     skipped = ('<p class="muted">Not checked (setup): %s</p>' % esc(", ".join(data["skipped"]))
                if data["skipped"] else "")
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
-                       ("cards", "".join(cards)), ("bench", "".join(bench_rows)),
+                       ("cards", cards), ("bench", bench_rows(data, loading)),
                        ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK)):
         page = page.replace("@@%s@@" % key, value)
     return page
@@ -327,6 +361,11 @@ stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:hsl(var(--h) 85% var(--tl))}
 .reset{white-space:nowrap;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}.rel{opacity:.8}
 .note{color:var(--muted);font-style:italic;margin:6px 0}
+.skel-body{display:grid;gap:14px;margin:14px 0 6px}
+.skel{height:10px;border-radius:999px;background:linear-gradient(90deg,var(--track) 30%,var(--card) 50%,var(--track) 70%);
+background-size:300% 100%;animation:shimmer 1.4s linear infinite}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
+@media (prefers-reduced-motion:reduce){.skel{animation:none}}
 .now{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}
 h3{font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:36px 0 8px}.std{color:var(--muted);font-size:14px;margin:0 0 8px;font-style:italic}
@@ -365,7 +404,7 @@ Sources: <a href="https://code.claude.com/docs/en/model-config">Claude Code</a> 
 <p class="std">Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score</p>
 <div class="tablewrap"><table><thead><tr><th>Provider</th><th>Now</th><th class="num">Now $</th>
 <th class="num">Now CP</th><th>Qualified</th><th class="num">Qualified $</th><th class="num">Qualified CP</th></tr></thead>
-<tbody>@@bench@@</tbody></table></div>
+<tbody id="bench">@@bench@@</tbody></table></div>
 <p class="foot">$ = cost per task at API prices (AA rows: AA's cost per index task), not subscription quota.
 CP = score points per US dollar; higher is better. * nothing from this provider reaches 50%: its highest.
 AA = Artificial Analysis Intelligence Index (another test set): not comparable with CursorBench.</p>

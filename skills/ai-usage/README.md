@@ -138,9 +138,13 @@ When the report is HTML, `/ai-usage` also starts a small local server in the bac
 (`run.py --serve`, Python standard library only) and opens `http://127.0.0.1:47821/`
 instead of the file:
 
-- **Refresh** re-runs the report and swaps it in. While it runs, the old report is
-  cleared and the page shows `Fetching data…`; a failed run shows the error, never the
-  old numbers. Reloading the page only re-reads the last report.
+- **Refresh** shows a skeleton for every card and the benchmark table, then fetches
+  each provider with its own request: a card fills in as soon as its CLI answers, never
+  waiting for the others. The page gives each lookup up to **90 seconds** instead of 20.
+  A card that fails says so in place; old numbers are never shown as current.
+  Reloading the page only re-reads the last report.
+- A card whose lookup timed out in the chat report (20 s) is fetched again with the
+  page's 90-second budget as soon as the page opens, behind a skeleton.
 - `Updated MM-DD HH:MM:SS` is when the report on screen was written.
 - **Auto / Light / Dark** picks the colours; Auto follows the OS, and the choice is kept
   in that browser.
