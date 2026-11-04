@@ -30,6 +30,10 @@ outdated, as here, press **Update** on that row (or **Update all**) on the page,
 
 ![ai-cli-version report](skills/ai-cli-version/images/demo.png)
 
+A real run, updating Claude Code after pressing **Update** on its row:
+
+![ai-cli-version updating](skills/ai-cli-version/images/updating.png)
+
 ## Install
 
 The `npx` method requires Node.js and npm. Check them before installing:

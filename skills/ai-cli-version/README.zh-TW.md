@@ -156,6 +156,10 @@ HTML 報表（Tailwind Slate 配色、深淺色模式），由 Python 產生、�
 
 ![ai-cli-version 報表](images/demo.png)
 
+實際執行，按下 Claude Code 那列的 **Update** 後正在更新：
+
+![ai-cli-version 更新中](images/updating.png)
+
 每一列顯示你裝的版本與安裝時間、最新版本與發佈時間、狀態標籤（`up to date`，或 `update`
 加上更新指令），以及更新 channel。Grok Build 的發佈時間來自第三方鏡像，所以加上 `≤` 和
 `*` 註腳；Muse Code 和 Antigravity 的更新來源不帶日期，發佈時間一律是 `?`。頁面最後附

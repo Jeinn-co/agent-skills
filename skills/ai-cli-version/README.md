@@ -183,6 +183,10 @@ with its Update buttons, Update all, Refresh and theme switch:
 
 ![ai-cli-version report](images/demo.png)
 
+A real run, updating Claude Code after pressing **Update** on its row:
+
+![ai-cli-version updating](images/updating.png)
+
 Each row shows the version you have and when you installed it, the latest version and
 when it was released, a status badge (`up to date`, or `update` with its command) and
 the update channel. Grok Build's release time carries `≤` and the `*` footnote because it

@@ -31,6 +31,10 @@ Auto / Light / Dark 切換：
 
 ![ai-cli-version 報表](skills/ai-cli-version/images/demo.png)
 
+實際執行，按下 Claude Code 那列的 **Update** 後正在更新：
+
+![ai-cli-version 更新中](skills/ai-cli-version/images/updating.png)
+
 ## 安裝
 
 用 `npx` 安裝需要 Node.js 與 npm。安裝前先確認：
