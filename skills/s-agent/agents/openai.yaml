@@ -1,0 +1,4 @@
+interface:
+  display_name: "S-Agent"
+  short_description: "Choose and dispatch subagents for the current task"
+  default_prompt: "Use $s-agent to choose suitable roles and delegate the current task."

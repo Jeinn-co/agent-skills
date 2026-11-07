@@ -6,6 +6,11 @@
       "title": "Operations",
       "description": "Skills for keeping track of the tooling you run every day.",
       "skills": ["ai-usage", "ai-cli-version"]
+    },
+    {
+      "title": "Development",
+      "description": "Skills for coordinating product, design and engineering work.",
+      "skills": ["s-agent"]
     }
   ]
 }

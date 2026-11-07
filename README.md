@@ -1,11 +1,12 @@
 # Jeinn Agent Skills
 
 Agent skills for Claude Code, Codex CLI, Grok Build, and anything else that reads the
-`SKILL.md` convention. Nothing here depends on a particular host.
+`SKILL.md` convention. Supported hosts and prerequisites vary by skill.
 
 ```bash
 npx skills add Jeinn-co/agent-skills@ai-usage
 npx skills add Jeinn-co/agent-skills@ai-cli-version
+npx skills add Jeinn-co/agent-skills@s-agent
 ```
 
 [Browse on skills.sh](https://skills.sh/jeinn-co/agent-skills) · [Traditional Chinese](README.zh-TW.md)
@@ -18,6 +19,7 @@ npx skills add Jeinn-co/agent-skills@ai-cli-version
 |---|---|---|
 | [`ai-usage`](skills/ai-usage/) | One report for how much of your Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) subscription is left — percent used, when each window resets, what top-up you have, which model and effort each CLI is on now, and the CursorBench score, cost and CP of the model each CLI runs. `setup` picks which providers to report. Both skills first check GitHub for a newer version of themselves and ask before updating. | [README](skills/ai-usage/README.md) · [Traditional Chinese](skills/ai-usage/README.zh-TW.md) |
 | [`ai-cli-version`](skills/ai-cli-version/) | Whether your Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date — installed version and when you installed it, latest version and when it was released. When updates are available, choose `y` to update all or `Esc` to skip; `setup` picks which CLIs to check. Tested on Windows and macOS; Linux not yet tested. | [README](skills/ai-cli-version/README.md) · [Traditional Chinese](skills/ai-cli-version/README.zh-TW.md) |
+| [`s-agent`](skills/s-agent/) | Select subagents in Codex/Claude Code using Notion role settings; `-h` reads the latest model/effort and `sync` applies validated profiles. | [README](skills/s-agent/README.md) · [Traditional Chinese](skills/s-agent/README.zh-TW.md) |
 
 `/ai-usage` — the HTML report that opens in your browser (demo data). It opens on a
 local page with a Refresh button and an Auto / Light / Dark switch:
@@ -49,6 +51,7 @@ use the manual-copy method below; the skill itself does not require Node.js at r
 ```bash
 npx skills add Jeinn-co/agent-skills@ai-usage           # one skill
 npx skills add Jeinn-co/agent-skills@ai-cli-version     # one skill
+npx skills add Jeinn-co/agent-skills@s-agent            # delegation
 npx skills add Jeinn-co/agent-skills                    # everything in the repo
 ```
 
@@ -78,10 +81,10 @@ Manually copied skills are not tracked; copy the directory again to update them.
 
 ## Test
 
-Run the regression suite from the repository root:
+Run the regression suite from the repository root with Python 3.11+ (required by S-Agent sync):
 
 ```bash
-python3 -m unittest discover -v -s tests
+python3.11 -m unittest discover -v -s tests
 ```
 
 ## Conventions

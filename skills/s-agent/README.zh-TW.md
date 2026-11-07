@@ -1,0 +1,89 @@
+# S-Agent
+
+> 英文版 [README.md](README.md) 為準，本檔為對照翻譯。
+
+針對 **Codex 與 Claude Code**，依目前工作選角與分派 subagent。
+Notion 決定各角色的 model／effort；主 agent 負責協調與驗證。
+
+```text
+/s-agent -h
+/s-agent sync
+/s-agent 修這個 bug，完成後請另一個 agent review。
+```
+
+Codex 使用 `$s-agent`，參數相同。
+
+## 安裝
+
+```bash
+npx skills add Jeinn-co/agent-skills@s-agent
+```
+
+也可把整個目錄複製到 `~/.codex/skills/s-agent/` 或 `~/.claude/skills/s-agent/`。
+沒有出現時開新對話。安裝器需要相容的 Node.js/npm；手動複製不需要。
+
+需要：提供分派工具的 Codex／Claude Code、能讀取 Notion 的連接器或公開網頁工具，
+以及驗證／同步使用的 **Python 3.11+**。不包含 API key 或個人路徑。
+尚未測試 Windows／Linux。
+
+## Notion 就是設定
+
+[開啟共用 Notion 設定](https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63)。
+**S-Agent configuration** 標題下唯一的 JSON 區塊是設定本體。
+修改角色的 `model` 或 `effort` 後執行 `/s-agent sync`；新增已支援的模型不需要更版 skill。
+其他人可用 `/s-agent sync <Notion URL>` 指定符合相同 schema 的自有頁面。
+
+`-h` 每次重新讀取 Notion，顯示最新六個角色、兩平台的 model／effort、來源與讀取時間。
+能讀取本機與目前載入值時會一起比對。Help 不改設定、不派 agent。
+讀取失敗會明確報錯，不把舊快取當最新資料。
+
+`sync` 讀取同一來源，驗證 JSON 與 host 當前支援的 model／effort，預覽、備份後套用。
+更新 Codex／Claude 原生角色與既有共用角色來源，保留 prompt、工具及權限；
+缺少的角色用最小責任說明建立。未知模型、複雜格式或 symlink 會在寫入前拒絕。
+寫入失敗會回復；相同設定不重寫。備份位於 `~/.agents/s-agent-backups/`，
+來源 URL 記錄在 `~/.agents/s-agent-source.json`。
+
+套用必須有 host 取得的當前能力清單，不能把期望設定當成可用能力。
+文件列為支援不代表帳號一定有權限；無法查證支援就不套用。
+執行中的 agent 不會換模型；修改角色後可能需要重開 host／新對話。
+派工發現設定不符會提示，不會默默使用舊模型。
+
+## 角色與協調
+
+| 角色 | 責任 |
+|---|---|
+| `pm`／PO | 需求、範圍、優先順序與驗收條件 |
+| `designer` | UI／UX、流程與無障礙 |
+| `developer` | 追程式、實作與修正 |
+| `qa` | 重現、回歸測試與驗收 |
+| `reviewer` | 獨立檢查正確性與安全 |
+| `devops` | CI/CD、環境、log 與可靠性 |
+
+先用一個 subagent；僅在工作獨立時增加，最多三個且遵守 host 更低上限。
+清楚分配檔案責任，有依賴的工作依序執行，相關後續沿用 agent。
+小事可由主 agent 直接做；不會從開啟的編輯器檔案自行發明任務。
+沒有分派工具時，不宣稱有 agent 執行。
+
+授權限於目前任務與必要後續。原本的核准關卡、瀏覽器偏好與測試環境都要遵守。
+要求規劃就只規劃；角色本身不授權部署、發布或外部寫入，也不保證總 token 更省。
+
+## 工具與驗證
+
+Host 讀取 Notion，將嚴格 JSON 與當前能力清單交給
+[`scripts/sync_roles.py`](scripts/sync_roles.py)。工具僅用 Python 標準函式庫，
+沒有網路或 token 功能；完整流程見 [SKILL.md](SKILL.md)。
+CLI `--help` 說明工具參數；`/s-agent -h` 才是會讀 Notion 的 agent 說明。
+
+```bash
+python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # 預覽
+python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
+```
+
+版本 1.0.0：隔離單元測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、
+重複套用不寫入與失敗回復。Codex forward-test 曾真正分派修正 Python fixture，
+並獨立通過五個回歸案例。這不等於 Claude 實際派工、所有帳號的模型權限或跨平台已驗證；
+原生設定驗證也不等於真的呼叫模型。
+
+[English](README.md) ·
+[Claude subagents](https://code.claude.com/docs/en/sub-agents) ·
+[Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
