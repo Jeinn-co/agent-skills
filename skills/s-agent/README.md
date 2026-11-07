@@ -47,7 +47,11 @@ reports the missing configuration. A reachable but invalid/truncated configurati
 or unsupported update stops dispatch and preserves local files.
 
 Automatic sync updates native Codex/Claude profiles and existing shared role
-sources while preserving prompts, tools and permissions. Missing profiles receive
+sources while preserving prompts, tools and permissions. Model versions belong
+in the existing `model` ID. Help shows the full configured ID; an alias remains
+labeled as an alias until the host supplies its resolved version. Configuration
+is not proof of live model execution. Role defaults are policy choices, not a
+universal industry standard. Missing profiles receive
 minimal role prompts. Complex layouts and symlinks are rejected before writes.
 Failed writes roll back; unchanged settings are not rewritten. Backups are stored
 under `~/.agents/s-agent-backups/`; the selected source URL is stored in
@@ -94,7 +98,7 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # preview
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-Version 1.0.1: isolated sync unit tests cover strict validation, preservation,
+Version 1.0.2: isolated sync unit tests cover strict validation, preservation,
 bootstrap, future model identifiers, idempotence and rollback. A Codex forward-test
 actually delegated a Python fixture fix and independently passed five regressions.
 That does not establish live Claude dispatch, every account's model access or

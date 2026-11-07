@@ -41,6 +41,10 @@ Notion 或讀取工具無法連線時，沿用有效本機角色，明確標示�
 不把 local 值當成最新 Notion。沒有可用本機角色時才回報缺少設定。
 連線成功但設定格式錯誤、內容不完整或模型不支援時，保留本機檔案並停止派工。
 
+模型版本直接寫在既有的 `model` ID；help 顯示完整 ID。別名會標為別名，
+只有 host 回傳解析結果才顯示實際版本；設定不等於已執行該模型。
+各角色預設是本設定的選擇，不代表業界統一標準。
+
 自動同步更新 Codex／Claude 原生角色與既有共用角色來源，保留 prompt、工具及權限；
 缺少角色時用最小責任說明建立。複雜格式或 symlink 會在寫入前拒絕。
 寫入失敗會回復；相同設定不重寫。備份位於 `~/.agents/s-agent-backups/`，
@@ -83,7 +87,7 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # 預覽
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-版本 1.0.1：隔離單元測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、
+版本 1.0.2：隔離單元測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、
 重複套用不寫入與失敗回復。Codex forward-test 曾真正分派修正 Python fixture，
 並獨立通過五個回歸案例。這不等於 Claude 實際派工、所有帳號的模型權限或跨平台已驗證；
 原生設定驗證也不等於真的呼叫模型。

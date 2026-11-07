@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex or Claude Code. Use /s-agent or $s-agent; automatically sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.0.1"
+  version: "1.0.2"
 ---
 
 # S-Agent
@@ -51,6 +51,10 @@ and all six roles: responsibility, Codex model/effort and Claude Code model/effo
 Include source URL, read time and status: `Notion unchanged; using local`, `Notion
 updated; synced`, or `Local fallback; Notion unavailable`. Do not hardcode model
 choices in this skill. Offline values that cannot be read locally are unknown.
+Show the complete configured model ID, including version segments; never shorten
+it to a family alias. Label configured aliases explicitly. Report a resolved or
+running version only when the host supplies it, otherwise mark it unverified.
+Role defaults are this configuration's choices, not a universal industry standard.
 
 Compare with roles advertised by the running host when available. Distinguish
 configured, locally synced and currently loaded settings. A fresh Notion setting
@@ -124,6 +128,8 @@ user choices and managed host restrictions take precedence; report the conflict.
 Do not bypass fixed roles or fabricate unsupported spawn parameters. If an exact
 configured pair can be used through a supported generic-agent override, state that
 choice and preserve the same role responsibility and permissions.
+For a Claude profile pinned to a full model ID, invoke that named profile without
+a family-alias model override, which would take precedence and lose the pin.
 
 | Role | Responsibility |
 |---|---|
