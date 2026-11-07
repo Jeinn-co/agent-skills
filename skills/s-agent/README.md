@@ -5,7 +5,6 @@ the model and effort for each role; the main agent coordinates and verifies work
 
 ```text
 /s-agent -h
-/s-agent sync
 /s-agent Fix this bug and have another agent review it.
 ```
 
@@ -29,23 +28,31 @@ No API key or user-specific path is bundled. Windows/Linux have not been tested.
 
 [Open the shared Notion configuration](https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63).
 Its single JSON block under **S-Agent configuration** is authoritative.
-Change a role's `model` or `effort`, then run `/s-agent sync`. New supported models
-do not require a skill update. Other users may use `/s-agent sync <Notion URL>`
-to select their own page with the same schema.
+Change a role's `model` or `effort`; the next S-Agent invocation automatically
+synchronizes changed settings. No separate sync command or skill release is needed
+for a new supported model. Supply your own Notion configuration URL in a request
+to select a different page with the same schema.
 
-`-h` fetches Notion afresh and shows the latest six roles and both platforms'
-model/effort values, with source/read time. It compares local and loaded settings
-when exposed. Help never changes profiles or spawns agents. If the page cannot be
-read, it reports the failure instead of presenting a stale cache as current.
+Every invocation, including `-h`, tries Notion first. If its validated settings
+match local profiles, it uses those profiles directly without writes or backups.
+If settings changed or profiles are missing, it automatically validates current
+host-supported model/effort pairs, previews changes, backs up and applies them.
+No user-entered `sync` command is required. `-h` shows role values and source/read
+time; it may sync settings but never launches subagents or performs the task.
 
-`sync` fetches the same source, validates the JSON and current host-supported
-model/effort pairs, previews changes, backs up and applies them. It updates native
-Codex/Claude profiles and existing shared role sources while preserving prompts,
-tools and permissions. Missing profiles receive minimal role prompts. Unsupported
-models, complex layouts and symlinks are rejected before writes. Failed writes
-roll back; unchanged settings are not rewritten. Backups are stored under
-`~/.agents/s-agent-backups/`; the selected source URL is stored in
-`~/.agents/s-agent-source.json`.
+When Notion or its read tool is unavailable, existing valid local profiles remain
+usable. Output clearly labels `Local fallback; Notion unavailable`; cached/local
+values are never called a fresh Notion read. Without usable local profiles, it
+reports the missing configuration. A reachable but invalid/truncated configuration
+or unsupported update stops dispatch and preserves local files.
+
+Automatic sync updates native Codex/Claude profiles and existing shared role
+sources while preserving prompts, tools and permissions. Missing profiles receive
+minimal role prompts. Complex layouts and symlinks are rejected before writes.
+Failed writes roll back; unchanged settings are not rewritten. Backups are stored
+under `~/.agents/s-agent-backups/`; the selected source URL is stored in
+`~/.agents/s-agent-source.json`. Legacy `/s-agent sync [Notion URL]` remains
+compatible as a refresh-only invocation, but is optional.
 
 A current capability catalog is required for apply; it is discovered by the host,
 not copied from the desired policy. Documented model support does not prove account
@@ -87,7 +94,7 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # preview
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-Version 1.0.0: isolated sync unit tests cover strict validation, preservation,
+Version 1.0.1: isolated sync unit tests cover strict validation, preservation,
 bootstrap, future model identifiers, idempotence and rollback. A Codex forward-test
 actually delegated a Python fixture fix and independently passed five regressions.
 That does not establish live Claude dispatch, every account's model access or
