@@ -13,10 +13,10 @@ Windows needs two things POSIX does not:
 
 Neither has any effect on macOS or Linux.
 """
-import atexit, json, os, shutil, signal, subprocess, sys, time
+import atexit, datetime, json, os, shutil, signal, subprocess, sys, time
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.19.0"
+VERSION = "1.19.0+local.12"
 # Seconds per lookup. The chat report keeps 20; the browser page, which shows each
 # provider as soon as it answers, passes a longer one to its probes in AI_USAGE_TIMEOUT.
 CALL_TIMEOUT = float(os.environ.get("AI_USAGE_TIMEOUT") or 20)
@@ -27,6 +27,23 @@ BAR_CELLS = 20
 _BAR_EIGHTH = "▏▎▍▌▋▊▉"  # 1/8 .. 7/8, left-aligned; 8/8 is █
 
 _SHIM = (".cmd", ".bat")
+
+
+def config_path():
+    return os.path.join(os.environ.get("XDG_CONFIG_HOME") or
+                        os.path.join(os.path.expanduser("~"), ".config"), "ai-usage", "config.json")
+
+
+def report_timezone():
+    """Use the host timezone unless this user's config sets a fixed offset."""
+    try:
+        with open(config_path(), encoding="utf-8") as stream:
+            minutes = json.load(stream).get("timezone_offset_minutes")
+        if isinstance(minutes, int) and not isinstance(minutes, bool) and -840 <= minutes <= 840:
+            return datetime.timezone(datetime.timedelta(minutes=minutes))
+    except (OSError, ValueError, AttributeError):
+        pass
+    return None
 
 
 def _devnull_stdout():
@@ -75,6 +92,14 @@ def text_kwargs():
     preferred encoding is already UTF-8, so pinning it here changes nothing there.
     """
     return dict(encoding="utf-8", errors="replace")
+
+
+def timeout_left(deadline, cap):
+    """A stage can spend only what remains of its caller's total deadline."""
+    seconds = min(cap, deadline - time.monotonic())
+    if seconds <= 0:
+        raise TimeoutError("lookup deadline reached")
+    return seconds
 
 
 def run_bounded(args, *, timeout=CALL_TIMEOUT, **kwargs):

@@ -100,7 +100,8 @@ def claude():
             files.append((p.stat().st_mtime, p))
         except OSError:
             pass
-    for mtime, path in sorted(files, reverse=True)[:20]:
+    # /usage can create any number of newer transcripts without model replies.
+    for mtime, path in sorted(files, reverse=True):
         model = effort = None
         for d in jsonl(path):
             if d.get("type") == "assistant":

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""/ai-usage entry point. Reads AI subscription usage. No browser, no stored credentials.
+"""/ai-usage entry point. Reads AI subscription usage without browser automation.
 
 Each probe runs as a separate process with *this* interpreter (`sys.executable`), so
 there is no dependency on a `python3` on PATH -- on Windows that name is often absent,
@@ -38,9 +38,7 @@ PROBES = (("CLAUDE", "claude_usage.py", "claude"),
 NAMES = {"claude": "Claude", "codex": "ChatGPT", "grok": "Grok", "muse": "Muse",
          "agy": "Gemini"}
 IDS = [cli for _, _, cli in PROBES]
-CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME")
-                      or os.path.join(os.path.expanduser("~"), ".config"),
-                      "ai-usage", "config.json")
+CONFIG = portable.config_path()
 
 
 OUTPUTS = ("html", "md")
@@ -223,6 +221,7 @@ frame.onload = () => {
     main.querySelector(".sub")?.remove();
     frame.contentDocument.body.style.paddingTop = "20px";
   }
+  bindProviderLogin(frame.contentDocument);
 };
 // Replaces the report after a failure, so old numbers never look current.
 const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style>' + text;
@@ -230,6 +229,30 @@ const ok = r => r.ok ? r : Promise.reject(r.status + " " + r.statusText);
 const get = path => fetch(path + "?" + Date.now()).then(ok).then(r => r.text());
 const post = (path, body) => fetch(path, {method: "POST", body: JSON.stringify(body || {}),
   headers: {"X-AI-Usage": "1", "Content-Type": "application/json"}}).then(ok).then(r => r.json());
+function bindProviderLogin(doc) {
+  doc.querySelectorAll('[data-provider-login]').forEach(signIn => {
+    const provider = signIn.dataset.providerLogin, name = signIn.dataset.providerName;
+    const command = provider === 'CLAUDE' ? 'claude auth login' : 'codex login';
+    signIn.hidden = false;
+    signIn.onclick = async () => {
+      const status = doc.getElementById(provider.toLowerCase() + '-login-status');
+      signIn.disabled = true;
+      signIn.textContent = 'Signing in…';
+      status.hidden = false;
+      status.textContent = 'Complete ' + name + ' authorization in the browser that opens. This may take up to 5 minutes.';
+      try {
+        const result = await post('/login', {id: provider});
+        status.textContent = result.message;
+        if (result.ok) button.click();
+      } catch (error) {
+        status.textContent = 'Could not start sign-in. Try again, or run ' + command + ' in a terminal.';
+      } finally {
+        signIn.disabled = false;
+        signIn.textContent = 'Sign in to ' + name;
+      }
+    };
+  });
+}
 // One request per provider (and one for the benchmark), none waiting for another. A
 // failed card says so in place; once all have answered the merged report is saved.
 const update = (doc, ids, bench) => {
@@ -237,6 +260,8 @@ const update = (doc, ids, bench) => {
   const jobs = ids.map(id => post("/card", {id}).then(r => {
     sections.push(r.raw);
     doc.querySelector('.card[data-id="' + id + '"]').outerHTML = r.html;
+    doc.defaultView.updateResetExpiry?.();
+    bindProviderLogin(doc);
   }, e => {
     sections.push("### " + id + "\\nusage call failed (" + e + ")\\n");
     const note = doc.createElement("div");
@@ -405,7 +430,7 @@ def head():
 
 def child_env(timeout):
     """Environment that gives a probe's own CLI calls the same budget as the probe."""
-    return dict(os.environ, AI_USAGE_TIMEOUT="%g" % timeout)
+    return dict(os.environ, AI_USAGE_TIMEOUT="%g" % timeout, AI_USAGE_METADATA="1")
 
 
 def usage(script, timeout=portable.CALL_TIMEOUT):
@@ -415,7 +440,28 @@ def usage(script, timeout=portable.CALL_TIMEOUT):
             timeout=timeout, stdout=subprocess.PIPE, env=child_env(timeout),
             **portable.text_kwargs())
         return result.stdout
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as error:
+        # Optional details must not erase complete, validated usage already received.
+        import html_report
+        output = error.output or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", "replace")
+        complete = [line for line in output.splitlines(keepends=True) if line.endswith("\n")]
+        windows = []
+        for line in complete:
+            match = html_report.WINDOW.match(line.strip())
+            if match:
+                try:
+                    used = 0.5 if match.group(2) == "<1" else float(match.group(2))
+                    if 0 <= used <= 100:
+                        windows.append(line)
+                except ValueError:
+                    pass
+        if windows:
+            plan = next((line for line in complete if line.startswith("plan:")), "")
+            detail = ("Limit resets: unavailable (timed out)" if script == "claude_usage.py" else
+                      "Additional details unavailable (lookup timed out)")
+            return plan + "".join(windows) + detail + "\n"
         return "usage call timed out after %gs; skipped\n" % timeout
 
 
@@ -538,7 +584,7 @@ if "--serve" in sys.argv:
             if not self.local():
                 return
             path = self.path.partition("?")[0]
-            if path not in ("/card", "/bench", "/finish") or self.headers.get("X-AI-Usage") != "1":
+            if path not in ("/card", "/bench", "/finish", "/login") or self.headers.get("X-AI-Usage") != "1":
                 self.send_error(404)
                 return
             try:
@@ -549,7 +595,14 @@ if "--serve" in sys.argv:
             if not isinstance(body, dict):
                 self.send_error(400)
                 return
-            if path == "/card":  # one provider: its usage probe and its newest session
+            if path == "/login":
+                if body.get("id") not in ("CLAUDE", "CHATGPT") or self.headers.get("Origin") not in (
+                        None, "http://" + self.headers.get("Host", "")):
+                    self.send_error(403)
+                    return
+                import provider_login
+                self.send_json(provider_login.sign_in(body["id"]))
+            elif path == "/card":  # one provider: its usage probe and its newest session
                 probe = {p[0]: p for p in active()}.get(body.get("id"))
                 if not probe:
                     self.send_error(404)
@@ -625,7 +678,9 @@ _captured = io.StringIO()
 class _Tee:
     def write(self, text):
         _captured.write(text)
-        return _real_stdout.write(text)
+        _real_stdout.write("".join(line for line in text.splitlines(keepends=True)
+                                  if not line.startswith("reset-expiry ")))
+        return len(text)
 
     def flush(self):
         _real_stdout.flush()

@@ -15,6 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
+from limit_resets import codex_lines
 
 portable.stdout_utf8()
 
@@ -25,12 +26,20 @@ if cmd is None:
 
 FAIL = "rateLimits call failed"
 
-def die(why):
+def die(why, auth_required=False):
     print("%s (%s)" % (FAIL, why))
     try:
         p.kill()
     except Exception:
         pass
+    # Give app-server its normal refresh attempt first; check auth only on failure.
+    try:
+        from provider_login import signed_in
+        if auth_required or not signed_in("CHATGPT"):
+            print("plan: unavailable")
+            print("ChatGPT CLI is not signed in. Use Sign in to ChatGPT in the report, or run codex login.")
+    except Exception:
+        pass  # An inconclusive status check must not turn a network error into a login claim.
     sys.exit(1)
 
 try:
@@ -63,11 +72,13 @@ if not portable.rpc_reply(out, 1):
 if not send(2, "account/rateLimits/read"):
     die("codex exited before answering; signed in? try `codex login`")
 
-res = (portable.rpc_reply(out, 2) or {}).get("result")
+reply = portable.rpc_reply(out, 2) or {}
+res = reply.get("result")
 p.kill()
 
 if not res:
-    die("no answer in 10s; exit code %s" % p.poll())
+    from provider_login import requires_auth
+    die("request failed; exit code %s" % p.poll(), requires_auth(reply.get("error")))
 
 def require_mapping(value, path):
     if not isinstance(value, dict):
@@ -107,12 +118,9 @@ for label, used, duration, dt in windows:
     print("%-6s %5.1f%% used  window %dh  resets %s %s  %s"
           % (label, used, duration // 60, dt.strftime("%m-%d %H:%M"), rel,
              portable.format_bar(used)))
-# NOT the "Usage limit resets" count. `credits` is the paid top-up balance; the reset
-# tokens shown under Settings > Usage limit resets are a separate pool and the
-# app-server exposes no way to read them -- only `account/rateLimitResetCredit/consume`,
-# which spends one. Checked all 163 methods 2026-09-12; `account/usage/read` carries
-# lifetime token stats only. Do not print a redeem number, and do not print
-# "unknown (web only)" either: a row that cannot be filled is omitted.
+for line in codex_lines(payload.get("rateLimitResetCredits")):
+    print(line)
+# Paid top-ups remain separate from earned usage resets.
 c = r.get("credits") or {}
 if c.get("unlimited"):
     print("credits: unlimited")

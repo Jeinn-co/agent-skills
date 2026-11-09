@@ -3,10 +3,15 @@
 All five services compute usage server-side and return it in API response headers.
 The difference is entirely what each CLI does with that after receiving it.
 
-## Claude — works, live
+## Claude — optional browser source, CLI fallback
 
-`claude -p "/usage" < /dev/null` prints the live numbers. Print mode routes built-in
-slash commands, so this needs no credentials and no browser.
+See [claude-browser.md](claude-browser.md) to read the already signed-in browser Usage
+page. Fresh browser observations bypass CLI auth and contain no cookies or tokens.
+The source and check time are visible; snapshots expire after 5 minutes.
+
+When browser data is unavailable, `claude -p "/usage" < /dev/null` prints the live numbers. Print mode routes built-in
+slash commands using CLI-managed authentication, so no API key or browser is needed
+for quota lookup. Reset grants use the separate authenticated request described below.
 
 `< /dev/null` is required, otherwise the CLI waits 3s for stdin and prints a warning.
 
@@ -144,12 +149,13 @@ report what comes back.
   (`~/.gemini/bin/agy`), already signed in. Zero of them is
   still a valid run: every row prints `not installed`.
 - **Subprocess and network access.** The host must allow local process launches, and
-  each installed provider CLI must be able to reach its own service. The only direct
-  HTTP requests the Python code makes are one GET of AI Model Compare's
+  each installed provider CLI must be able to reach its own service. Direct
+  public HTTP requests the Python code makes are one GET of AI Model Compare's
   `data/cursorbench.json` (`cursorbench.py`), one GET of its `data/aa.json` when a
   current model CursorBench does not list needs an AA row, and, for step 0 only,
   one GET of this skill's published `SKILL.md` on `raw.githubusercontent.com`; no
-  credential is sent.
+  credential is sent to these public sources. Claude reset grants additionally use
+  one authenticated GET to api.anthropic.com; credentials are sent only to that vendor.
 
 If a provider prints `not installed`, show that status in its usage block and Now
 cell, but still show its Qualified model, cost and CP from the public benchmarks.
@@ -159,7 +165,11 @@ others; never substitute a number from memory or from an earlier run.
 
 ## Where each number comes from
 
-All five are live. No browser, no stored credentials, no cookie access.
+All five are live. Claude can use the connected browser Usage page without cookie access.
+Claude usage windows use its normal CLI /usage command when no browser observation is available.
+Claude reset grants use existing CLI OAuth credentials for one read-only request;
+the reset lookup does not refresh or persist credentials. A failed reset request
+does not replace valid quota windows. Fresh browser observations can supply resets instead.
 Verified 2026-09-12 on macOS, and 2026-09-14 on a zh-TW Windows 11 machine (PowerShell,
 Python 3.12) — that run surfaced and fixed a UnicodeDecodeError in the Claude probe
 (see Limitations in README).
@@ -204,3 +214,44 @@ runs at its documented default (`muse --help`: "default: high"); the probe print
 as High.
 `no local session` means that CLI has never run here; print it as one row.
 
+
+## Banked resets (2026-11-07)
+
+`limit_resets.py` formats counts and expiry dates separately from paid credits and
+quota-window reset clocks. Dates use `YYYY-MM-DD` and a 24-hour clock,
+for example `Reset 1: expires 2026-12-01 03:22 · 23 days 20 hours left`.
+Reset expiry dates use the host local timezone by default; a fixed offset can be
+set per user in `config.json` (`timezone_offset_minutes`, e.g. 480 for Taipei).
+The timezone label and reset titles are omitted. HTML notes are 13px, regular text.
+A local timer updates remaining time and reminder colors every minute: normal
+beyond 5 hours, orange fading to red within 5 hours, red at 1 hour or less.
+The entire expiry row becomes bold with a red border at 30 minutes or less.
+The year is always included. Long waits show
+days and hours; waits under a day show hours and minutes. ChatGPT uses the documented `rateLimitResetCredits`
+field in `account/rateLimits/read` ([schema](https://learn.chatgpt.com/docs/app-server#6-rate-limits-chatgpt));
+`availableCount` is authoritative even when details are absent or capped.
+
+Claude uses the undocumented read-only endpoint
+`GET https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1`.
+The `cedar_ember` grants contain `resets_left`, `starts_at`, `ends_at` and `paused`.
+Only currently active grants count; missing or malformed data is unavailable.
+Existing CLI auth comes from `CLAUDE_CODE_OAUTH_TOKEN`, the default macOS Keychain
+entry, or `.credentials.json` under `CLAUDE_CONFIG_DIR` / the default CLI directory.
+The request is vendor-only, blocks redirects, and never refreshes, writes or prints
+credentials. A failure affects reset details only, not valid quota windows.
+Fresh browser observations may provide visible counts and expiry dates without CLI auth.
+Normal probes keep their existing 20-second overall budget. Claude uses one monotonic
+deadline for auth status, quota, version and reset lookup. Optional reset stages use
+only the remaining time; the outer launcher preserves complete validated quota
+windows if a child times out after producing them. Never redeem a reset.
+
+The launcher sets `AI_USAGE_METADATA=1` for probes. Each valid reset expiry adds an
+internal `reset-expiry {"note": "Reset ...", "expiresAt": <epoch milliseconds>}`
+record immediately after its readable note. The renderer attaches it to that note
+position, not its text: two grants can display the same minute but expire at different
+seconds. The terminal tee hides these records while saving
+them in raw report data; card responses and /finish merges preserve them. HTML uses
+the epoch directly, retaining seconds and DST folds. Browser observations use the
+same records through the shared formatter. Probes run standalone without this flag
+print human-readable notes only. A legacy raw report without metadata is displayed
+statically; its timezone-free date string is never used to reconstruct an instant.
