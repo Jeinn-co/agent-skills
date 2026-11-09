@@ -43,6 +43,10 @@ def esc(text):
 def clock(reset, now):
     """`Oct 21, 11:19am` or `Oct 21 at 11:19am` -> `10-21 11:19`; other formats pass through without the `(…)`."""
     text = re.sub(r"\s*\(.*\)$", "", reset).strip().replace(" at ", ", ")
+    try:
+        return datetime.datetime.fromisoformat(text.replace("Z", "+00:00")).astimezone().strftime("%m-%d %H:%M")
+    except ValueError:
+        pass
     for fmt in ("%b %d, %I:%M%p", "%b %d, %I%p"):
         try:
             return datetime.datetime.strptime(text, fmt).strftime("%m-%d %H:%M")
@@ -79,6 +83,12 @@ FIVE_HOURS = 5 * 60
 def remaining_minutes(reset, now):
     """Minutes until the reset clock; falls back to the probe's coarse `(XdYh)`."""
     text = re.sub(r"\s*\(.*\)$", "", reset).strip().replace(" at ", ", ")
+    try:
+        when = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        pass
+    else:
+        return max(0, int((when.astimezone() - now.astimezone()).total_seconds() // 60))
     for fmt in ("%b %d, %I:%M%p", "%b %d, %I%p", "%m-%d %H:%M"):
         try:
             when = datetime.datetime.strptime(text, fmt).replace(year=now.year)
@@ -135,8 +145,19 @@ def parse(raw):
             elif window:
                 label, pct, middle = window.groups()
                 reset = re.search(r"resets (.+)$", middle)
+                period = re.search(r"\bwindow (.*?)\s+(?:pool |resets |$)", middle + " ")
+                duration = {"weekly": WEEK_MINUTES,
+                            "5h": FIVE_HOURS, "24h": 1440, "168h": WEEK_MINUTES}.get(
+                                period.group(1).strip() if period else label)
+                if period is None and duration is None and current["id"] != "GEMINI":
+                    duration = {"short": FIVE_HOURS, "week": WEEK_MINUTES,
+                                "outer": WEEK_MINUTES}.get(label)
                 current["windows"].append({
                     "label": LABELS.get(label, label),
+                    # A Pro/Ultra pool has a weekly and a 5h row; tag the 5h one so they differ.
+                    "display": {"gemini": "Gemini", "cl+gpt": "Claude / GPT"}.get(label, LABELS.get(label, label))
+                               + (" 5h" if label in ("gemini", "cl+gpt") and duration == FIVE_HOURS else ""),
+                    "duration": duration,
                     "pct": 0.5 if pct == "<1" else float(pct),
                     "shown": "<1%" if pct == "<1" else "%d%%" % round(float(pct)),
                     "reset": reset.group(1).strip() if reset else ""})
@@ -226,23 +247,21 @@ def card(p, now, loading=False):
             '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
             '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
             '<div class="pct">%s</div><div class="reset">%s</div></div>'
-            % (hue(w["pct"]), esc(w["label"]), min(w["pct"], 100),
+            % (hue(w["pct"]), esc(w.get("display", w["label"])), min(w["pct"], 100),
                esc(w["shown"]), esc(shown)))
         left = remaining_minutes(when, now) if when else None
-        if left is not None:
-            # Time bar: full length is the window (5h or 7 days); the remaining
-            # time fills from the right, the elapsed part stays empty on the left.
-            five = w["label"] == "5h"
-            total = FIVE_HOURS if five else WEEK_MINUTES
+        total = w.get("duration")
+        if left is not None and total is not None:
+            # Draw a scale only for a period explicitly reported or known by the provider.
             share = max(0.0, min(100.0, left * 100.0 / total))
-            # One tick per hour (5h window) or per day (7-day window).
-            n = 5 if five else 7
-            unit = "h" if five else "d"
+            n = 7 if total == WEEK_MINUTES else 4 if total == 1440 else 5
+            unit = "d" if total == WEEK_MINUTES else "h"
+            step = 6 if total == 1440 else 1
             # Scale labels read as time left at that tick: n at the left, 0 at the reset.
             scale = "".join(
                 '<span class="%s" style="left:%.4f%%">%s</span>'
                 % ("first" if i == 0 else "last" if i == n else "", i * 100.0 / n,
-                   "0" if i == n else "%d%s" % (n - i, unit))
+                   "0" if i == n else "%d%s" % ((n - i) * step, unit))
                 for i in range(n + 1))
             rows.append(
                 '<div class="row time"><div class="lbl"></div>'
@@ -382,7 +401,7 @@ tr.anth td{background:var(--anth)}tr.oai td{background:var(--oai)}tr.key td{font
 <h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
 <h3>Model and effort guide</h3>
-<p class="std">Recommendations based on the references below, reviewed 2026-11-02. Availability depends on your plan and model picker.</p>
+<p class="std">Recommendations based on the references below, reviewed 2026-11-02; Gemini entries reviewed 2026-11-09. Availability depends on your plan and model picker.</p>
 <p class="warn"><b>Start with Medium–High for coding.</b> Avoid Xhigh and Max by habit; use them when the task needs deeper reasoning or a lower effort falls short.</p>
 <div class="tablewrap"><table><thead><tr><th>CLI</th><th>Model</th><th>Effort</th><th>Suggested use</th></tr></thead><tbody>
 <tr class="anth"><td>Claude Code</td><td>Haiku 5.5</td><td>Low</td><td>Quick questions and small changes</td></tr>
@@ -394,12 +413,17 @@ tr.anth td{background:var(--anth)}tr.oai td{background:var(--oai)}tr.key td{font
 <tr class="oai key"><td>Codex</td><td>GPT-6.1 Terra</td><td>Medium–High</td><td>Coding: scoped fixes and computer use</td></tr>
 <tr class="oai key"><td>Codex</td><td>GPT-6.1 Sol</td><td>Medium ★</td><td>Plan and review: complex, multi-file work</td></tr>
 <tr class="oai key"><td>Codex</td><td>GPT-6 Astra</td><td>Medium–High</td><td>Complex projects and difficult review</td></tr>
+<tr><td>Antigravity (Gemini)</td><td>Gemini 3.8 Flash</td><td>Medium</td><td>Quick questions and small, scoped edits</td></tr>
+<tr class="key"><td>Antigravity (Gemini)</td><td>Gemini 4 Argon</td><td>Medium</td><td>Recommended default for day-to-day coding and fixes</td></tr>
+<tr class="key"><td>Antigravity (Gemini)</td><td>Gemini 4 Argon</td><td>High</td><td>Plan and review: complex architecture and debugging</td></tr>
 </tbody></table></div>
 <p class="foot">★ = documented default effort: Claude Code for Sonnet 5.5 and Opus 5.5; OpenAI API for GPT-6.1 Sol. Codex settings can differ from the API default. Availability depends on your plan. Higher effort generally takes more time and usage; compare results before using it routinely.
 Claude: use <code>/model</code> and <code>/effort</code>. Codex: use <code>/model</code>.
+Gemini: use the model picker and <code>/effort</code>. Argon requires a paid Google AI Pro or Ultra plan, or an eligible device trial. This guide suggests Argon Medium for everyday use (Google documents no default effort), and High for complex planning, review and debugging.
 Sources: <a href="https://code.claude.com/docs/en/model-config">Claude Code</a> ·
 <a href="https://developers.openai.com/api/docs/guides/model-selection">OpenAI model selection</a> ·
-<a href="https://developers.openai.com/api/docs/guides/reasoning">OpenAI reasoning</a>.</p>
+<a href="https://developers.openai.com/api/docs/guides/reasoning">OpenAI reasoning</a> ·
+<a href="https://antigravity.google/docs/models">Antigravity models and effort</a>.</p>
 <h3>Qualified (CursorBench)</h3>
 <p class="std">Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score</p>
 <div class="tablewrap"><table><thead><tr><th>Provider</th><th>Now</th><th class="num">Now $</th>

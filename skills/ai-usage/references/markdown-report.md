@@ -98,7 +98,7 @@ inline code so every font draws them at the same width. Sample:
 
 #### Model and effort guide
 
-Before the Qualified table, include the single model and effort recommendation table from `html_report.py` in the report language. Preserve the documented default marker, model names, effort names, the review date and reference links; availability depends on the model picker.
+Before the Qualified table, include the single model and effort recommendation table from `html_report.py` in the report language. Preserve the documented default marker, model names, effort names, the review date and reference links; availability depends on the model picker. Include Gemini 4 Argon Medium as the guide's suggestion for day-to-day coding (Google documents no default effort, so no default marker), High for complex planning, review and debugging, and Gemini 3.8 Flash Medium for small edits.
 
 #### Qualified (CursorBench)
 

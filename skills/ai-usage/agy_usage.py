@@ -18,7 +18,8 @@ A signed-out agy does not fail quietly: print mode answers "Authentication requi
 and opens the Google sign-in page in a browser (checked 2026-10-02 with an empty HOME).
 The skill promises never to open a browser, so agy is only launched when its own log
 shows it has signed in here: every signed-in run logs an authenticated
-`v1internal:loadCodeAssist` call in ~/.gemini/antigravity-cli/log/cli-*.log. No log with
+`v1internal:loadCodeAssist` call in ~/.gemini/antigravity/log/cli-*.log or the older
+~/.gemini/antigravity-cli/log/cli-*.log. No log with
 that call means `not signed in`, without starting agy. No credential file is read.
 BROWSER is also pointed at a no-op on POSIX, in case agy honours it.
 
@@ -34,7 +35,7 @@ portable.stdout_utf8()
 
 HOME = Path.home()
 CLI = HOME / ".gemini" / "bin" / ("agy.exe" if os.name == "nt" else "agy")
-LOGS = HOME / ".gemini" / "antigravity-cli" / "log"
+LOG_DIRS = [HOME / ".gemini" / folder / "log" for folder in ("antigravity", "antigravity-cli")]
 SIGNED_IN_MARK = "v1internal:loadCodeAssist"
 
 if not CLI.is_file():
@@ -45,10 +46,13 @@ if not CLI.is_file():
 def signed_in():
     """True when the newest agy log that made any backend call made an authenticated one."""
     try:
-        logs = sorted(LOGS.glob("cli-*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+        logs = [path for folder in LOG_DIRS
+                for path in sorted(folder.glob("cli-*.log"),
+                                   key=lambda p: p.stat().st_mtime, reverse=True)[:10]]
+        logs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     except OSError:
         return False
-    for path in logs[:10]:
+    for path in logs:
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -85,14 +89,17 @@ POOL = {"gemini models": "gemini", "claude and gpt models": "cl+gpt"}
 
 
 def reset_clock(value):
-    """'2026-10-08T20:09:18Z' -> local '10-09 04:09 (6d23h)', or the raw text."""
+    """Keep the year and UTC offset so the renderer can calculate the exact reset."""
     try:
-        at = datetime.datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone()
+        at = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if at.tzinfo is None:
+            return value
+        at = at.astimezone()
     except ValueError:
         return value
     left = int((at - datetime.datetime.now().astimezone()).total_seconds())
     rel = "%dd%dh" % (left // 86400, left % 86400 // 3600) if left > 0 else "now"
-    return "%s (%s)" % (at.strftime("%m-%d %H:%M"), rel)
+    return "%s (%s)" % (at.isoformat(timespec="seconds"), rel)
 
 
 # /usage names no plan, and /credits only reports paid G1 credits.
@@ -106,7 +113,11 @@ for line in text.splitlines():
     if not m:
         continue
     used = max(0.0, min(100.0, 100.0 - float(m.group(1))))
-    window = "weekly" if "week" in cells[1].lower() else cells[1]
+    period = cells[1].lower()
+    # antigravity.google/docs/cli/commands/usage: each pool has a weekly and a five-hour
+    # limit; docs/plans: the five-hour one is Pro/Ultra only. Checked 2026-11-09.
+    window = {"weekly limit remaining": "weekly", "five hour limit remaining": "5h"}.get(
+        period, cells[1])
     label = POOL.get(cells[0].lower(), cells[0])
     print("%-6s %5.1f%% used  window %s  pool %s  resets %s  %s"
           % (label, used, window, cells[0], reset_clock(cells[3]), portable.format_bar(used)))

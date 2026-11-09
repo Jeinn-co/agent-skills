@@ -80,6 +80,14 @@ def selected():
     return picked or IDS
 
 
+AGY_POOLS = ("gemini", "cl+gpt")
+
+
+def agy_pools():
+    """Gemini quota pools to show: both unless setup saved `gemini` only."""
+    return ["gemini"] if load_config().get("agy_pools") == ["gemini"] else list(AGY_POOLS)
+
+
 def installed():
     """Providers whose CLI is present (agy only at ~/.gemini/bin, never the IDE launcher)."""
     agy = os.path.join(os.path.expanduser("~"), ".gemini", "bin",
@@ -136,6 +144,15 @@ if "--show-providers" in sys.argv:
     print("providers=" + ",".join(selected()))
     print("installed=" + ",".join(installed()))
     print("output=" + output_format())
+    print("agy_pools=" + ",".join(agy_pools()))
+    sys.exit(0)
+if len(sys.argv) == 3 and sys.argv[1] == "--set-agy-pools":
+    if sys.argv[2] not in ("gemini", "all"):
+        sys.exit("unknown agy pools: %s; choose gemini or all" % sys.argv[2])
+    config = load_config()
+    config["agy_pools"] = ["gemini"] if sys.argv[2] == "gemini" else None
+    save_config(config)
+    print("agy_pools=" + ",".join(agy_pools()))
     sys.exit(0)
 if len(sys.argv) == 3 and sys.argv[1] == "--set-output":
     if sys.argv[2] not in OUTPUTS:
@@ -414,9 +431,13 @@ def usage(script, timeout=portable.CALL_TIMEOUT):
             [sys.executable, "-u", str(HERE / script)],
             timeout=timeout, stdout=subprocess.PIPE, env=child_env(timeout),
             **portable.text_kwargs())
-        return result.stdout
+        out = result.stdout
     except subprocess.TimeoutExpired:
         return "usage call timed out after %gs; skipped\n" % timeout
+    if script == "agy_usage.py" and agy_pools() == ["gemini"]:
+        # Setup hid the Claude/GPT pool: drop its row before cards, advice and markdown see it.
+        out = "".join(line for line in out.splitlines(True) if not line.startswith("cl+gpt "))
+    return out
 
 
 def session(cli):

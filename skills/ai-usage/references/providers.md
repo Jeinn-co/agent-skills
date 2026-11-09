@@ -121,9 +121,9 @@ Print mode routes the slash command (`/usage`, alias `/quota`) without a model c
 (`~/.antigravity/antigravity/bin/agy`, prints the VS Code style `--diff`/`--goto`
 options); the CLI agent is `~/.gemini/bin/agy`. The probe only ever runs the latter.
 
-Session model: conversations are `~/.gemini/antigravity-cli/conversations/<id>.db`
+Session model: conversations are `~/.gemini/antigravity/conversations/<id>.db` (older versions use `antigravity-cli`)
 (SQLite; the model is not stored readably). Each CLI run writes
-`~/.gemini/antigravity-cli/log/cli-YYYYMMDD_HHMMSS.log`, which logs
+the matching `log/cli-YYYYMMDD_HHMMSS.log` under that same directory, which logs
 `selected model override to backend: label="Gemini 3.8 Flash (High)"`. Slash-command
 runs write a log too, so the log is matched to the newest conversation by start time.
 
@@ -189,7 +189,7 @@ endpoint. Quota windows are fetched live for each report.
 The Antigravity IDE installs a launcher with the same name; running it opens the
 editor. `/usage` makes no model call and leaves no conversation. A signed-out agy opens
 the Google sign-in page in a browser, so the probe only starts agy when the CLI's own log
-shows a signed-in run; otherwise it prints `agy not signed in here … skipped so no
+shows a signed-in run under either `~/.gemini/antigravity/log/` or the older `~/.gemini/antigravity-cli/log/`; otherwise it prints `agy not signed in here … skipped so no
 browser opens`. Report that row as not signed in; do not suggest a fix unless asked. The
 probe sets `AGY_CLI_DISABLE_AUTO_UPDATE=1` so the CLI does not update itself.
 

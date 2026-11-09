@@ -115,7 +115,8 @@ def ref(board, cli, base, suffix):
 
 def name(cli, model):
     """CLI model id -> CursorBench model name, or None when there is no rule."""
-    m = model.lower()
+    # Some sessions record a provider-routed id (claude/claude-opus-5-5, codex/gpt-6.1-sol).
+    m = model.lower().rsplit("/", 1)[-1]
     if cli == "claude":
         # claude-opus-5-5 -> Opus 5.5, claude-fable-5-1 -> Fable 5.1; an alias has no version
         hit = re.fullmatch(r"claude-([a-z]+)-(\d+)(?:-(\d+))?(?:-\d{8})?", m)

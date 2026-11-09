@@ -419,16 +419,20 @@ for line in sys.stdin:
 class GeminiAgyTests(unittest.TestCase):
     """agy_usage.py runs ~/.gemini/bin/agy, never an `agy` on PATH (the IDE launcher)."""
 
-    def run_agy(self, source, on_path=None, signed_in=True):
+    def run_agy(self, source, on_path=None, signed_in=True, auth_logs=None):
         with tempfile.TemporaryDirectory() as home:
             env = os.environ.copy()
             env["HOME"] = home
-            logs = Path(home) / ".gemini" / "antigravity-cli" / "log"
-            logs.mkdir(parents=True)
-            (logs / "cli-20260101_000000.log").write_text(
-                "URL: https://example/v1internal:loadCodeAssist\n" if signed_in
-                else "Authentication required. Please visit the URL to log in\n",
-                encoding="utf-8")
+            if auth_logs is None:
+                auth_logs = {"antigravity-cli": (
+                    "URL: https://example/v1internal:loadCodeAssist\n" if signed_in
+                    else "Authentication required. Please visit the URL to log in\n")}
+            for index, (folder, text) in enumerate(auth_logs.items()):
+                logs = Path(home) / ".gemini" / folder / "log"
+                logs.mkdir(parents=True)
+                log = logs / "cli-20260101_000000.log"
+                log.write_text(text, encoding="utf-8")
+                os.utime(log, (1_000_000_000 + index, 1_000_000_000 + index))
             if source is not None:
                 cli = Path(home) / ".gemini" / "bin" / "agy"
                 cli.parent.mkdir(parents=True, exist_ok=True)
@@ -472,6 +476,23 @@ print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z
         self.assertIn("usage call failed", result.stdout)
         self.assertNotIn("% used", result.stdout)
 
+    def test_current_layout_login_is_found_despite_newer_unrelated_legacy_log(self):
+        result = self.run_agy(self.USAGE, auth_logs={
+            "antigravity": "URL: https://example/v1internal:loadCodeAssist\n",
+            "antigravity-cli": "Starting CLI\n",
+        })
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("12.0% used", result.stdout)
+
+    def test_newer_signed_out_log_overrides_authenticated_other_layout(self):
+        result = self.run_agy('raise AssertionError("must not start")\n', auth_logs={
+            "antigravity-cli": "URL: https://example/v1internal:loadCodeAssist\n",
+            "antigravity": "Authentication required\n",
+        })
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("not signed in", result.stdout)
+        self.assertNotIn("usage call failed", result.stdout)
+
     def test_never_runs_the_ide_launcher_on_path(self):
         result = self.run_agy(None, on_path=self.USAGE)
 
@@ -490,26 +511,27 @@ print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z
 
     def test_session_reads_model_from_the_run_log(self):
         import datetime
-        with tempfile.TemporaryDirectory() as home:
-            base = Path(home) / ".gemini" / "antigravity-cli"
-            (base / "conversations").mkdir(parents=True)
-            (base / "log").mkdir()
-            started = datetime.datetime.now() - datetime.timedelta(minutes=2)
-            log = base / "log" / ("cli-%s.log" % started.strftime("%Y%m%d_%H%M%S"))
-            log.write_text('x selected model override to backend: label="Gemini 3.8 Flash (High)"\n',
-                           encoding="utf-8")
-            # a later run (e.g. the /usage probe) writes a log but no conversation
-            later = base / "log" / ("cli-%s.log" % (datetime.datetime.now()
-                                                     + datetime.timedelta(minutes=5)).strftime("%Y%m%d_%H%M%S"))
-            later.write_text('x selected model override to backend: label="Gemini 3.1 Pro (Low)"\n',
-                             encoding="utf-8")
-            (base / "conversations" / "c1.db").write_bytes(b"")
-            env = os.environ.copy()
-            env["HOME"] = home
-            result = subprocess.run([sys.executable, str(SKILL / "session_info.py"), "agy"],
-                                    cwd=SKILL, env=env, capture_output=True, text=True, timeout=15)
-        self.assertIn("model   gemini-3.8-flash", result.stdout)
-        self.assertIn("effort  high", result.stdout)
+        for storage in ("antigravity-cli", "antigravity"):
+            with self.subTest(storage=storage), tempfile.TemporaryDirectory() as home:
+                base = Path(home) / ".gemini" / storage
+                (base / "conversations").mkdir(parents=True)
+                (base / "log").mkdir()
+                started = datetime.datetime.now() - datetime.timedelta(minutes=2)
+                log = base / "log" / ("cli-%s.log" % started.strftime("%Y%m%d_%H%M%S"))
+                log.write_text('x selected model override to backend: label="Gemini 3.8 Flash (High)"\n',
+                               encoding="utf-8")
+                # a later run (e.g. the /usage probe) writes a log but no conversation
+                later = base / "log" / ("cli-%s.log" % (datetime.datetime.now()
+                                                         + datetime.timedelta(minutes=5)).strftime("%Y%m%d_%H%M%S"))
+                later.write_text('x selected model override to backend: label="Gemini 3.1 Pro (Low)"\n',
+                                 encoding="utf-8")
+                (base / "conversations" / "c1.db").write_bytes(b"")
+                env = os.environ.copy()
+                env["HOME"] = home
+                result = subprocess.run([sys.executable, str(SKILL / "session_info.py"), "agy"],
+                                        cwd=SKILL, env=env, capture_output=True, text=True, timeout=15)
+                self.assertIn("model   gemini-3.8-flash", result.stdout)
+                self.assertIn("effort  high", result.stdout)
 
 
 class ArtificialAnalysisTests(unittest.TestCase):

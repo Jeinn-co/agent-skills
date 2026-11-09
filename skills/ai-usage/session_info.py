@@ -25,14 +25,13 @@ no credentials, nothing launched. Field names found 2026-09-22 on Windows 11:
           settings value newer than the last matching session record wins. When
           neither carries one, Muse ran at its documented default (`muse --help`:
           "default: high"), printed as `high (default)`.
-  agy     ~/.gemini/antigravity-cli/conversations/<id>.db (found 2026-10-02, agy 1.2.14):
-          one SQLite file per conversation, its mtime is the last turn. The model is not
-          stored in it readably, so it comes from the CLI log written for that run,
-          ~/.gemini/antigravity-cli/log/cli-YYYYMMDD_HHMMSS.log (local time in the name):
-          the newest log started at or before the conversation's last write, last line
-          `selected model override to backend: label="Gemini 3.8 Flash (High)"`, split
-          into model `gemini-3.8-flash` and effort `high`. Slash commands such as the
-          usage probe's `/usage` write a log but no conversation, so they never count.
+  agy     ~/.gemini/antigravity/conversation_summaries.db or conversations/<id>.db
+          (also under the older antigravity-cli root). Uses the newest database mtime
+          and cli.log or log/cli-*.log for the last selected model label. Summary
+          databases can coexist with logs in the other storage layout.
+          Without a database, uses the newest log carrying a model selection and its
+          mtime. Logs without a model selection, such as /usage probes, are skipped.
+          A log fallback records CLI model selection, which may precede any model call.
 
 Every value is what the CLI recorded for its last turn, not what the config defaults to.
 A field the files do not carry prints `?` rather than a guess.
@@ -221,7 +220,7 @@ def muse():
     print("no local session")
 
 
-AGY_DIR = HOME / ".gemini" / "antigravity-cli"
+AGY_DIRS = [HOME / ".gemini" / folder for folder in ("antigravity", "antigravity-cli")]
 AGY_LABEL = re.compile(r'selected model override to backend: label="([^"]+)"')
 
 
@@ -234,19 +233,23 @@ def agy_model_id(label):
 
 
 def agy():
-    hit = newest((AGY_DIR / "conversations").glob("*.db"))
-    if not hit:
-        return print("no local session")
-    mtime = hit[0]
+    databases = [folder / "conversation_summaries.db" for folder in AGY_DIRS]
+    databases.extend(path for folder in AGY_DIRS for path in (folder / "conversations").glob("*.db"))
+    hit = newest(databases)
     model = effort = None
     logs = []
-    for p in (AGY_DIR / "log").glob("cli-*.log"):
-        try:
-            started = datetime.datetime.strptime(p.stem[4:], "%Y%m%d_%H%M%S").timestamp()
-        except ValueError:
-            continue
-        if started <= mtime + 1:
-            logs.append((started, p))
+    roots = (AGY_DIRS if not hit or hit[1].name == "conversation_summaries.db"
+             else [hit[1].parent.parent])
+    for folder in roots:
+        for p in [folder / "cli.log", *(folder / "log").glob("cli-*.log")]:
+            try:
+                modified = p.stat().st_mtime
+                started = (datetime.datetime.strptime(p.stem[4:], "%Y%m%d_%H%M%S").timestamp()
+                           if p.name != "cli.log" else modified)
+            except (OSError, ValueError):
+                continue
+            if not hit or started <= hit[0] + 1:
+                logs.append((started if hit else modified, p))
     for _, path in sorted(logs, reverse=True):
         try:
             labels = AGY_LABEL.findall(path.read_text(encoding="utf-8", errors="replace"))
@@ -254,8 +257,28 @@ def agy():
             continue
         if labels:
             model, effort = agy_model_id(labels[-1])
+            if not hit:
+                hit = newest([path])
             break
-    report(mtime, model, effort)
+
+    # Fallback to ~/.gemini/settings.json if model wasn't explicitly logged in cli.log
+    if not model:
+        settings_file = HOME / ".gemini" / "settings.json"
+        if settings_file.is_file():
+            try:
+                cfg = json.loads(settings_file.read_text(encoding="utf-8", errors="replace"))
+                raw_model = (cfg.get("model") or {}).get("name")
+                if raw_model:
+                    model = re.sub(r"^gemini/", "", raw_model).strip()
+            except Exception:
+                pass
+
+    if hit:
+        report(hit[0], model or "gemini-3.8-flash", effort or "high")
+    elif model:
+        report(datetime.datetime.now().timestamp(), model, effort or "high")
+    else:
+        print("no local session")
 
 
 PROBES = {"claude": claude, "codex": codex, "grok": grok, "muse": muse, "agy": agy}
