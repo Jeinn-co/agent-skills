@@ -37,18 +37,20 @@ that opens the store instead of running anything.
 | Gemini | `~/.gemini/bin/agy` (Antigravity CLI) | run it once and follow the Google sign-in |
 
 **You do not need all five.** Install one and you get one row; the others print
-`not installed` and nothing else breaks. The skill never prompts for a login, never
-opens a browser, and never reads a stored credential — it asks each CLI's own local
-agent server, which means a CLI that is installed but signed out reports a failed
-call, not a login screen.
+`not installed` and nothing else breaks. Claude reads its existing OAuth login from
+`$CLAUDE_CONFIG_DIR/.credentials.json` or `~/.claude/.credentials.json`. Its access token
+is sent only to Anthropic's usage endpoint and is never printed or refreshed by this
+skill. Keychain-only logins are not supported. Other providers use their own CLIs.
+Missing or expired authentication is reported in the affected provider's card.
 
 ### 3. Network and subprocess access
 
 The agent host must allow this skill to launch local subprocesses. Each provider CLI
-must also be able to reach its own service over the internet. Usage probes leave
-authentication and service requests inside the provider CLIs. The benchmark helper
-also fetches public CursorBench and Artificial Analysis pages without credentials, and
-the update check reads this skill's published `SKILL.md` from `raw.githubusercontent.com`.
+must also be able to reach its own service over the internet. The Claude probe makes
+an authenticated GET to `https://api.anthropic.com/api/oauth/usage`. Other providers
+handle authentication inside their CLIs. The benchmark helper fetches public data
+without credentials, and the update check reads this skill's published `SKILL.md`
+from `raw.githubusercontent.com`.
 
 ### 4. Platform
 
@@ -225,16 +227,15 @@ loads a short `SKILL.md`; running `./run.sh` in a terminal shows the same lines 
 `setup` can switch the output to Markdown, which renders the whole report in chat as
 tables and opens no page.
 
-It asks each provider's CLI rather than its own host, so it reads the same provider
-accounts wherever you install it — run it inside Codex and you still get your Claude,
-Grok, Muse and Gemini numbers.
+It uses each provider's existing CLI login, so running it inside Codex also reads
+your Claude, Grok, Muse and Gemini accounts.
 
-**Usage numbers are live.** Nothing is scraped from a web page, no browser is driven,
-and no stored credential is ever read. Each provider's own CLI is asked directly:
+**Usage numbers are live.** Claude uses its existing OAuth login to query Anthropic.
+The other providers are queried through their CLIs.
 
 | Provider | How |
 |---|---|
-| Claude | `claude -p "/usage"` — print mode routes the built-in slash command |
+| Claude | OAuth GET `/api/oauth/usage`, using the CLI's existing file-based login |
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP extension method `_x.ai/billing` |
 | Muse | `muse serve` → one tiny turn, then MSP `usage/read` |
@@ -288,8 +289,8 @@ naming the newest listed same-provider row at the same effort, for orientation o
 (`data/cursorbench.json`, and `data/aa.json` only when an AA row is needed), which that
 site refreshes from CursorBench and Artificial Analysis every six hours. Benchmark
 figures can therefore be up to six hours old. With the one update-check request to
-`raw.githubusercontent.com`, those are the only HTTP requests the skill's own code
-makes, and they send no credential.
+`raw.githubusercontent.com`, these public requests send no credential. The Claude
+probe separately sends its access token to Anthropic's usage endpoint.
 
 **Language.** Documentation and the scripts' data and status messages are in English.
 Inside an agent, an explicit request for a report language takes priority. Otherwise,
@@ -324,9 +325,14 @@ extension (0.154.0-alpha), and `grok` 1.0.40. Muse (probe and session fields) ve
 2026-09-24 against Muse Code 1.3.0-R3401.1 on Windows 11. Gemini (probe and session
 fields) verified 2026-10-02 against the Antigravity CLI (`agy`) 1.2.14 on macOS.
 
+Claude quota reading was rechecked on Windows 11 with Claude Code 2.1.319 on
+2026-11-09. `claude -p --output-format json "/usage"` returned a cost summary instead
+of quota windows. The probe now reads structured `five_hour` and `seven_day` data
+from Anthropic using the existing file-based OAuth login.
+
 | Risk | Where | What happens if it breaks |
 |---|---|---|
-| Claude's two usage lines are free text and are regex-parsed | `claude_usage.py` | Falls back to printing the raw line; never prints a wrong number |
+| Claude's OAuth usage endpoint and credential file are internal interfaces | `claude_usage.py` | Missing login, HTTP failures and invalid quota data fail visibly. Keychain-only login is unsupported |
 | Codex's app-server protocol is private to OpenAI and carries no compatibility promise | `codex_usage.py` | A method rename or missing required field makes the ChatGPT row fail visibly; it never defaults to 0% |
 | Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field (period, `billingPeriodEnd`) makes the Grok row fail visibly. An omitted `creditUsagePercent` means a whole-percent 0 and prints `<1% used` |
 | Muse's `usage/read` returns only what the host has observed | `muse_usage.py` | If the turn ends with no usage, the Muse row fails visibly (`no usage observed`); it never defaults to 0% |
@@ -341,8 +347,8 @@ fields) verified 2026-10-02 against the Antigravity CLI (`agy`) 1.2.14 on macOS.
   count — checked against all 163 methods. The report omits the row; it does not print
   `unknown`. `credits.balance` is a different pool: an account can show `balance 0`
   while holding 2 available resets, so it is never substituted.
-- **Claude extra usage** is not reported. The current CLI response exposes no reliable
-  field for it; `fast_mode_disabled_reason` is specifically about fast mode.
+- **Claude extra usage** is omitted by this probe. It reads only the aggregate
+  `five_hour` and `seven_day` windows.
 - **Grok has one window, not two.** No 5-hour row is invented for it.
 - **Gemini has two weekly pools and no 5-hour window**, and its plan name is not
   reported: `/usage` names no plan, so the plan shows `?`.

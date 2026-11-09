@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""/ai-usage entry point. Reads AI subscription usage. No browser, no stored credentials.
+"""/ai-usage entry point. Reads live AI subscription usage without browser automation.
 
 Each probe runs as a separate process with *this* interpreter (`sys.executable`), so
 there is no dependency on a `python3` on PATH -- on Windows that name is often absent,
@@ -22,7 +22,7 @@ if "--version" in sys.argv:
 
 HERE = Path(__file__).resolve().parent
 
-# claude -p --output-format json "/usage"          -- live, see claude_usage.py
+# Claude OAuth GET /api/oauth/usage               -- live, see claude_usage.py
 # codex app-server  -> JSON-RPC account/rateLimits/read  -- live, see codex_usage.py
 # grok agent stdio  -> ACP extension _x.ai/billing       -- live, see grok_usage.py
 # muse serve        -> MSP usage/read after one tiny turn -- live, see muse_usage.py

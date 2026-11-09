@@ -1,22 +1,30 @@
 # Why each provider works the way it does
 
-All five services compute usage server-side and return it in API response headers.
-The difference is entirely what each CLI does with that after receiving it.
+All five services compute usage server-side. Each probe reads the result through
+its provider's CLI or usage endpoint.
 
 ## Claude — works, live
 
-`claude -p "/usage" < /dev/null` prints the live numbers. Print mode routes built-in
-slash commands, so this needs no credentials and no browser.
+On Windows with Claude Code 2.1.319, `claude -p --output-format json "/usage"`
+returned a cost summary instead of the session and weekly quota windows. The old
+regex parser therefore printed `could not parse; raw first line: Total cost: ...`.
+The first Claude version that changed this behavior has not been established.
 
-`< /dev/null` is required, otherwise the CLI waits 3s for stdin and prints a warning.
+`claude_usage.py` now reads `claudeAiOauth.accessToken` and `subscriptionType` from
+`$CLAUDE_CONFIG_DIR/.credentials.json`, defaulting to `~/.claude/.credentials.json`.
+It makes one GET to `https://api.anthropic.com/api/oauth/usage` with Bearer auth and
+the `anthropic-beta: oauth-2025-04-20` header. Only `five_hour` and `seven_day` are
+reported, using their `utilization` and `resets_at` fields. Reset times are converted
+to local time. The token is neither printed nor refreshed. Keychain-only logins are
+not supported, and missing credentials or failed requests produce a visible error.
 
 Claude Code does **not** persist rate-limit state anywhere on disk — checked:
 - session jsonl `usage` field carries `input_tokens` / `cache_read_input_tokens` /
   `output_tokens` only, no percentage
 - `~/.claude/stats-cache.json` is message and tool-call counts
 
-The binary does contain the full `anthropic-ratelimit-unified-*` header set and the
-endpoint `/api/oauth/usage`, which is what `/usage` calls each time.
+The endpoint and credential file are internal interfaces and may change. This
+method was verified live on Windows 11 on 2026-11-09.
 
 ## ChatGPT — works, live
 
@@ -106,8 +114,8 @@ Dead ends, do not retry (checked 2026-09-24, Muse Code 1.3.0-R3401.1):
     Gemini Models<TAB>Weekly Limit Remaining<TAB>100%<TAB>2026-10-08T20:09:18Z
     Claude and GPT models<TAB>Weekly Limit Remaining<TAB>100%<TAB>2026-10-08T20:09:18Z
 
-Print mode routes the slash command (`/usage`, alias `/quota`), like Claude's: no model
-call, no quota spent, no conversation written. `agy -p "/help"` lists the commands.
+Print mode routes the slash command (`/usage`, alias `/quota`) without a model call.
+`agy -p "/help"` lists the commands.
 
 **Two binaries are named `agy`.** The Antigravity IDE puts an editor launcher on PATH
 (`~/.antigravity/antigravity/bin/agy`, prints the VS Code style `--diff`/`--goto`
@@ -144,12 +152,12 @@ report what comes back.
   (`~/.gemini/bin/agy`), already signed in. Zero of them is
   still a valid run: every row prints `not installed`.
 - **Subprocess and network access.** The host must allow local process launches, and
-  each installed provider CLI must be able to reach its own service. The only direct
-  HTTP requests the Python code makes are one GET of AI Model Compare's
+  each installed provider CLI must be able to reach its own service. Claude makes
+  one authenticated GET to Anthropic's usage endpoint. Public requests include AI Model Compare's
   `data/cursorbench.json` (`cursorbench.py`), one GET of its `data/aa.json` when a
   current model CursorBench does not list needs an AA row, and, for step 0 only,
   one GET of this skill's published `SKILL.md` on `raw.githubusercontent.com`; no
-  credential is sent.
+  credential is sent with those public requests.
 
 If a provider prints `not installed`, show that status in its usage block and Now
 cell, but still show its Qualified model, cost and CP from the public benchmarks.
@@ -159,22 +167,23 @@ others; never substitute a number from memory or from an earlier run.
 
 ## Where each number comes from
 
-All five are live. No browser, no stored credentials, no cookie access.
+All five are live. Claude uses its existing OAuth credential file. Other providers
+use their CLIs, and the probes do not automate a browser or read browser cookies.
 Verified 2026-09-12 on macOS, and 2026-09-14 on a zh-TW Windows 11 machine (PowerShell,
 Python 3.12) — that run surfaced and fixed a UnicodeDecodeError in the Claude probe
 (see Limitations in README).
 
 | Provider | Method |
 |---|---|
-| Claude | `claude -p "/usage" < /dev/null` — print mode routes the built-in slash command |
+| Claude | OAuth GET `/api/oauth/usage` using the existing CLI login — see `claude_usage.py` |
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` — see `codex_usage.py` |
 | Grok | `grok agent stdio` → JSON-RPC `_x.ai/billing` — see `grok_usage.py` |
 | Muse | `muse serve` → one tiny turn, then MSP `usage/read` — see `muse_usage.py` |
 | Gemini | `~/.gemini/bin/agy -p "/usage"` — the Antigravity CLI's built-in slash command, see `agy_usage.py` |
 
-Three of the five are the CLI's own local agent server answering over stdio, and the
-other two (Claude, Gemini) route the CLI's own `/usage` command in print mode, so the
-numbers are the same ones the TUI shows. Nothing is cached and nothing is scraped.
+ChatGPT, Grok and Muse use their CLI's local agent server over stdio. Gemini uses
+its CLI's `/usage` command in print mode, and Claude reads Anthropic's OAuth usage
+endpoint. Quota windows are fetched live for each report.
 
 **Gemini runs the Antigravity CLI at `~/.gemini/bin/agy`, never the `agy` on PATH.**
 The Antigravity IDE installs a launcher with the same name; running it opens the

@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
-"""Claude usage via `claude -p --output-format json "/usage"`.
+"""Read live Claude quota using the CLI's existing local OAuth login.
 
-Print mode routes the built-in /usage slash command, so this needs no credentials and
-makes no model call. `--output-format json` puts the answer in a stable `result` field
-instead of raw stdout, which keeps stray warnings out of the parse.
-
-There is no structured local source. Checked 2026-09-12: `claude mcp serve` exposes
-tools only; the binary's `account/*` strings are web API paths. The only deeper source
-is `/api/oauth/usage` with the OAuth token from ~/.claude/.credentials.json, which the
-sandbox blocks as credential access -- and `-p` is already live, so it buys nothing.
-
-The two usage lines are free text, so they are regex-parsed. If Anthropic rewords them
-this is the one thing in /uu that breaks; the raw line is printed as a fallback.
+shortcut: requires file-based Claude credentials, add keychain support when needed.
+The token stays in memory and is sent only to Anthropic's usage endpoint.
 """
-import subprocess, json, re
+import datetime
+import json
+import math
+import os
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -26,56 +22,58 @@ if portable.argv("claude") is None:
     print("claude CLI not installed")
     sys.exit(0)
 
-def run(*args):
-    args = portable.argv("claude", *args)
-    try:
-        return subprocess.run(args, capture_output=True, timeout=portable.CALL_TIMEOUT,
-                              stdin=subprocess.DEVNULL, **portable.text_kwargs()).stdout
-    except Exception:
-        return ""
-
-# plan name comes from a properly structured command
-plan = None
+config_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
 try:
-    plan = (json.loads(run("auth", "status") or "{}")
-            .get("subscriptionType"))
-except Exception:
-    pass
-print("plan: %s" % (plan or "unknown"))
-
-# --strict-mcp-config: /usage needs no MCP server, and starting them took ~2.5s of ~4.4s.
-raw = run("-p", "--output-format", "json", "--strict-mcp-config", "/usage")
-env = {}
-try:
-    env = json.loads(raw)
-    text = env.get("result", "")
-except Exception:
-    text = raw
-if not text:
-    print("usage call failed")
+    credentials = json.loads((config_dir / ".credentials.json").read_text(encoding="utf-8"))
+    oauth = credentials["claudeAiOauth"]
+    token = oauth["accessToken"]
+    if not isinstance(token, str) or not token:
+        raise ValueError("missing access token")
+except (OSError, ValueError, KeyError, TypeError):
+    print("usage unavailable: Claude OAuth login not found or invalid")
     sys.exit(1)
 
-# "Current session: 25% used · resets Sep 12 at 3:40am (Asia/Taipei)"
-# Claude omits the reset clause when a window is 0% used:
-# "Current session: 0% used"
-pat = re.compile(
-    r"Current (session|week[^:]*):\s*(\d+)%\s*used(?:\s*·\s*resets\s+([^(\n]+))?"
+print("plan: %s" % (oauth.get("subscriptionType") or "unknown"))
+request = urllib.request.Request(
+    "https://api.anthropic.com/api/oauth/usage",
+    headers={"Authorization": "Bearer " + token,
+             "anthropic-beta": "oauth-2025-04-20",
+             "User-Agent": "ai-usage/" + portable.VERSION},
 )
-found = False
-for m in pat.finditer(text):
-    label = "5h" if m.group(1) == "session" else "week"
-    used = float(m.group(2))
-    reset = (m.group(3) or "").strip()
-    bar = portable.format_bar(used)
-    if reset:
-        print("%-6s %5.1f%% used  resets %s  %s" % (label, used, reset, bar))
-    else:
-        print("%-6s %5.1f%% used  %s" % (label, used, bar))
-    found = True
-if not found:
-    for line in text.splitlines():
-        if "%" in line and "reset" in line.lower():
-            print(line.strip())
-            found = True
-if not found:
-    print("could not parse; raw first line: %s" % text.splitlines()[0][:120])
+try:
+    with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
+        usage = json.load(response)
+except urllib.error.HTTPError as error:
+    print("usage request failed: HTTP %s" % error.code)
+    sys.exit(1)
+except (OSError, ValueError):
+    print("usage request failed: network error or invalid response")
+    sys.exit(1)
+
+rows = []
+try:
+    for key, label in (("five_hour", "5h"), ("seven_day", "week")):
+        window = usage.get(key)
+        if window is None:
+            continue
+        percent = window["utilization"]
+        if isinstance(percent, bool) or not isinstance(percent, (int, float)):
+            raise ValueError("invalid percentage")
+        if not math.isfinite(percent) or not 0 <= percent <= 100:
+            raise ValueError("invalid percentage")
+        reset = window.get("resets_at")
+        reset_text = ""
+        if reset:
+            when = datetime.datetime.fromisoformat(reset.replace("Z", "+00:00"))
+            if when.tzinfo is None:
+                raise ValueError("reset timezone missing")
+            reset_text = "  resets " + when.astimezone().strftime("%b %d at %I:%M%p")
+        rows.append("%-6s %5.1f%% used%s  %s" % (
+            label, percent, reset_text, portable.format_bar(percent)))
+    if not rows:
+        raise ValueError("no quota windows")
+except (AttributeError, KeyError, TypeError, ValueError, OverflowError):
+    print("usage request failed: invalid quota response")
+    sys.exit(1)
+
+print("\n".join(rows))

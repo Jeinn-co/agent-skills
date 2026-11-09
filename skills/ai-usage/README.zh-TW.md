@@ -35,15 +35,18 @@ Microsoft Store 的 stub，執行後會跳出商店頁面而不是跑程式。
 | Muse | `muse` | `muse login` |
 | Gemini | `~/.gemini/bin/agy`（Antigravity CLI） | 執行一次，依提示完成 Google 登入 |
 
-**五個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。這個 skill
-不會要求你登入、不會開瀏覽器、不會讀任何已存的憑證 —— 它問的是每個 CLI 自己的本機
-agent server，所以「裝了但沒登入」的 CLI 會回報呼叫失敗，而不是彈出登入畫面。
+**五個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。
+
+Claude 會從 `$CLAUDE_CONFIG_DIR/.credentials.json` 或 `~/.claude/.credentials.json`
+讀取現有 OAuth 登入資訊。access token 只會送到 Anthropic 用量端點，skill 不會印出或
+更新 token。目前不支援只存於 keychain 的登入。其他 provider 由自己的 CLI 處理認證。
+登入資訊缺少或過期時，對應卡片會回報失敗。
 
 ### 3. 網路與 subprocess 權限
 
 Agent host 必須允許這個 skill 啟動本機 subprocess。每個 provider CLI 也必須能連上自己的
-網路服務。用量探針把認證與服務請求留在 provider CLI 內部處理；benchmark 輔助程式另外
-會讀取 CursorBench 與 Artificial Analysis 的公開網頁，不帶憑證；更新檢查會從
+網路服務。Claude 探針會向 `https://api.anthropic.com/api/oauth/usage` 發送帶認證的 GET。
+其他 provider 在 CLI 內處理認證。benchmark 輔助程式另外讀取公開資料，不帶憑證；更新檢查會從
 `raw.githubusercontent.com` 讀取這個 skill 已發佈的 `SKILL.md`。
 
 ### 4. 平台
@@ -188,15 +191,13 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
 對話框裡只顯示推薦 —— **→** 現在該用哪一個（看最緊的視窗誰剩最多額度，免費或沒有方案名稱（如 Gemini 的 `?`）不算，差距 10 點內才比跑分）、附一句理由；週視窗超過 80% 時前面多一行
 **Warning** —— 以及報表連結。這幾行由 launcher 自己算好（`### ADVICE`），agent 只照抄，載入的 `SKILL.md` 也很短；直接在終端機跑 `./run.sh` 一樣看得到，不耗 token。`setup` 可以改成 Markdown，整份報表直接以表格顯示在對話框裡，不開網頁。
 
-它問的是各 provider 自己的 CLI，不是它所在的 host，所以不論裝在哪個 host，都會讀取相同
-的 provider 帳號資料 —— 在 Codex 裡面跑，一樣拿得到 Claude、Grok、Muse 和 Gemini 的數字。
+它使用各 provider 現有的 CLI 登入資訊，在 Codex 裡面跑也能取得 Claude、Grok、Muse 和 Gemini 的數字。
 
-**用量數字是即時的。** 沒有爬任何網頁，沒有驅動瀏覽器，沒有讀任何已存憑證。是直接問各家
-自己的 CLI：
+**用量數字是即時的。** Claude 使用現有 OAuth 登入查詢 Anthropic，其他 provider 透過自己的 CLI 查詢。
 
 | Provider | 方法 |
 |---|---|
-| Claude | `claude -p "/usage"` —— print 模式會把內建的 slash command 導進來 |
+| Claude | OAuth GET `/api/oauth/usage`，使用 CLI 現有的檔案式登入資訊 |
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP 擴充方法 `_x.ai/billing` |
 | Muse | `muse serve` → 送一個極短的 turn，再呼叫 MSP `usage/read` |
@@ -233,7 +234,7 @@ tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor
 僅供對照。`cursorbench.py` 自己不爬這兩個網站，而是讀 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
 發布的資料（`data/cursorbench.json`，需要 AA 時再讀 `data/aa.json`）；那個網站每 6 小時從 CursorBench 與
 Artificial Analysis 更新一次，所以跑分數字最多晚 6 小時。加上更新檢查對 `raw.githubusercontent.com` 的一次請求，
-這些是 skill 自己的程式唯一發出的 HTTP 請求，不帶任何憑證。
+這些公開請求不帶憑證。Claude 探針另外將 access token 送至 Anthropic 用量端點。
 
 **語言。** 公開說明以英文為準，腳本的資料與狀態訊息使用英文。在 agent 裡，使用者明確指定
 報表語言時優先採用該語言；否則可依 host 提供的電腦偏好語言輸出，沒有資訊時用英文。
@@ -263,9 +264,13 @@ VS Code 擴充寫出的 Codex session（0.154.0-alpha）、`grok` 1.0.40 驗證�
 session 欄位）於 2026-09-24 在 Windows 11 上針對 Muse Code 1.3.0-R3401.1 驗證。Gemini（探針與
 session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.2.14 驗證。
 
+2026-11-09 在 Windows 11、Claude Code 2.1.319 上重新確認，
+`claude -p --output-format json "/usage"` 回傳成本摘要，缺少額度視窗。
+探針改用既有檔案式 OAuth 登入，向 Anthropic 讀取結構化的 `five_hour` 與 `seven_day`。
+
 | 風險 | 位置 | 壞掉時會怎樣 |
 |---|---|---|
-| Claude 那兩行用量是自由文字，靠 regex 解析 | `claude_usage.py` | 退回直接印原始那行；絕不會印出錯的數字 |
+| Claude OAuth 用量端點與憑證檔是內部介面 | `claude_usage.py` | 登入缺失、HTTP 失敗或額度資料無效時明確回報。目前不支援 keychain-only 登入 |
 | Codex 的 app-server 協定是 OpenAI 私有的，沒有任何相容性承諾 | `codex_usage.py` | 方法改名或必要欄位缺失時，ChatGPT 那列會明確失敗；絕不預設成 0% |
 | Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位（period、`billingPeriodEnd`）缺失時，Grok 那列會明確失敗。省略 `creditUsagePercent` 代表整數 0，印 `<1% used` |
 | Muse 的 `usage/read` 只回報 host 觀察到的資料 | `muse_usage.py` | turn 結束仍沒有用量時，Muse 那列會明確失敗（`no usage observed`）；絕不預設成 0% |
@@ -279,8 +284,7 @@ session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.
   可以透過 `account/rateLimitResetCredit/consume` *花掉* 一次，但沒有計數的方法 ——
   163 個方法全查過了。報表直接省略這一行，不印 `unknown`。`credits.balance` 是另一個
   池子：帳號可能顯示 `balance 0` 但手上還有 2 次 reset，所以絕不拿它替代。
-- **Claude 的 extra usage** 不回報。目前 CLI 回應沒有可靠的對應欄位；
-  `fast_mode_disabled_reason` 明確描述的是 fast mode。
+- **Claude 的 extra usage** 此探針省略，只讀取整體 `five_hour` 與 `seven_day` 視窗。
 - **Grok 只有一個視窗，不是兩個。** 不會幫它捏造一個 5 小時的列。
 - **Gemini 只有兩個週額度池，沒有 5 小時視窗**，也不回報方案名稱：`/usage` 不提供方案，
   所以方案顯示 `?`。

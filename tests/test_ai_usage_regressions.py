@@ -1,16 +1,108 @@
+import contextlib
+import io
 import json
 import os
+import runpy
 import stat
 import subprocess
 import sys
 import tempfile
 import textwrap
 import unittest
+import urllib.error
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILL = ROOT / "skills" / "ai-usage"
+
+
+class ClaudeQuotaTests(unittest.TestCase):
+    def run_claude(self, usage, *, error=None, credentials=None):
+        sys.path.insert(0, str(SKILL))
+        import portable
+
+        if credentials is None:
+            credentials = json.dumps({"claudeAiOauth": {
+                "accessToken": "test-token-never-log", "subscriptionType": "pro"}})
+        output = io.StringIO()
+        response = io.BytesIO(json.dumps(usage).encode("utf-8"))
+        with mock.patch.object(portable, "argv", return_value=["claude"]), \
+                mock.patch.object(portable, "stdout_utf8"), \
+                mock.patch.object(Path, "read_text", autospec=True,
+                                  return_value=credentials) as read, \
+                mock.patch.dict(os.environ, {"CLAUDE_CONFIG_DIR": "test-claude-config"}), \
+                mock.patch("urllib.request.urlopen", return_value=response,
+                           side_effect=error) as fetch, \
+                mock.patch("subprocess.run") as cli, contextlib.redirect_stdout(output):
+            code = 0
+            try:
+                runpy.run_path(str(SKILL / "claude_usage.py"), run_name="__main__")
+            except SystemExit as error_exit:
+                code = error_exit.code
+        cli.assert_not_called()
+        read.assert_called_once_with(
+            Path("test-claude-config") / ".credentials.json", encoding="utf-8")
+        self.assertNotIn("test-token-never-log", output.getvalue())
+        return code, output.getvalue(), fetch
+
+    def test_reads_oauth_quota_without_print_mode_or_extra_usage(self):
+        code, output, fetch = self.run_claude({
+            "five_hour": {"utilization": 25, "resets_at": "2099-09-12T07:40:00Z"},
+            "seven_day": {"utilization": 41, "resets_at": "2099-09-14T09:00:00Z"},
+            "extra_usage": {"is_enabled": True},
+        })
+        self.assertEqual(code, 0, output)
+        self.assertIn("plan: pro", output)
+        self.assertIn("25.0% used", output)
+        self.assertIn("41.0% used", output)
+        self.assertIn("resets Sep", output)
+        self.assertIn("bar █████░░░░░░░░░░░░░░░", output)
+        self.assertNotIn("extra usage", output.lower())
+        fetch.assert_called_once()
+        request = fetch.call_args.args[0]
+        self.assertEqual(request.full_url, "https://api.anthropic.com/api/oauth/usage")
+        self.assertEqual(request.get_header("Authorization"), "Bearer test-token-never-log")
+        self.assertEqual(request.get_header("Anthropic-beta"), "oauth-2025-04-20")
+
+    def test_zero_usage_without_reset_is_preserved(self):
+        code, output, _ = self.run_claude({
+            "five_hour": {"utilization": 0, "resets_at": None},
+            "seven_day": {"utilization": 59, "resets_at": None},
+        })
+        self.assertEqual(code, 0, output)
+        self.assertIn("0.0% used", output)
+        self.assertIn("59.0% used", output)
+        self.assertNotIn("resets", output)
+
+    def test_invalid_credentials_prevent_network_request(self):
+        code, output, fetch = self.run_claude({}, credentials="invalid json")
+        self.assertEqual(code, 1)
+        self.assertIn("OAuth login not found or invalid", output)
+        fetch.assert_not_called()
+
+    def test_auth_and_rate_limit_errors_are_reported_without_quota(self):
+        for status in (401, 429):
+            with self.subTest(status=status):
+                error = urllib.error.HTTPError(
+                    "https://api.anthropic.com/api/oauth/usage", status, "failed", {}, None)
+                code, output, _ = self.run_claude({}, error=error)
+                self.assertEqual(code, 1)
+                self.assertIn("HTTP %s" % status, output)
+                self.assertNotIn("% used", output)
+
+    def test_invalid_quota_response_never_defaults_to_zero(self):
+        responses = [{}, [], {"five_hour": {}},
+                     {"five_hour": {"utilization": 25, "resets_at": "invalid"}}]
+        for value in (True, "25", -1, 101, float("nan"), float("inf")):
+            responses.append({"five_hour": {"utilization": value}})
+        for usage in responses:
+            with self.subTest(usage=usage):
+                code, output, _ = self.run_claude(usage)
+                self.assertEqual(code, 1)
+                self.assertIn("invalid quota response", output)
+                self.assertNotIn("% used", output)
 
 
 @unittest.skipIf(os.name == "nt", "POSIX fake executables are used for probe tests")
@@ -33,64 +125,6 @@ class ProviderRegressionTests(unittest.TestCase):
                 text=True,
                 timeout=15,
             )
-
-    def test_claude_does_not_report_fast_mode_as_extra_usage(self):
-        result = self.run_probe(
-            "claude_usage.py",
-            "claude",
-            r'''
-import json
-import sys
-
-if sys.argv[1:3] == ["auth", "status"]:
-    print(json.dumps({"subscriptionType": "pro"}))
-else:
-    print(json.dumps({
-        "result": (
-            "Current session: 25% used · resets Sep 12 at 3:40am\n"
-            "Current week (all models): 41% used · resets Sep 14 at 5pm"
-        ),
-        "fast_mode_disabled_reason": "sdk_opt_in_required",
-    }))
-''',
-        )
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertNotIn("extra usage", result.stdout.lower())
-        self.assertIn("25.0% used", result.stdout)
-        self.assertIn("bar █████░░░░░░░░░░░░░░░", result.stdout)
-
-    def test_claude_prints_session_when_reset_clause_is_omitted(self):
-        result = self.run_probe(
-            "claude_usage.py",
-            "claude",
-            r'''
-import json
-import sys
-
-if sys.argv[1:3] == ["auth", "status"]:
-    print(json.dumps({"subscriptionType": "pro"}))
-else:
-    print(json.dumps({
-        "result": (
-            "Current session: 0% used\n"
-            "Current week (all models): 59% used · resets Sep 21 at 4:59pm"
-        ),
-    }))
-''',
-        )
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        session_line = [
-            line for line in result.stdout.splitlines() if line.startswith("5h")
-        ][0]
-        week_line = [
-            line for line in result.stdout.splitlines() if line.startswith("week")
-        ][0]
-        self.assertIn("0.0% used", session_line)
-        self.assertNotIn("resets", session_line)
-        self.assertIn("59.0% used", week_line)
-        self.assertIn("resets Sep 21 at 4:59pm", week_line)
 
     def test_codex_rejects_incomplete_rate_limit_data(self):
         result = self.run_probe(

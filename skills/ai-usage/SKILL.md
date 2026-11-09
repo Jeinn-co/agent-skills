@@ -4,7 +4,7 @@ description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Mu
 compatibility: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
 metadata:
   author: Jeinn
-  version: "1.19.0"
+  version: "1.19.1"
 ---
 
 
@@ -56,6 +56,10 @@ Each provider has a 20-second budget; never extend it.
 
 Do not suggest installing a missing CLI unless asked. `references/providers.md`
 explains where each number comes from.
+
+The Claude probe reads the CLI's existing file-based OAuth login and sends its access
+token only to Anthropic's usage endpoint. Keychain-only logins are not supported.
+Let the probe handle credentials and report its errors without printing tokens.
 
 ## Language
 
