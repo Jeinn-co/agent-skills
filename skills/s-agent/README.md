@@ -22,7 +22,15 @@ The installer requires a compatible Node.js/npm; manual copying does not.
 
 Requirements: Codex or Claude Code with delegation tools, a connected Notion read
 tool or public-page web access, and **Python 3.11+** for schema validation/sync.
-No API key or user-specific path is bundled. Windows/Linux have not been tested.
+No API key or user-specific path is bundled.
+
+Platforms tested:
+
+| OS | Status |
+|---|---|
+| Windows 11 (10.0.26300) | 1.0.3 tested 2026-11-09 with Python 3.12.10: real `--apply` wrote Claude Code + Codex profiles. No live agent dispatch. |
+| macOS | Not recorded. |
+| Linux | Not tested. |
 
 ## Notion is configuration
 
