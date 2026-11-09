@@ -1,6 +1,6 @@
 # S-Agent
 
-Choose subagents for the current task in **Codex and Claude Code**. Notion supplies
+Choose subagents for the current task in **Codex, Claude Code and Antigravity (Gemini)**. Notion supplies
 the model and effort for each role; the main agent coordinates and verifies work.
 
 ```text
@@ -20,7 +20,7 @@ Or copy this whole directory into `~/.codex/skills/s-agent/` or
 `~/.claude/skills/s-agent/`. Start a new session if the skill does not appear.
 The installer requires a compatible Node.js/npm; manual copying does not.
 
-Requirements: Codex or Claude Code with delegation tools, a connected Notion read
+Requirements: Codex, Claude Code or Antigravity with delegation tools, a connected Notion read
 tool or public-page web access, and **Python 3.11+** for schema validation/sync.
 No API key or user-specific path is bundled. Windows/Linux have not been tested.
 
@@ -63,6 +63,20 @@ not copied from the desired policy. Documented model support does not prove acco
 access. Unknown support blocks apply. Existing running agents keep their models;
 reload/restart the host to load changed profiles. Dispatch reports settings
 mismatches instead of silently using an older model.
+
+
+## Gemini role settings
+
+Add `gemini` with `model` and `effort` to all six roles in the Notion JSON.
+Existing policies with only `codex` and `claude` remain supported. The capability
+catalog includes `gemini` when the policy does. Exact Gemini settings are stored
+in `~/.agents/roles/<role>.toml`; native role prompts are discovered from
+`~/.gemini/config/agents/<role>.md` with `model: inherit`.
+
+S-Agent launches the exact pair through `agy --agent <role> --model <model>
+--effort <effort> -p <handoff>`. Native subagent tiers do not prove an exact model
+or effort. Account access requires a signed-in CLI and the appropriate plan.
+The coordinator preserves task permissions and verifies the returned work.
 
 ## Roles and coordination
 
@@ -108,3 +122,5 @@ request.
 [Traditional Chinese](README.zh-TW.md) ·
 [Claude subagents](https://code.claude.com/docs/en/sub-agents) ·
 [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+
+[Antigravity subagents](https://antigravity.google/docs/subagents) · [Antigravity CLI](https://antigravity.google/docs/cli/reference/)

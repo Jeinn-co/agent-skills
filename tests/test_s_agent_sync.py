@@ -160,6 +160,49 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.run_cli(apply=True, catalog=False), 1)
         self.assertFalse(self.root.exists())
 
+    def configure_gemini(self):
+        for role in self.policy['roles'].values():
+            role['gemini'] = {'model': 'gemini-4-argon', 'effort': 'medium'}
+        self.catalog['gemini'] = {'gemini-4-argon': ['medium', 'high']}
+        self.catalog_path.write_text(json.dumps(self.catalog))
+
+    def test_gemini_creates_shared_exact_settings_and_native_inherited_profile(self):
+        self.configure_gemini()
+        self.assertEqual(self.run_cli(apply=True), 0)
+        shared = tomllib.loads((self.root / '.agents/roles/developer.toml').read_text())
+        self.assertEqual(shared['gemini'], self.policy['roles']['developer']['gemini'])
+        native = (self.root / '.gemini/config/agents/developer.md').read_text()
+        self.assertIn('model: "inherit"\n', native)
+        self.assertNotIn('effort:', native)
+        self.assertNotIn('gemini-4-argon', native)
+        before = {path: path.stat().st_mtime_ns for path in self.root.rglob('*') if path.is_file()}
+        self.assertEqual(self.run_cli(apply=True), 0)
+        self.assertEqual(before, {path: path.stat().st_mtime_ns for path in self.root.rglob('*') if path.is_file()})
+
+    def test_gemini_extends_shared_source_and_preserves_native_prompt_and_permissions(self):
+        self.seed()
+        self.configure_gemini()
+        target = self.root / '.gemini/config/agents/qa.md'
+        target.parent.mkdir(parents=True)
+        target.write_text('---\nname: qa\nmodel: flash\ntools: [view_file]\n'
+                          'commandExecutionPolicy: off\n---\n\nKeep this prompt.\n')
+        self.assertEqual(self.run_cli(apply=True), 0)
+        native = target.read_text()
+        self.assertIn('tools: [view_file]\ncommandExecutionPolicy: off\n', native)
+        self.assertTrue(native.endswith('Keep this prompt.\n'))
+        shared = tomllib.loads((self.root / '.agents/roles/qa.toml').read_text())
+        self.assertEqual(shared['instructions'], 'Do my job')
+        self.assertEqual(shared['gemini'], self.policy['roles']['qa']['gemini'])
+
+    def test_partial_or_unsupported_gemini_policy_does_not_write(self):
+        self.configure_gemini()
+        del self.policy['roles']['qa']['gemini']
+        self.assertEqual(self.run_cli(apply=True), 1)
+        self.assertFalse(self.root.exists())
+        self.policy['roles']['qa']['gemini'] = {'model': 'gemini-4-argon', 'effort': 'max'}
+        self.assertEqual(self.run_cli(apply=True), 1)
+        self.assertFalse(self.root.exists())
+
     def test_bad_last_target_prevents_entire_batch(self):
         self.seed()
         (self.root / '.claude/agents/devops.md').write_text('---\nmodel: *alias\n---\n')

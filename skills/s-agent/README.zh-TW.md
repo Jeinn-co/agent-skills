@@ -2,7 +2,7 @@
 
 > 英文版 [README.md](README.md) 為準，本檔為對照翻譯。
 
-針對 **Codex 與 Claude Code**，依目前工作選角與分派 subagent。
+針對 **Codex、Claude Code 與 Antigravity（Gemini）**，依目前工作選角與分派 subagent。
 Notion 決定各角色的 model／effort；主 agent 負責協調與驗證。
 
 ```text
@@ -56,6 +56,18 @@ Notion 或讀取工具無法連線時，沿用有效本機角色，明確標示�
 執行中的 agent 不會換模型；修改角色後可能需要重開 host／新對話。
 派工發現設定不符會提示，不會默默使用舊模型。
 
+
+## Gemini 角色設定
+
+在 Notion JSON 的六個角色都加入 `gemini`，欄位為 `model` 與 `effort`。
+舊有只含 `codex`、`claude` 的設定仍可使用。能力清單也必須包含 Gemini。
+完整型號與強度存於 `~/.agents/roles/<role>.toml`，原生角色說明存於
+`~/.gemini/config/agents/<role>.md`，模型層級設為 `inherit`。
+
+派工時以 `agy --agent <role> --model <model> --effort <effort> -p <handoff>`
+明確套用設定。原生 subagent 的層級本身無法證明完整型號與強度。
+實際使用仍需要已登入 CLI 與對應方案，主 agent 負責遵守任務權限及驗證結果。
+
 ## 角色與協調
 
 | 角色 | 責任 |
@@ -95,3 +107,5 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 [English](README.md) ·
 [Claude subagents](https://code.claude.com/docs/en/sub-agents) ·
 [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+
+[Antigravity subagents](https://antigravity.google/docs/subagents) · [Antigravity CLI](https://antigravity.google/docs/cli/reference/)

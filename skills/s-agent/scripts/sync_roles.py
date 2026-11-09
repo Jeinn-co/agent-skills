@@ -40,8 +40,11 @@ def validate(policy, catalog=None):
     if type(policy['schema_version']) is not int or policy['schema_version'] != 1:
         raise ValueError('schema_version must be 1')
     exact_keys(policy['roles'], ROLES, 'roles')
+    platforms = set(policy['roles']['pm']) if isinstance(policy['roles']['pm'], dict) else set()
+    if platforms not in (PLATFORMS, PLATFORMS | {'gemini'}):
+        raise ValueError('roles require codex and claude, with optional gemini on all six roles')
     if catalog is not None:
-        exact_keys(catalog, PLATFORMS, 'catalog')
+        exact_keys(catalog, platforms, 'catalog')
         for platform, models in catalog.items():
             if not isinstance(models, dict) or not models:
                 raise ValueError(f'catalog.{platform}: expected model-to-effort lists')
@@ -52,7 +55,7 @@ def validate(policy, catalog=None):
                 for effort in efforts:
                     token(effort, 'catalog effort')
     for role, settings in policy['roles'].items():
-        exact_keys(settings, PLATFORMS, role)
+        exact_keys(settings, platforms, role)
         for platform, values in settings.items():
             exact_keys(values, {'model', 'effort'}, f'{role}.{platform}')
             for key, value in values.items():
@@ -288,7 +291,27 @@ def plan(root, policy, source_url=None):
                            if claude.exists() else
                            f'---\nname: {quote(name)}\ndescription: {quote(responsibility)}\nmodel: {quote(settings["claude"]["model"])}\neffort: {quote(settings["claude"]["effort"])}\n---\n\n{responsibility} Follow the coordinating agent’s task scope and applicable project instructions.\n')
         if shared.exists():
-            outputs[shared] = update_toml(shared.read_text(encoding='utf-8'), settings)
+            content = shared.read_text(encoding='utf-8')
+            if 'gemini' in settings and 'gemini' not in tomllib.loads(content):
+                content += '\n[gemini]\n' + ''.join(
+                    f'{key} = {quote(value)}\n' for key, value in settings['gemini'].items())
+            outputs[shared] = update_toml(content, settings)
+        elif 'gemini' in settings:
+            outputs[shared] = f'name = {quote(name)}\n' + ''.join(
+                f'\n[{platform}]\n' + ''.join(f'{key} = {quote(value)}\n' for key, value in values.items())
+                for platform, values in settings.items())
+        if 'gemini' in settings:
+            gemini = root / '.gemini/config/agents' / (name + '.md')
+            safe_path(root, gemini)
+            # Exact model/effort are session flags; native subagents only support model tiers.
+            if gemini.exists():
+                content = gemini.read_text(encoding='utf-8')
+                outputs[gemini] = update_claude(content, name, {'model': 'inherit'})
+            else:
+                outputs[gemini] = (
+                    f'---\nname: {quote(name)}\ndescription: {quote(responsibility)}\n'
+                    'model: "inherit"\n---\n\n' + responsibility +
+                    ' Follow the coordinating agent’s task scope and applicable project instructions.\n')
     if source_url is not None:
         if not re.fullmatch(r'https://[^\s]+', source_url):
             raise ValueError('source-url must be an HTTPS URL')
@@ -306,16 +329,17 @@ def plan(root, policy, source_url=None):
 
 def atomic_write(path, content, mode=0o644):
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:
-        temporary = Path(stream.name)
-        try:
+    descriptor, name = tempfile.mkstemp(dir=path.parent)
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, 'wb') as stream:
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
-            os.chmod(temporary, mode)
-            os.replace(temporary, path)
-        finally:
-            temporary.unlink(missing_ok=True)
+        os.chmod(temporary, mode)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def apply(root, changes):
@@ -393,7 +417,7 @@ def main(argv=None):
         if args.apply:
             backup = apply(root, changes)
             print(f'Applied {len(changes)} changed files.' + (f' Backup: {backup}' if backup else ' No writes needed.'))
-            print('Reload/restart Codex and Claude Code to pick up role settings. No agents were executed.')
+            print('Reload/restart configured hosts to pick up role settings. Gemini model/effort use session flags. No agents were executed.')
         else:
             print(f'Preview only: {len(changes)} files would change. No files written.')
         return 0
