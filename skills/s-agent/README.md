@@ -98,8 +98,9 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # preview
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-Version 1.0.2: isolated sync unit tests cover strict validation, preservation,
-bootstrap, future model identifiers, idempotence and rollback. A Codex forward-test
+Version 1.0.3: isolated sync unit tests cover strict validation, preservation,
+bootstrap, future model identifiers, idempotence, rollback and Windows-safe file
+replacement (no rename while the temporary file is open). A Codex forward-test
 actually delegated a Python fixture fix and independently passed five regressions.
 That does not establish live Claude dispatch, every account's model access or
 cross-platform compatibility. Native configuration validation is not a live model

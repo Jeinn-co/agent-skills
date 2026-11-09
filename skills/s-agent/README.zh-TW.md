@@ -87,8 +87,8 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # 預覽
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-版本 1.0.2：隔離單元測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、
-重複套用不寫入與失敗回復。Codex forward-test 曾真正分派修正 Python fixture，
+版本 1.0.3：隔離單元測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、
+重複套用不寫入、失敗回復，以及 Windows 安全的檔案替換（暫存檔關閉後才改名）。Codex forward-test 曾真正分派修正 Python fixture，
 並獨立通過五個回歸案例。這不等於 Claude 實際派工、所有帳號的模型權限或跨平台已驗證；
 原生設定驗證也不等於真的呼叫模型。
 

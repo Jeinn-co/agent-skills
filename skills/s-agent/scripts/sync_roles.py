@@ -308,14 +308,16 @@ def atomic_write(path, content, mode=0o644):
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:
         temporary = Path(stream.name)
-        try:
+    try:
+        # Write/replace after the handle closes: Windows cannot rename an open file (WinError 32).
+        with open(temporary, 'wb') as stream:
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
-            os.chmod(temporary, mode)
-            os.replace(temporary, path)
-        finally:
-            temporary.unlink(missing_ok=True)
+        os.chmod(temporary, mode)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def apply(root, changes):

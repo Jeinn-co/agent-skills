@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex or Claude Code. Use /s-agent or $s-agent; automatically sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.0.2"
+  version: "1.0.3"
 ---
 
 # S-Agent

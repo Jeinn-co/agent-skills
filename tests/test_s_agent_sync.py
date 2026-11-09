@@ -228,6 +228,23 @@ class SyncTests(unittest.TestCase):
                 after = {key: value for key, value in self.snapshot().items() if 's-agent-backups' not in key}
                 self.assertEqual(before, after)
 
+    def test_atomic_write_closes_temp_handle_before_replace(self):
+        # Windows refuses to rename a file that is still open (WinError 32).
+        handles = []
+        real_named, real_replace = tempfile.NamedTemporaryFile, sync.os.replace
+        def named(*args, **kwargs):
+            handles.append(real_named(*args, **kwargs))
+            return handles[-1]
+        def replace(source, target):
+            self.assertTrue(all(handle.closed for handle in handles))
+            real_replace(source, target)
+        target = self.root / 'dir/file.txt'
+        with mock.patch.object(sync.tempfile, 'NamedTemporaryFile', side_effect=named), \
+                mock.patch.object(sync.os, 'replace', side_effect=replace):
+            sync.atomic_write(target, b'data')
+        self.assertEqual(target.read_bytes(), b'data')
+        self.assertEqual([path.name for path in target.parent.iterdir()], ['file.txt'])
+
     def test_stdin_policy_and_source_url(self):
         with mock.patch.object(sync.sys, 'stdin', io.StringIO(json.dumps(self.policy))):
             self.assertEqual(sync.read_json('-'), self.policy)
