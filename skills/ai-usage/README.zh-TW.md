@@ -35,12 +35,10 @@ Microsoft Store 的 stub，執行後會跳出商店頁面而不是跑程式。
 | Muse | `muse` | `muse login` |
 | Gemini | `~/.gemini/bin/agy`（Antigravity CLI） | 執行一次，依提示完成 Google 登入 |
 
-**五個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。
-
-Claude 會從 `$CLAUDE_CONFIG_DIR/.credentials.json` 或 `~/.claude/.credentials.json`
-讀取現有 OAuth 登入資訊。access token 只會送到 Anthropic 用量端點，skill 不會印出或
-更新 token。目前不支援只存於 keychain 的登入。其他 provider 由自己的 CLI 處理認證。
-登入資訊缺少或過期時，對應卡片會回報失敗。
+**五個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。這個 skill
+不會自動開啟登入頁。用量由 CLI 或可選瀏覽器觀測取得。Claude 額度與 reset 查詢會從環境變數、
+Keychain 或 CLI 憑證檔讀取既有 access token，只送往官方 api.anthropic.com HTTPS 網域，
+沒有登入時改用 `claude -p /usage`；不自行更新、不另存、不輸出 token，瀏覽器觀測也不讀 cookies。
 
 ### 3. 網路與 subprocess 權限
 
@@ -118,7 +116,9 @@ skill 版本後結束。
 五家供應商查詢與本機 session 讀取會**並行啟動**；取得 model／effort 後，
 benchmark 也與用量查詢同時進行。報表仍維持固定順序，等待時間不再逐家累加。
 每家供應商的查詢都有 **20 秒總上限**，包含 CLI 啟動及該探針的全部請求。
-超時會停止探針與它啟動的 CLI 子程序，回報該家超時，直接繼續其他供應商，不重試。
+超時會停止探針與它啟動的 CLI 子程序，直接繼續其他供應商，不重試。
+已收到且驗證完整的用量窗口會保留，選配細節改標 unavailable；Claude reset 查詢
+只用取得用量後剩下的時間，不另加一份 20 秒預算。
 Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmark 表格。
 沒有訂閱或回應較慢的 CLI 不會再讓報表等 90 秒。
 
@@ -193,11 +193,14 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
 
 它使用各 provider 現有的 CLI 登入資訊，在 Codex 裡面跑也能取得 Claude、Grok、Muse 和 Gemini 的數字。
 
-**用量數字是即時的。** Claude 使用現有 OAuth 登入查詢 Anthropic，其他 provider 透過自己的 CLI 查詢。
+**用量數字是即時的。** 有可用的瀏覽器整合工具時，Claude 可讀取已登入的 Usage 頁，標明來源與擷取時間；
+快照 5 分鐘後失效。每次 `/uu` 會重讀瀏覽器，HTML Refresh 本身無法操作已連線瀏覽器。
+沒有可用網頁資料時，Claude 用現有 OAuth 登入查詢 Anthropic，其他用量視窗直接問各家
+自己的 CLI：
 
 | Provider | 方法 |
 |---|---|
-| Claude | OAuth GET `/api/oauth/usage`，使用 CLI 現有的檔案式登入資訊 |
+| Claude | OAuth GET `/api/oauth/usage`，使用 CLI 現有登入（環境變數、Keychain 或憑證檔）；備援 `claude -p /usage` |
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP 擴充方法 `_x.ai/billing` |
 | Muse | `muse serve` → 送一個極短的 turn，再呼叫 MSP `usage/read` |
@@ -234,7 +237,8 @@ tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor
 僅供對照。`cursorbench.py` 自己不爬這兩個網站，而是讀 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
 發布的資料（`data/cursorbench.json`，需要 AA 時再讀 `data/aa.json`）；那個網站每 6 小時從 CursorBench 與
 Artificial Analysis 更新一次，所以跑分數字最多晚 6 小時。加上更新檢查對 `raw.githubusercontent.com` 的一次請求，
-這些公開請求不帶憑證。Claude 探針另外將 access token 送至 Anthropic 用量端點。
+這些公開請求不帶憑證。Claude reset grants 另使用既有 CLI access token，
+唯讀 GET 官方 api.anthropic.com；token 不會送給公開跑分或更新來源。
 
 **語言。** 公開說明以英文為準，腳本的資料與狀態訊息使用英文。在 agent 裡，使用者明確指定
 報表語言時優先採用該語言；否則可依 host 提供的電腦偏好語言輸出，沒有資訊時用英文。
@@ -266,11 +270,12 @@ session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.
 
 2026-11-09 在 Windows 11、Claude Code 2.1.319 上重新確認，
 `claude -p --output-format json "/usage"` 回傳成本摘要，缺少額度視窗。
-探針改用既有檔案式 OAuth 登入，向 Anthropic 讀取結構化的 `five_hour` 與 `seven_day`。
+探針改用既有 OAuth 登入（憑證檔、Keychain 或環境變數），向 Anthropic 讀取結構化的 `five_hour` 與 `seven_day`，
+同日也在 macOS、2.1.318 驗證；`/usage` 文字保留為備援。
 
 | 風險 | 位置 | 壞掉時會怎樣 |
 |---|---|---|
-| Claude OAuth 用量端點與憑證檔是內部介面 | `claude_usage.py` | 登入缺失、HTTP 失敗或額度資料無效時明確回報。目前不支援 keychain-only 登入 |
+| Claude OAuth 用量端點與憑證檔是內部介面 | `claude_usage.py` | 登入缺失、HTTP 失敗或額度資料無效時改用 `claude -p /usage`，其文字改版時明確失敗；reset 列標明失敗原因 |
 | Codex 的 app-server 協定是 OpenAI 私有的，沒有任何相容性承諾 | `codex_usage.py` | 方法改名或必要欄位缺失時，ChatGPT 那列會明確失敗；絕不預設成 0% |
 | Grok 的 `_x.ai/billing` 是廠商自訂的 ACP 擴充，不屬於 ACP 規格 | `grok_usage.py` | 方法改名或必要欄位（period、`billingPeriodEnd`）缺失時，Grok 那列會明確失敗。省略 `creditUsagePercent` 代表整數 0，印 `<1% used` |
 | Muse 的 `usage/read` 只回報 host 觀察到的資料 | `muse_usage.py` | turn 結束仍沒有用量時，Muse 那列會明確失敗（`no usage observed`）；絕不預設成 0% |
@@ -278,13 +283,20 @@ session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.
 | session 檔與 model 快取是各 CLI 內部格式，沒有公開文件 | `session_info.py` | 欄位改名時該值印 `?`；檔案搬家時印 `no local session`。用量那幾列不受影響 |
 | 跑分資料來自 AI Model Compare 發布的 JSON；model id 對應到它的名稱是靠規則 | `cursorbench.py` | 網站掛掉時印 `bench failed (...)`，用量那幾列不受影響。規則對不上、或名稱拼法不同時顯示 `not listed`；AA 沒有成本的強度直接略過，不會借用別列的數字 |
 
+**Reset 券（本機擴充）。** ChatGPT 使用 app-server 的 `rateLimitResetCredits`：
+數量與到期日。Claude 使用既有 CLI OAuth 憑證唯讀查詢 reset grants，或讀取新鮮的
+已登入瀏覽器觀察；查詢本身不更新、不寫入憑證，也不讀取瀏覽器 cookies。
+Claude grants API 未公開，欄位改變時顯示 unavailable，不影響已讀取的用量。
+日期預設使用系統時區，可在個人設定指定固定時差；顯示剩餘時間，隱藏券名稱與時區標籤。
+缺資料顯示 unavailable，不當成 0；付費 credits 餘額另計，不兌換 reset。
+HTML 倒數直接使用原始 expiry epoch 毫秒，保留秒數與夏令時間重複時段。
+內部 `reset-expiry` JSON 資料會保存在 raw report 與卡片回應，不會顯示在一般終端或 Markdown。
+舊版純文字報表仍可顯示到期日期，但不反推可能有歧義的時間，因此只靜態顯示。
+
 **刻意不回報的。** 這裡報錯數字比不報更糟：
 
-- **ChatGPT 的「Usage limit resets」**（設定頁顯示 `Available N`）讀不到。app-server
-  可以透過 `account/rateLimitResetCredit/consume` *花掉* 一次，但沒有計數的方法 ——
-  163 個方法全查過了。報表直接省略這一行，不印 `unknown`。`credits.balance` 是另一個
-  池子：帳號可能顯示 `balance 0` 但手上還有 2 次 reset，所以絕不拿它替代。
-- **Claude 的 extra usage** 此探針省略，只讀取整體 `five_hour` 與 `seven_day` 視窗。
+- **Claude 的 extra usage** 不回報。探針只讀整體 `five_hour` 與 `seven_day` 視窗；
+  `fast_mode_disabled_reason` 明確描述的是 fast mode。
 - **Grok 只有一個視窗，不是兩個。** 不會幫它捏造一個 5 小時的列。
 - **Gemini 只有兩個週額度池，沒有 5 小時視窗**，也不回報方案名稱：`/usage` 不提供方案，
   所以方案顯示 `?`。
@@ -301,3 +313,12 @@ session 欄位）於 2026-10-02 在 macOS 上針對 Antigravity CLI（`agy`）1.
 ## 授權
 
 MIT
+
+## Claude / ChatGPT 登入按鈕
+
+CLI 登入失效時，本機伺服器的報表會顯示 **Sign in to Claude** 或
+**Sign in to ChatGPT**。只有使用者點擊才會執行官方 `claude auth login --claudeai`
+或 `codex login`，在伺服器所在電腦開啟瀏覽器授權。
+完成後先確認 CLI 已登入，再自動更新用量；報表不接收或儲存 token／授權網址。
+不會因載入或 Refresh 自動啟動登入。同時僅允許一個流程，5 分鐘逾時可重試。
+沒有桌面瀏覽器的遠端主機及靜態 HTML 匯出，使用畫面上的 CLI 指令登入。

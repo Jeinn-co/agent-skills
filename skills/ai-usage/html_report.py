@@ -1,10 +1,11 @@
 """Render the launcher's raw report as one self-contained HTML page (`/ai-usage html`).
 
-Input is exactly the text run.py prints; nothing is re-fetched. The page has no
-scripts and no external requests, so opening it is safe and offline.
+Input is exactly the text run.py prints; nothing is re-fetched. A local timer updates
+reset expiry reminders without external requests, so the report works offline.
 """
 import datetime
 import html
+import json
 import re
 
 NAMES = {"CLAUDE": "Claude", "CHATGPT": "ChatGPT", "GROK": "Grok", "MUSE": "Muse",
@@ -38,6 +39,21 @@ FIGURE = re.compile(r"\s+(score [\d.]+%|aa [\d.]+)\s+cost \$([\d.]+)(.*?)\s+cp (
 
 def esc(text):
     return html.escape(str(text), quote=True)
+
+
+def note_html(note, expires_at=None):
+    # Legacy text-only reports stay static: display text cannot identify a DST fold.
+    if expires_at is None:
+        return '<div class="note">%s</div>' % esc(note)
+    try:
+        prefix, remaining = note.rsplit(" · ", 1)
+        if not note.startswith("Reset"):
+            raise ValueError()
+    except ValueError:
+        return '<div class="note">%s</div>' % esc(note)
+    return ('<div class="note" data-reset-expires="%d">%s · '
+            '<span data-reset-remaining>%s</span></div>'
+            % (expires_at, esc(prefix), esc(remaining)))
 
 
 def clock(reset, now):
@@ -131,7 +147,7 @@ def parse(raw):
             current = None
             if section in NAMES:
                 current = {"id": section, "name": NAMES[section], "plan": "?", "windows": [],
-                           "notes": [], "model": None, "effort": None, "age": None}
+                           "notes": [], "reset_expiries": {}, "model": None, "effort": None, "age": None}
                 report["providers"].append(current)
         elif section == "CURSORBENCH":
             found = BENCH.match(line.strip())
@@ -140,7 +156,19 @@ def parse(raw):
         elif current is not None and line.strip():
             text = line.strip()
             window = WINDOW.match(text)
-            if text.startswith("plan:"):
+            if text.startswith("reset-expiry "):
+                try:
+                    value = json.loads(text[len("reset-expiry "):])
+                    stamp = value["expiresAt"]
+                    if isinstance(stamp, bool) or not isinstance(stamp, int) or not isinstance(value["note"], str):
+                        raise ValueError()
+                    datetime.datetime.fromtimestamp(stamp / 1000, datetime.timezone.utc)
+                    # Metadata belongs to the preceding note; equal display labels can have different seconds.
+                    if current["notes"] and current["notes"][-1] == value["note"]:
+                        current["reset_expiries"][len(current["notes"]) - 1] = stamp
+                except (ValueError, TypeError, KeyError, OverflowError, OSError):
+                    pass
+            elif text.startswith("plan:"):
                 current["plan"] = text[5:].strip() or "?"
             elif window:
                 label, pct, middle = window.groups()
@@ -270,8 +298,24 @@ def card(p, now, loading=False):
                 '<div class="scale">%s</div></div>'
                 '<div class="left">%s%s</div></div>'
                 % (n, share, scale, CLOCK, esc(left_text(left))))
-    for note in [] if loading else p["notes"]:
-        rows.append('<div class="note">%s</div>' % esc(note))
+    reset_group = False
+    for index, note in enumerate([] if loading else p["notes"]):
+        if reset_group and not re.match(r"Reset(?: \d+:| \(| details:)", note):
+            rows.append('</fieldset>')
+            reset_group = False
+        if note.startswith(("Usage limit resets:", "Limit resets:")):
+            rows.append('<fieldset class="reset-credits"><legend>%s</legend>' % esc(note))
+            reset_group = True
+        else:
+            rows.append(note_html(note, p.get("reset_expiries", {}).get(index)))
+    if reset_group:
+        rows.append('</fieldset>')
+    if not loading and p["id"] in ("CLAUDE", "CHATGPT") and any("not signed in" in note for note in p["notes"]):
+        status_id = p["id"].lower() + "-login-status"
+        rows.append('<button type="button" class="login" data-provider-login="%s" '
+                    'data-provider-name="%s" hidden aria-describedby="%s">Sign in to %s</button>'
+                    '<p id="%s" class="note" role="status" hidden></p>' %
+                    (p["id"], esc(p["name"]), status_id, esc(p["name"]), status_id))
     if loading:
         rows.append(SKELETON)
         now_line = '<span class="skel" style="display:inline-block;width:30%;vertical-align:middle"></span>'
@@ -334,7 +378,8 @@ def render(raw, now=None, loading=False):
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", cards), ("bench", bench_rows(data, loading)),
-                       ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK)):
+                       ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK),
+                       ("expiry_script", EXPIRY_SCRIPT)):
         page = page.replace("@@%s@@" % key, value)
     return page
 
@@ -345,6 +390,26 @@ def render(raw, now=None, loading=False):
 DARK = ("--bg:#1e293b;--card:#334155;--text:#f1f5f9;--muted:#cbd5e1;--line:#475569;"
         "--track:#475569;--tick:#94a3b8;--fl:55%;--tl:78%;"
         "--accent:#93c5fd;--anth:rgba(217,119,87,.16);--oai:rgba(16,163,127,.16)")
+
+EXPIRY_SCRIPT = """function updateResetExpiry() {
+  document.querySelectorAll('[data-reset-expires]').forEach(note => {
+    const left = (Number(note.dataset.resetExpires) - Date.now()) / 60000;
+    if (!Number.isFinite(left)) return;
+    note.toggleAttribute('data-expiring', left <= 300);
+    note.toggleAttribute('data-urgent', left <= 30);
+    note.style.setProperty('--reset-hue', Math.max(0, Math.min(40, (left - 60) / 6)));
+    const minutes = Math.max(0, Math.floor(left));
+    const units = [[Math.floor(minutes / 1440), 'day'],
+      [Math.floor(minutes % 1440 / 60), 'hour'], [minutes % 60, 'minute']];
+    const duration = (minutes >= 1440 ? units.slice(0, 2) : units)
+      .filter(([n]) => n).map(([n, unit]) => n + ' ' + unit + (n === 1 ? '' : 's')).join(' ');
+    note.querySelector('[data-reset-remaining]').textContent = left <= 0 ? 'expired' :
+      (duration || 'less than a minute') + ' left';
+  });
+}
+updateResetExpiry();
+setInterval(updateResetExpiry, 60000);
+"""
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -364,7 +429,8 @@ header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
 h2{font-size:17px;font-weight:600;margin:0}.logo{width:18px;height:18px;margin-right:8px;vertical-align:-3px}.plan{color:var(--muted);font-size:14px;border:1px solid var(--line);
 border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color:var(--accent);text-decoration:none}
 .row{display:grid;grid-template-columns:64px 1fr 56px 112px;align-items:center;gap:10px;margin:8px 0}
-.lbl{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:999px;overflow:hidden}
+.lbl,.reset-credits{font-size:13px}
+.lbl{color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:999px;overflow:hidden}
 .row.time{margin:-2px 0 26px}.tbar{position:relative;height:14px;display:flex;align-items:center}
 .ticks{position:absolute;inset:0;border-right:2px solid var(--tick);
 background:repeating-linear-gradient(to right,var(--tick) 0 2px,transparent 2px calc(100% / var(--n)))}
@@ -379,7 +445,18 @@ stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .fill{height:100%;border-radius:999px;background:hsl(var(--h) 80% var(--fl))}
 .pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:hsl(var(--h) 85% var(--tl))}
 .reset{white-space:nowrap;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}.rel{opacity:.8}
-.note{color:var(--muted);font-style:italic;margin:6px 0}
+.note{color:var(--muted);font-style:normal;font-size:13px;margin:6px 0}
+.reset-credits{min-width:0;margin:14px 0 0;padding:4px 12px 8px;border:1px solid var(--line);
+border-radius:8px;color:var(--muted);overflow-wrap:anywhere}
+.reset-credits legend{padding:0 6px}
+.reset-credits .note{font-size:inherit}
+.note[data-expiring]{color:hsl(var(--reset-hue) 85% var(--tl))}
+.note[data-urgent]{font-weight:700;border:1px solid currentColor;border-radius:4px;
+padding:4px 8px;width:fit-content;max-width:100%}
+.login{font:inherit;font-size:14px;min-height:32px;padding:6px 10px;margin:8px 0;
+border:1px solid var(--accent);border-radius:6px;background:transparent;color:var(--accent);cursor:pointer}
+.login:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.login:disabled{opacity:.65;cursor:wait}
 .skel-body{display:grid;gap:14px;margin:14px 0 6px}
 .skel{height:10px;border-radius:999px;background:linear-gradient(90deg,var(--track) 30%,var(--card) 50%,var(--track) 70%);
 background-size:300% 100%;animation:shimmer 1.4s linear infinite}
@@ -401,17 +478,18 @@ tr.anth td{background:var(--anth)}tr.oai td{background:var(--oai)}tr.key td{font
 <h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
 <h3>Model and effort guide</h3>
-<p class="std">Recommendations based on the references below, reviewed 2026-11-02; Gemini entries reviewed 2026-11-09. Availability depends on your plan and model picker.</p>
+<p class="std">Recommendations based on the references below, reviewed 2026-11-09. Availability depends on your plan and model picker.</p>
 <p class="warn"><b>Start with Medium–High for coding.</b> Avoid Xhigh and Max by habit; use them when the task needs deeper reasoning or a lower effort falls short.</p>
 <div class="tablewrap"><table><thead><tr><th>CLI</th><th>Model</th><th>Effort</th><th>Suggested use</th></tr></thead><tbody>
 <tr class="anth"><td>Claude Code</td><td>Haiku 5.5</td><td>Low</td><td>Quick questions and small changes</td></tr>
 <tr class="anth key"><td>Claude Code</td><td>Sonnet 5.5</td><td>Medium ★</td><td>Coding: scoped day-to-day work</td></tr>
 <tr class="anth key"><td>Claude Code</td><td>Sonnet 5.5</td><td>High</td><td>Review and debugging: edge cases</td></tr>
 <tr class="anth key"><td>Claude Code</td><td>Opus 5.5</td><td>Medium ★</td><td>Plan: complex features and architecture</td></tr>
-<tr class="anth"><td>Claude Code</td><td>Opus 5.5</td><td>High–Max</td><td>Difficult debugging and security analysis</td></tr>
+<tr class="anth"><td>Claude Code</td><td>Opus 5.5</td><td>High</td><td>Difficult debugging and security analysis</td></tr>
 <tr class="oai"><td>Codex</td><td>GPT-6 Luna</td><td>Low</td><td>Small edits and scoped problems</td></tr>
-<tr class="oai key"><td>Codex</td><td>GPT-6.1 Terra</td><td>Medium–High</td><td>Coding: scoped fixes and computer use</td></tr>
-<tr class="oai key"><td>Codex</td><td>GPT-6.1 Sol</td><td>Medium ★</td><td>Plan and review: complex, multi-file work</td></tr>
+<tr class="oai"><td>Codex</td><td>GPT-6.1 Terra</td><td>Medium</td><td>UI, visual reasoning and computer use</td></tr>
+<tr class="oai key"><td>Codex</td><td>GPT-6.1 Sol</td><td>Medium ★</td><td>Coding and plan: complex, multi-file work</td></tr>
+<tr class="oai key"><td>Codex</td><td>GPT-6.1 Sol</td><td>High</td><td>Review: correctness and edge cases</td></tr>
 <tr class="oai key"><td>Codex</td><td>GPT-6 Astra</td><td>Medium–High</td><td>Complex projects and difficult review</td></tr>
 <tr><td>Antigravity (Gemini)</td><td>Gemini 3.8 Flash</td><td>Medium</td><td>Quick questions and small, scoped edits</td></tr>
 <tr class="key"><td>Antigravity (Gemini)</td><td>Gemini 4 Argon</td><td>Medium</td><td>Recommended default for day-to-day coding and fixes</td></tr>
@@ -434,5 +512,5 @@ CP = score points per US dollar; higher is better. * nothing from this provider 
 AA = Artificial Analysis Intelligence Index (another test set): not comparable with CursorBench.</p>
 @@skipped@@
 <p class="links">Compare models: <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
-</main></body></html>
+</main><script>@@expiry_script@@</script></body></html>
 """

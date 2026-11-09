@@ -52,3 +52,11 @@ not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (
 The selection is saved in `~/.config/ai-usage/config.json` (`$XDG_CONFIG_HOME` when set),
 outside the skill folder, so reinstalling or updating the skill keeps it. Skipped
 providers launch no CLI, so Muse spends no probe call while it is skipped.
+
+## Personal date preference
+
+`timezone_offset_minutes` in the user config optionally sets a fixed offset for reset
+expiry dates and browser observations, e.g. `480` for Taipei. Omit it to use the host
+local timezone (including its DST rules). This preference is outside the public skill
+folder; never hardcode one user's timezone into the shared scripts. Fixed offsets
+do not track DST, so prefer the host default where DST matters.

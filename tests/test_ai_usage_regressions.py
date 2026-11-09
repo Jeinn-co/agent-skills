@@ -19,78 +19,102 @@ SKILL = ROOT / "skills" / "ai-usage"
 
 
 class ClaudeQuotaTests(unittest.TestCase):
+    """OAuth usage endpoint first; any failure falls back to `claude -p /usage` text."""
+    LOGIN = json.dumps({"claudeAiOauth": {
+        "accessToken": "test-token-never-log", "subscriptionType": "pro"}})
+    FALLBACK = json.dumps({"result": "Current session: 25% used\nCurrent week (all models): 3% used"})
+
     def run_claude(self, usage, *, error=None, credentials=None):
         sys.path.insert(0, str(SKILL))
+        import claude_browser
         import portable
 
-        if credentials is None:
-            credentials = json.dumps({"claudeAiOauth": {
-                "accessToken": "test-token-never-log", "subscriptionType": "pro"}})
+        def reply(args, **kwargs):
+            if args[1:] == ["--version"]:
+                text = "2.1.319 (Claude Code)"
+            elif args[1:] == ["auth", "status"]:
+                text = json.dumps({"loggedIn": True, "subscriptionType": "max"})
+            else:
+                text = self.FALLBACK
+            return subprocess.CompletedProcess(args, 0, stdout=text)
+
+        opener = mock.MagicMock()
+        opener.open.return_value.__enter__.return_value = io.StringIO(json.dumps(usage))
+        if error is not None:
+            opener.open.side_effect = error
         output = io.StringIO()
-        response = io.BytesIO(json.dumps(usage).encode("utf-8"))
-        with mock.patch.object(portable, "argv", return_value=["claude"]), \
+        with mock.patch.object(portable, "argv", side_effect=lambda name, *a: [name, *a]), \
                 mock.patch.object(portable, "stdout_utf8"), \
+                mock.patch.object(claude_browser, "current_report", return_value=None), \
+                mock.patch.object(Path, "is_file", return_value=True), \
                 mock.patch.object(Path, "read_text", autospec=True,
-                                  return_value=credentials) as read, \
-                mock.patch.dict(os.environ, {"CLAUDE_CONFIG_DIR": "test-claude-config"}), \
-                mock.patch("urllib.request.urlopen", return_value=response,
-                           side_effect=error) as fetch, \
-                mock.patch("subprocess.run") as cli, contextlib.redirect_stdout(output):
+                                  return_value=credentials or self.LOGIN), \
+                mock.patch.dict(os.environ, {"CLAUDE_CONFIG_DIR": "test-claude-config",
+                                             "CLAUDE_CODE_OAUTH_TOKEN": ""}), \
+                mock.patch("urllib.request.build_opener", return_value=opener), \
+                mock.patch("subprocess.run", side_effect=reply) as cli, \
+                contextlib.redirect_stdout(output):
             code = 0
             try:
                 runpy.run_path(str(SKILL / "claude_usage.py"), run_name="__main__")
             except SystemExit as error_exit:
                 code = error_exit.code
-        cli.assert_not_called()
-        read.assert_called_once_with(
-            Path("test-claude-config") / ".credentials.json", encoding="utf-8")
         self.assertNotIn("test-token-never-log", output.getvalue())
-        return code, output.getvalue(), fetch
+        self.assertEqual(output.getvalue().count("plan:"), 1, output.getvalue())
+        used_fallback = any("/usage" in c.args[0] for c in cli.call_args_list)
+        return code, output.getvalue(), opener, used_fallback
 
-    def test_reads_oauth_quota_without_print_mode_or_extra_usage(self):
-        code, output, fetch = self.run_claude({
+    def test_reads_quota_and_banked_resets_in_one_request(self):
+        code, output, opener, fallback = self.run_claude({
             "five_hour": {"utilization": 25, "resets_at": "2099-09-12T07:40:00Z"},
             "seven_day": {"utilization": 41, "resets_at": "2099-09-14T09:00:00Z"},
             "extra_usage": {"is_enabled": True},
+            "cedar_ember": {"eligible": False, "ineligible_reason": "no_grant", "grants": []},
         })
         self.assertEqual(code, 0, output)
+        self.assertFalse(fallback)
         self.assertIn("plan: pro", output)
-        self.assertIn("25.0% used", output)
+        self.assertIn("25.0% used  resets Sep", output)
         self.assertIn("41.0% used", output)
-        self.assertIn("resets Sep", output)
         self.assertIn("bar █████░░░░░░░░░░░░░░░", output)
+        self.assertIn("Limit resets: 0 available", output)
         self.assertNotIn("extra usage", output.lower())
-        fetch.assert_called_once()
-        request = fetch.call_args.args[0]
-        self.assertEqual(request.full_url, "https://api.anthropic.com/api/oauth/usage")
+        opener.open.assert_called_once()
+        request = opener.open.call_args.args[0]
+        self.assertTrue(request.full_url.startswith("https://api.anthropic.com/api/oauth/usage?"))
         self.assertEqual(request.get_header("Authorization"), "Bearer test-token-never-log")
         self.assertEqual(request.get_header("Anthropic-beta"), "oauth-2025-04-20")
 
     def test_zero_usage_without_reset_is_preserved(self):
-        code, output, _ = self.run_claude({
+        code, output, _, fallback = self.run_claude({
             "five_hour": {"utilization": 0, "resets_at": None},
             "seven_day": {"utilization": 59, "resets_at": None},
         })
         self.assertEqual(code, 0, output)
+        self.assertFalse(fallback)
         self.assertIn("0.0% used", output)
         self.assertIn("59.0% used", output)
-        self.assertNotIn("resets", output)
+        self.assertNotIn("used  resets", output)
 
-    def test_invalid_credentials_prevent_network_request(self):
-        code, output, fetch = self.run_claude({}, credentials="invalid json")
-        self.assertEqual(code, 1)
-        self.assertIn("OAuth login not found or invalid", output)
-        fetch.assert_not_called()
+    def test_invalid_credentials_skip_network_and_fall_back(self):
+        code, output, opener, fallback = self.run_claude({}, credentials="invalid json")
+        self.assertEqual(code, 0, output)
+        opener.open.assert_not_called()
+        self.assertTrue(fallback)
+        self.assertIn("plan: max", output)
+        self.assertIn("25.0% used", output)
+        self.assertIn("Limit resets: unavailable (CLI auth or read-only API failed)", output)
 
-    def test_auth_and_rate_limit_errors_are_reported_without_quota(self):
+    def test_auth_and_rate_limit_errors_fall_back_with_reason(self):
         for status in (401, 429):
             with self.subTest(status=status):
                 error = urllib.error.HTTPError(
                     "https://api.anthropic.com/api/oauth/usage", status, "failed", {}, None)
-                code, output, _ = self.run_claude({}, error=error)
-                self.assertEqual(code, 1)
-                self.assertIn("HTTP %s" % status, output)
-                self.assertNotIn("% used", output)
+                code, output, _, fallback = self.run_claude({}, error=error)
+                self.assertEqual(code, 0, output)
+                self.assertTrue(fallback)
+                self.assertIn("25.0% used", output)
+                self.assertIn("Limit resets: unavailable (HTTP %s)" % status, output)
 
     def test_invalid_quota_response_never_defaults_to_zero(self):
         responses = [{}, [], {"five_hour": {}},
@@ -99,10 +123,10 @@ class ClaudeQuotaTests(unittest.TestCase):
             responses.append({"five_hour": {"utilization": value}})
         for usage in responses:
             with self.subTest(usage=usage):
-                code, output, _ = self.run_claude(usage)
-                self.assertEqual(code, 1)
-                self.assertIn("invalid quota response", output)
-                self.assertNotIn("% used", output)
+                code, output, _, fallback = self.run_claude(usage)
+                self.assertTrue(fallback, output)
+                self.assertNotIn("0.0% used", output)
+                self.assertIn("25.0% used", output)
 
 
 @unittest.skipIf(os.name == "nt", "POSIX fake executables are used for probe tests")

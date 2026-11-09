@@ -1,79 +1,106 @@
 #!/usr/bin/env python3
-"""Read live Claude quota using the CLI's existing local OAuth login.
+"""Claude usage: OAuth usage endpoint first, `claude -p "/usage"` text as fallback.
 
-shortcut: requires file-based Claude credentials, add keychain support when needed.
-The token stays in memory and is sent only to Anthropic's usage endpoint.
+One read-only GET with the CLI's existing login (credentials file, macOS keychain or
+CLAUDE_CODE_OAUTH_TOKEN) returns both quota windows and banked resets. It never
+refreshes or prints tokens. Claude Code 2.1.319 on Windows prints a cost summary for
+`/usage`, so its free text is only the fallback: no login, expired token (only the CLI
+refreshes it), HTTP or invalid data. The fallback lines are regex-parsed; if Anthropic
+rewords them the raw line is printed.
 """
-import datetime
-import json
-import math
-import os
+import subprocess, json, re, time
 import sys
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
+from claude_browser import current_report
+import limit_resets
 
 portable.stdout_utf8()
+deadline = time.monotonic() + portable.CALL_TIMEOUT
+
+browser = current_report()
+if browser is not None:
+    print("\n".join(browser))
+    sys.exit(0)
 
 if portable.argv("claude") is None:
     print("claude CLI not installed")
     sys.exit(0)
 
-config_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+def run(*args, deadline=deadline):
+    args = portable.argv("claude", *args)
+    try:
+        return subprocess.run(args, capture_output=True, timeout=portable.timeout_left(deadline, portable.CALL_TIMEOUT),
+                              stdin=subprocess.DEVNULL, **portable.text_kwargs()).stdout
+    except Exception:
+        return ""
+
+version = run("--version").strip().split()
+version = version[0] if version else None
 try:
-    credentials = json.loads((config_dir / ".credentials.json").read_text(encoding="utf-8"))
-    oauth = credentials["claudeAiOauth"]
-    token = oauth["accessToken"]
-    if not isinstance(token, str) or not token:
-        raise ValueError("missing access token")
-except (OSError, ValueError, KeyError, TypeError):
-    print("usage unavailable: Claude OAuth login not found or invalid")
+    oauth, data = limit_resets.fetch_claude(version, deadline=deadline)
+    rows = limit_resets.quota_rows(data)
+except Exception as error:
+    reset_failure = limit_resets.failure(error)
+else:
+    print("plan: %s" % (oauth.get("subscriptionType") or "unknown"))
+    print("\n".join(rows))
+    print("\n".join(limit_resets.claude_lines(data.get("cedar_ember"))))
+    sys.exit(0)
+
+# plan name comes from a properly structured command
+plan = None
+auth = {}
+try:
+    auth = json.loads(run("auth", "status") or "{}")
+    plan = auth.get("subscriptionType")
+except Exception:
+    auth = {}
+# --strict-mcp-config: /usage needs no MCP server, and starting them took ~2.5s of ~4.4s.
+raw = run("-p", "--output-format", "json", "--strict-mcp-config", "/usage")
+env = {}
+try:
+    env = json.loads(raw)
+    text = env.get("result", "")
+except Exception:
+    text = raw
+if not text:
+    print("usage call failed")
     sys.exit(1)
 
-print("plan: %s" % (oauth.get("subscriptionType") or "unknown"))
-request = urllib.request.Request(
-    "https://api.anthropic.com/api/oauth/usage",
-    headers={"Authorization": "Bearer " + token,
-             "anthropic-beta": "oauth-2025-04-20",
-             "User-Agent": "ai-usage/" + portable.VERSION},
+# "Current session: 25% used · resets Sep 12 at 3:40am (Asia/Taipei)"
+# Claude omits the reset clause when a window is 0% used:
+# "Current session: 0% used"
+pat = re.compile(
+    r"Current (session|week[^:]*):\s*(\d+)%\s*used(?:\s*·\s*resets\s+([^(\n]+))?"
 )
-try:
-    with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
-        usage = json.load(response)
-except urllib.error.HTTPError as error:
-    print("usage request failed: HTTP %s" % error.code)
+# Preserve the original /usage call so the CLI can refresh auth before we reject it.
+if auth.get("loggedIn") is False and not pat.search(text):
+    print("plan: unavailable")
+    print("Claude CLI is not signed in; /usage could not obtain subscription usage.")
+    print("Use Sign in to Claude in the report, or run claude auth login in a terminal.")
     sys.exit(1)
-except (OSError, ValueError):
-    print("usage request failed: network error or invalid response")
-    sys.exit(1)
+print("plan: %s" % (plan or "unknown"))
+found = False
+for m in pat.finditer(text):
+    label = "5h" if m.group(1) == "session" else "week"
+    used = float(m.group(2))
+    reset = (m.group(3) or "").strip()
+    bar = portable.format_bar(used)
+    if reset:
+        print("%-6s %5.1f%% used  resets %s  %s" % (label, used, reset, bar))
+    else:
+        print("%-6s %5.1f%% used  %s" % (label, used, bar))
+    found = True
+if not found:
+    for line in text.splitlines():
+        if "%" in line and "reset" in line.lower():
+            print(line.strip())
+            found = True
+if not found:
+    print("could not parse; raw first line: %s" % text.splitlines()[0][:120])
 
-rows = []
-try:
-    for key, label in (("five_hour", "5h"), ("seven_day", "week")):
-        window = usage.get(key)
-        if window is None:
-            continue
-        percent = window["utilization"]
-        if isinstance(percent, bool) or not isinstance(percent, (int, float)):
-            raise ValueError("invalid percentage")
-        if not math.isfinite(percent) or not 0 <= percent <= 100:
-            raise ValueError("invalid percentage")
-        reset = window.get("resets_at")
-        reset_text = ""
-        if reset:
-            when = datetime.datetime.fromisoformat(reset.replace("Z", "+00:00"))
-            if when.tzinfo is None:
-                raise ValueError("reset timezone missing")
-            reset_text = "  resets " + when.astimezone().strftime("%b %d at %I:%M%p")
-        rows.append("%-6s %5.1f%% used%s  %s" % (
-            label, percent, reset_text, portable.format_bar(percent)))
-    if not rows:
-        raise ValueError("no quota windows")
-except (AttributeError, KeyError, TypeError, ValueError, OverflowError):
-    print("usage request failed: invalid quota response")
-    sys.exit(1)
-
-print("\n".join(rows))
+if found:
+    print(reset_failure)

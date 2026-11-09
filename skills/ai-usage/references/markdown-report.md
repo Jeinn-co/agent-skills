@@ -6,15 +6,19 @@ Read this only when setup saved `output=md`. The launcher's `### ADVICE` lines a
 
 **Bar** — every `% used` line ends with `bar` and 20 cells from `portable.usage_bar`.
 Copy that glyph string. Do not redraw it from the whole-number percent.
+Internal `reset-expiry` JSON records, if reading a saved raw report directly, are
+HTML timer metadata: omit them from Markdown. The normal launcher already hides them.
 
 **Claude** — current session (5h) and current week. Claude omits the reset clock
 when a window is 0% used; still print that row, without inventing a reset time.
 
-**ChatGPT** — `short` (5h) and `outer` (7d), plus `plan`. Do **not** print a
-"Usage limit resets" / "resets available" row. That count is not readable locally
-(the app-server can spend one via `account/rateLimitResetCredit/consume` but has
-no read counterpart). Do not print `unknown (web only)` either. `credits.balance`
-is a different pool (paid top-ups) and is never that reset count.
+**ChatGPT** — `short` (5h) and `outer` (7d), plus `plan`. Below the usage table,
+copy the probe's `Usage limit resets` count and each reset's expiry (including
+time left). `availableCount` is authoritative; details may be partial or absent.
+`credits.balance` is paid top-ups, never the reset count. For Claude, also copy
+the probe's `Limit resets` count and each grant's expiry below the usage table.
+Missing auth, unsupported APIs or absent fields mean unavailable,
+never zero. Never call a consume/reset method.
 
 **Grok** — weekly `creditUsagePercent` and the billing period end when the
 percent is present. `_x.ai/billing` reports whole percents and omits
@@ -132,8 +136,7 @@ Rules:
 - Relative time next to every reset clock. If the probe omitted the reset (Claude
   5h at 0% used), omit the reset clause — do not invent a time. Grok `<1% used`
   prints as `<1%` with the probe's empty bar.
-- Never print ChatGPT "resets available" / "Usage limit resets", including
-  `unknown (web only)`.
+- Include reset counts and expiry details exactly as printed; never infer a count from paid credits.
 - Never invent a 5h row for Grok or Gemini. Gemini's two rows are its two weekly pools, labelled `gemini` and `cl+gpt` in the Window column.
 - Muse's plan is what the probe prints (a known plan name or `?`); never print its numeric tier id.
 - Never print Grok prepaid / on-demand when every value is 0.

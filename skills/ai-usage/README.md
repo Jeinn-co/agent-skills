@@ -37,20 +37,22 @@ that opens the store instead of running anything.
 | Gemini | `~/.gemini/bin/agy` (Antigravity CLI) | run it once and follow the Google sign-in |
 
 **You do not need all five.** Install one and you get one row; the others print
-`not installed` and nothing else breaks. Claude reads its existing OAuth login from
-`$CLAUDE_CONFIG_DIR/.credentials.json` or `~/.claude/.credentials.json`. Its access token
-is sent only to Anthropic's usage endpoint and is never printed or refreshed by this
-skill. Keychain-only logins are not supported. Other providers use their own CLIs.
-Missing or expired authentication is reported in the affected provider's card.
+`not installed` and nothing else breaks. The skill never prompts for a login, never
+opens a login browser automatically. Usage comes from authenticated CLIs or an
+optional browser observation. For Claude quota and reset grants, the skill reads an
+existing CLI access token from its environment, Keychain or credential file and sends
+it only to the official api.anthropic.com HTTPS endpoint; without one it falls back to
+`claude -p /usage`. It never refreshes, saves or prints tokens, and browser
+observations do not read browser cookies.
 
 ### 3. Network and subprocess access
 
 The agent host must allow this skill to launch local subprocesses. Each provider CLI
-must also be able to reach its own service over the internet. The Claude probe makes
-an authenticated GET to `https://api.anthropic.com/api/oauth/usage`. Other providers
-handle authentication inside their CLIs. The benchmark helper fetches public data
-without credentials, and the update check reads this skill's published `SKILL.md`
-from `raw.githubusercontent.com`.
+must also be able to reach its own service over the internet. Quota probes use
+the provider CLIs or the optional browser adapter. Claude quota and reset grants
+use one authenticated GET to api.anthropic.com with existing CLI credentials. The benchmark helper
+also fetches public CursorBench and Artificial Analysis pages without credentials, and
+the update check reads this skill's published `SKILL.md` from `raw.githubusercontent.com`.
 
 ### 4. Platform
 
@@ -128,13 +130,26 @@ The five provider lookups and local session reads start **in parallel**. Benchma
 requests also overlap the usage lookups once model/effort is known. The report keeps
 its provider order; waiting times are no longer added one provider at a time.
 Each provider lookup has a **20-second total budget**, including CLI startup and
-all requests in that probe. A timeout stops the probe and its CLI children, reports
-that provider as timed out, and continues with the others without retrying. The
+all requests in that probe. A timeout stops the probe and its CLI children and continues with the others
+without retrying. Complete validated quota windows already received are retained;
+optional details are marked unavailable. Claude reset work uses only the time left
+after quota lookup, never a new 20-second budget. The
 benchmark lookup has its own 20-second budget; if it times out, usage is still shown
 and the benchmark table is omitted. A slow or unsubscribed CLI cannot hold up the
 report for 90 seconds.
 
 ### Refresh in the browser
+
+If Claude or ChatGPT CLI auth expires, click **Sign in to Claude** or
+**Sign in to ChatGPT** on its card. This explicit click runs the CLI's official
+subscription sign-in, which opens a browser on the
+machine serving this localhost report. Complete authorization there; the report
+refreshes only after the CLI confirms a valid login. No tokens or authorization URLs
+pass through the report. Loading or refreshing the page never starts login.
+The flow is single-instance and times out after 5 minutes. Headless/remote hosts or
+static HTML exports should use the shown terminal fallback (`claude auth login` or
+`codex login`). ChatGPT uses the [official Codex browser login](https://learn.chatgpt.com/docs/auth#sign-in-with-chatgpt).
+
 
 When the report is HTML, `/ai-usage` also starts a small local server in the background
 (`run.py --serve`, Python standard library only) and opens `http://127.0.0.1:47821/`
@@ -230,12 +245,15 @@ tables and opens no page.
 It uses each provider's existing CLI login, so running it inside Codex also reads
 your Claude, Grok, Muse and Gemini accounts.
 
-**Usage numbers are live.** Claude uses its existing OAuth login to query Anthropic.
-The other providers are queried through their CLIs.
+**Usage numbers are live.** When a connected-browser tool is available, `/uu` reads Claude
+Usage there and labels the source and check time. Browser observations expire after
+5 minutes; rerun `/uu` to read the browser again (HTML Refresh cannot drive the connected browser).
+Otherwise Claude uses its existing OAuth login to query Anthropic, and the other
+usage windows come from the provider CLIs:
 
 | Provider | How |
 |---|---|
-| Claude | OAuth GET `/api/oauth/usage`, using the CLI's existing file-based login |
+| Claude | OAuth GET `/api/oauth/usage`, using the CLI's existing login (environment, Keychain or file); `claude -p /usage` fallback |
 | ChatGPT | `codex app-server` → JSON-RPC `account/rateLimits/read` |
 | Grok | `grok agent stdio` → ACP extension method `_x.ai/billing` |
 | Muse | `muse serve` → one tiny turn, then MSP `usage/read` |
@@ -289,8 +307,10 @@ naming the newest listed same-provider row at the same effort, for orientation o
 (`data/cursorbench.json`, and `data/aa.json` only when an AA row is needed), which that
 site refreshes from CursorBench and Artificial Analysis every six hours. Benchmark
 figures can therefore be up to six hours old. With the one update-check request to
-`raw.githubusercontent.com`, these public requests send no credential. The Claude
-probe separately sends its access token to Anthropic's usage endpoint.
+`raw.githubusercontent.com`, those are the public HTTP requests the skill's own code
+makes, and they send no credentials. Separately, Claude reset grants use one
+authenticated GET to api.anthropic.com; its access token is never sent to these
+public benchmark or update sources.
 
 **Language.** Documentation and the scripts' data and status messages are in English.
 Inside an agent, an explicit request for a report language takes priority. Otherwise,
@@ -328,11 +348,12 @@ fields) verified 2026-10-02 against the Antigravity CLI (`agy`) 1.2.14 on macOS.
 Claude quota reading was rechecked on Windows 11 with Claude Code 2.1.319 on
 2026-11-09. `claude -p --output-format json "/usage"` returned a cost summary instead
 of quota windows. The probe now reads structured `five_hour` and `seven_day` data
-from Anthropic using the existing file-based OAuth login.
+from Anthropic using the existing OAuth login (credentials file, Keychain or environment),
+also verified on macOS with Claude Code 2.1.318. `/usage` text stays as the fallback.
 
 | Risk | Where | What happens if it breaks |
 |---|---|---|
-| Claude's OAuth usage endpoint and credential file are internal interfaces | `claude_usage.py` | Missing login, HTTP failures and invalid quota data fail visibly. Keychain-only login is unsupported |
+| Claude's OAuth usage endpoint and credential file are internal interfaces | `claude_usage.py` | Missing login, HTTP failures and invalid quota data fall back to `claude -p /usage`, which fails visibly if its text changed; the reset row names the failure |
 | Codex's app-server protocol is private to OpenAI and carries no compatibility promise | `codex_usage.py` | A method rename or missing required field makes the ChatGPT row fail visibly; it never defaults to 0% |
 | Grok's `_x.ai/billing` is a vendor ACP extension, not part of the ACP spec | `grok_usage.py` | A method rename or missing required field (period, `billingPeriodEnd`) makes the Grok row fail visibly. An omitted `creditUsagePercent` means a whole-percent 0 and prints `<1% used` |
 | Muse's `usage/read` returns only what the host has observed | `muse_usage.py` | If the turn ends with no usage, the Muse row fails visibly (`no usage observed`); it never defaults to 0% |
@@ -340,15 +361,24 @@ from Anthropic using the existing file-based OAuth login.
 | Session files and model caches are internal to each CLI and undocumented | `session_info.py` | A renamed field prints `?` for that value; a moved file prints `no local session`. The usage rows are unaffected |
 | Benchmark rows come from AI Model Compare's published JSON, and model ids are mapped to its names by rule | `cursorbench.py` | If the site is down the table prints `bench failed (...)` and the usage rows are unaffected. A model the rules cannot map, or a name the source spells differently, shows `not listed`; an AA effort without a cost is left out, never filled from another row |
 
+**Banked resets (local extension).** ChatGPT reads `rateLimitResetCredits` from the
+documented app-server response: count and per-reset expiry. Claude reads reset grants
+from its read-only OAuth usage endpoint using existing CLI credentials, or uses
+visible reset details from a fresh connected-browser observation. Dates use the host local timezone by default (a per-user
+fixed offset is optional) and show time remaining; reset titles and timezone labels
+are hidden. Missing fields stay unavailable, never zero. Paid top-ups are separate.
+The reset lookup never refreshes or writes credentials, reads browser cookies, or
+redeems resets. An unavailable reset lookup leaves valid usage windows intact.
+The Claude grants endpoint is undocumented; changed fields remain unavailable.
+HTML timers use original expiry epoch milliseconds, including seconds and DST folds.
+Internal `reset-expiry` JSON records travel in saved raw reports and card responses,
+but are hidden from normal terminal and Markdown output. Old text-only reports
+remain readable with static expiry text; no ambiguous local date is guessed.
+
 **Deliberately not reported.** A wrong number here is worse than no number:
 
-- **ChatGPT "Usage limit resets"** (Settings shows `Available N`) cannot be read. The
-  app-server can *spend* one via `account/rateLimitResetCredit/consume` but exposes no
-  count — checked against all 163 methods. The report omits the row; it does not print
-  `unknown`. `credits.balance` is a different pool: an account can show `balance 0`
-  while holding 2 available resets, so it is never substituted.
-- **Claude extra usage** is omitted by this probe. It reads only the aggregate
-  `five_hour` and `seven_day` windows.
+- **Claude extra usage** is not reported. The probe reads only the aggregate
+  `five_hour` and `seven_day` windows; `fast_mode_disabled_reason` is specifically about fast mode.
 - **Grok has one window, not two.** No 5-hour row is invented for it.
 - **Gemini has two weekly pools and no 5-hour window**, and its plan name is not
   reported: `/usage` names no plan, so the plan shows `?`.
