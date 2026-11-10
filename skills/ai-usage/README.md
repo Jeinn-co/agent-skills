@@ -225,9 +225,9 @@ Read top to bottom:
    faster than it runs out.
 3. **Now** — the model and effort of that CLI's newest local session, plus a link to the
    provider's own usage page (Claude, ChatGPT, Grok).
-4. **Model and effort guide** — coding, planning and review starting points based on
-   the linked references, with documented default efforts marked ★. The guide has a
-   review date and does not reflect your current configuration.
+4. **My usage** — personal daily defaults and effort-first escalation, plus a dated
+   snapshot of the six s-agent role assignments checked against Notion. This section
+   does not change CLI settings or fetch/sync Notion during report generation.
 5. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran
    last; *Qualified* is the effort the pick rule chooses. Each side shows its score,
    `$` (cost per task at API prices) and CP (score ÷ `$`). `*` marks a provider with

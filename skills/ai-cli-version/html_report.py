@@ -174,6 +174,9 @@ background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 table{border-collapse:collapse;width:100%}.logo{width:16px;height:16px;margin-right:8px;vertical-align:-3px}th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);
 vertical-align:top}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}tr:last-child td{border-bottom:0}
+tr[data-row=claude]{--brand:217,119,87}tr[data-row=codex]{--brand:16,163,127}
+tr[data-row=grok]{--brand:148,163,184}tr[data-row=muse]{--brand:149,83,255}tr[data-row=agy]{--brand:49,134,255}
+tr[data-row] td{background:rgba(var(--brand),.07)}tr[data-row] td:first-child{border-left:4px solid rgb(var(--brand))}
 .sub{color:var(--muted);font-size:14px}.badge{display:inline-block;border-radius:999px;padding:1px 10px;font-size:13px;
 font-weight:500;letter-spacing:.02em;border:1px solid currentColor}.badge.ok{color:var(--ok)}.badge.up{color:var(--up)}
 .badge.bad{color:var(--bad)}.badge.muted{color:var(--muted)}td.bad{color:var(--bad)}td.muted{color:var(--muted)}

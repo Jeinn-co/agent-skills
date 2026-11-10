@@ -100,9 +100,9 @@ inline code so every font draws them at the same width. Sample:
 - Muse — `muse-spark-1.3` · effort high · 2m ago
 - Gemini — `gemini-3.8-flash` · effort high · 5m ago
 
-#### Model and effort guide
+#### My usage
 
-Before the Qualified table, include the single model and effort recommendation table from `html_report.py` in the report language. Preserve the documented default marker, model names, effort names, the review date and reference links; availability depends on the model picker. Include Gemini 4 Argon Medium as the guide's suggestion for day-to-day coding (Google documents no default effort, so no default marker), High for complex planning, review and debugging, and Gemini 3.8 Flash Medium for small edits.
+Before the Qualified table, render both personal-usage tables from `html_report.py` in the report language: daily defaults with effort-first escalation, and the six s-agent role assignments. Preserve full model versions, effort values, the snapshot date and Notion source link. State that escalation has not been benchmarked, model availability depends on the account, and the role table is a static snapshot rather than a live Notion read or a change to CLI settings. Do not include the former general Model and effort guide.
 
 #### Qualified (CursorBench)
 

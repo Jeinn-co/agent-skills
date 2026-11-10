@@ -424,7 +424,12 @@ font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
 .sub{color:var(--muted);margin:0 0 20px}
 .grid{display:grid;grid-template-columns:1fr;gap:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card{--brand:100,116,139;background:linear-gradient(180deg,rgba(var(--brand),.09),transparent 100px),var(--card);border:1px solid var(--line);border-left:4px solid rgb(var(--brand));border-radius:12px;padding:20px 22px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card[data-id=CLAUDE],.anth{--brand:217,119,87}
+.card[data-id=CHATGPT],.oai{--brand:16,163,127}
+.card[data-id=GROK]{--brand:148,163,184}
+.card[data-id=MUSE]{--brand:149,83,255}
+.card[data-id=GEMINI],.gemini{--brand:49,134,255}
 header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
 h2{font-size:17px;font-weight:600;margin:0}.logo{width:18px;height:18px;margin-right:8px;vertical-align:-3px}.plan{color:var(--muted);font-size:14px;border:1px solid var(--line);
 border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color:var(--accent);text-decoration:none}
@@ -471,37 +476,32 @@ border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);fon
 tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums}.score{color:var(--muted)}
 .foot{color:var(--muted);font-size:14px;margin:8px 0}.muted{color:var(--muted)}
 .links{margin-top:20px}a{color:var(--accent)}
-tr.anth td{background:var(--anth)}tr.oai td{background:var(--oai)}tr.key td{font-weight:600}
-.warn{font-size:14px;margin:0 0 10px;padding:8px 12px;border-left:3px solid #f59e0b;background:rgba(245,158,11,.1);border-radius:6px}
+tr.anth td,tr.oai td,tr.gemini td,td.anth,td.oai,td.gemini{background:rgba(var(--brand),.07)}
+tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-left:4px solid rgb(var(--brand))}
+.usage-guide td{white-space:normal;min-width:140px}
 @media (max-width:480px){.row{grid-template-columns:44px 1fr 40px}.reset{grid-column:2/4}.left{grid-column:2/4}}
 </style></head><body><main>
 <h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
-<h3>Model and effort guide</h3>
-<p class="std">Recommendations based on the references below, reviewed 2026-11-09. Availability depends on your plan and model picker.</p>
-<p class="warn"><b>Start with Medium–High for coding.</b> Avoid Xhigh and Max by habit; use them when the task needs deeper reasoning or a lower effort falls short.</p>
-<div class="tablewrap"><table><thead><tr><th>CLI</th><th>Model</th><th>Effort</th><th>Suggested use</th></tr></thead><tbody>
-<tr class="anth"><td>Claude Code</td><td>Haiku 5.5</td><td>Low</td><td>Quick questions and small changes</td></tr>
-<tr class="anth key"><td>Claude Code</td><td>Sonnet 5.5</td><td>Medium ★</td><td>Coding: scoped day-to-day work</td></tr>
-<tr class="anth key"><td>Claude Code</td><td>Sonnet 5.5</td><td>High</td><td>Review and debugging: edge cases</td></tr>
-<tr class="anth key"><td>Claude Code</td><td>Opus 5.5</td><td>Medium ★</td><td>Plan: complex features and architecture</td></tr>
-<tr class="anth"><td>Claude Code</td><td>Opus 5.5</td><td>High</td><td>Difficult debugging and security analysis</td></tr>
-<tr class="oai"><td>Codex</td><td>GPT-6 Luna</td><td>Low</td><td>Small edits and scoped problems</td></tr>
-<tr class="oai"><td>Codex</td><td>GPT-6.1 Terra</td><td>Medium</td><td>UI, visual reasoning and computer use</td></tr>
-<tr class="oai key"><td>Codex</td><td>GPT-6.1 Sol</td><td>Medium ★</td><td>Coding and plan: complex, multi-file work</td></tr>
-<tr class="oai key"><td>Codex</td><td>GPT-6.1 Sol</td><td>High</td><td>Review: correctness and edge cases</td></tr>
-<tr class="oai key"><td>Codex</td><td>GPT-6 Astra</td><td>Medium–High</td><td>Complex projects and difficult review</td></tr>
-<tr><td>Antigravity (Gemini)</td><td>Gemini 3.8 Flash</td><td>Medium</td><td>Quick questions and small, scoped edits</td></tr>
-<tr class="key"><td>Antigravity (Gemini)</td><td>Gemini 4 Argon</td><td>Medium</td><td>Recommended default for day-to-day coding and fixes</td></tr>
-<tr class="key"><td>Antigravity (Gemini)</td><td>Gemini 4 Argon</td><td>High</td><td>Plan and review: complex architecture and debugging</td></tr>
+<h3>My usage</h3>
+<p class="std">Daily use: raise effort first, then switch to a stronger model. This is my workflow; the escalation order has not been benchmarked.</p>
+<div class="tablewrap"><table class="usage-guide"><thead><tr><th>Platform</th><th>Daily default</th><th>Harder tasks</th><th>Special use</th></tr></thead><tbody>
+<tr class="anth"><td>Claude Code</td><td><b>Sonnet 5.5 / medium</b></td><td>Sonnet 5.5 / high &rarr; Opus 5.5 / high</td><td>&mdash;</td></tr>
+<tr class="oai"><td>Codex</td><td><b>GPT-6.1-Sol / medium</b></td><td>GPT-6.1-Sol / high &rarr; GPT-6-Astra / high</td><td>GPT-6.1-Terra: visual understanding and app operation</td></tr>
+<tr class="gemini"><td>Gemini</td><td><b>Gemini 3.8 Flash / medium</b></td><td>Gemini 3.8 Flash / high &rarr; Gemini 4 Argon / high</td><td>&mdash;</td></tr>
 </tbody></table></div>
-<p class="foot">★ = documented default effort: Claude Code for Sonnet 5.5 and Opus 5.5; OpenAI API for GPT-6.1 Sol. Codex settings can differ from the API default. Availability depends on your plan. Higher effort generally takes more time and usage; compare results before using it routinely.
-Claude: use <code>/model</code> and <code>/effort</code>. Codex: use <code>/model</code>.
-Gemini: use the model picker and <code>/effort</code>. Argon requires a paid Google AI Pro or Ultra plan, or an eligible device trial. This guide suggests Argon Medium for everyday use (Google documents no default effort), and High for complex planning, review and debugging.
-Sources: <a href="https://code.claude.com/docs/en/model-config">Claude Code</a> ·
-<a href="https://developers.openai.com/api/docs/guides/model-selection">OpenAI model selection</a> ·
-<a href="https://developers.openai.com/api/docs/guides/reasoning">OpenAI reasoning</a> ·
-<a href="https://antigravity.google/docs/models">Antigravity models and effort</a>.</p>
+<p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings.</p>
+<h3>Delegated roles</h3>
+<p class="std">s-agent role configuration snapshot, checked on 2026-11-09. Select roles for the task and start with one subagent; the full team is not launched every time.</p>
+<div class="tablewrap"><table class="usage-guide"><thead><tr><th>Role / responsibility</th><th>Claude Code</th><th>Codex</th><th>Gemini</th></tr></thead><tbody>
+<tr><td>PM: requirements and planning</td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
+<tr><td>Designer: UI, interaction and accessibility</td><td class="anth">Sonnet 5.5 / medium</td><td class="oai">GPT-6.1-Terra / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
+<tr><td>Developer: implementation and bug fixes</td><td class="anth">Sonnet 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
+<tr><td>QA: reproduction and acceptance checks</td><td class="anth">Sonnet 5.5 / high</td><td class="oai">GPT-6.1-Terra / medium</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td>Reviewer: independent review</td><td class="anth">Sonnet 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td>DevOps: environments and operations</td><td class="anth">Sonnet 5.5 / high</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+</tbody></table></div>
+<p class="foot">Source: <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</p>
 <h3>Qualified (CursorBench)</h3>
 <p class="std">Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score</p>
 <div class="tablewrap"><table><thead><tr><th>Provider</th><th>Now</th><th class="num">Now $</th>

@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
 # S-Agent
@@ -120,6 +120,10 @@ without dispatching a task; it is no longer a required step.
 
 ## Gemini configuration and dispatch
 
+Select the current host platform by default: Gemini/Antigravity uses `gemini`,
+Codex uses `codex`, and Claude Code uses `claude`. A different provider requires
+an explicit user choice; adding Gemini does not change the main agent model.
+
 Read [Antigravity subagents](https://antigravity.google/docs/subagents) and
 [CLI flags](https://antigravity.google/docs/cli/reference/) when verifying Gemini
 capabilities. Use `agy models` for account availability when signed in. A failed
@@ -131,7 +135,12 @@ For an exact configured pair, launch the named role in a separate Antigravity CL
 session using `agy --agent <role> --model <model> --effort <effort> -p <handoff>`
 in the authorized workspace. Resolve `agy` from PATH, then `~/.gemini/bin/agy.exe`
 on Windows. Pass arguments as a list or use proper shell quoting. Preserve the
-current task's permission boundaries and supported execution mode. Never add
+current task's permission boundaries and supported execution mode. For analysis,
+review or planning without edits, explicitly pass `--mode plan` and include the
+no-edit and project test restrictions in the handoff. A separate CLI session does
+not automatically inherit the parent's permissions or sandbox: verify and enforce
+equivalent file/command scopes before launch. If that cannot be done, report the
+limitation and keep the work in the authorized host. Never add
 `--dangerously-skip-permissions`. Do not run an inference prompt just to check setup.
 Use native `invoke_subagent` only when the host confirms its effective model and
 effort match the configured pair; a `pro` or `inherit` tier alone is insufficient.

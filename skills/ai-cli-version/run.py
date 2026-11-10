@@ -29,7 +29,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.15.0"
+VERSION = "1.15.1"
 
 # Seconds per check. The chat report keeps 20; the browser page, which shows each tool
 # as soon as it answers, passes a longer one to its probes in AI_CLI_VERSION_TIMEOUT.

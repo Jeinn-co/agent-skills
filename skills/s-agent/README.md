@@ -76,7 +76,12 @@ in `~/.agents/roles/<role>.toml`; native role prompts are discovered from
 S-Agent launches the exact pair through `agy --agent <role> --model <model>
 --effort <effort> -p <handoff>`. Native subagent tiers do not prove an exact model
 or effort. Account access requires a signed-in CLI and the appropriate plan.
-The coordinator preserves task permissions and verifies the returned work.
+By default, use the current host platform: Gemini/Antigravity selects the Notion
+`gemini` settings; another provider requires an explicit user choice. Analysis-only
+CLI handoffs explicitly use `--mode plan` and carry no-edit and project test rules.
+Separate CLI sessions do not automatically inherit parent permissions or sandbox;
+enforce equivalent scopes before launch, or keep work in the authorized host.
+The coordinator verifies the returned work.
 
 ## Roles and coordination
 

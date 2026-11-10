@@ -66,7 +66,11 @@ Notion 或讀取工具無法連線時，沿用有效本機角色，明確標示�
 
 派工時以 `agy --agent <role> --model <model> --effort <effort> -p <handoff>`
 明確套用設定。原生 subagent 的層級本身無法證明完整型號與強度。
-實際使用仍需要已登入 CLI 與對應方案，主 agent 負責遵守任務權限及驗證結果。
+預設依目前主工具選平台：Gemini／Antigravity 使用 Notion 的 `gemini` 設定；
+跨平台派工需要使用者明確指定，不會更換主 agent 的模型。只分析、審查或規劃的
+CLI 派工明確加上 `--mode plan`，交接需附禁止編輯與專案測試限制。獨立 CLI session
+不會自動繼承主 agent 的權限與 sandbox；派工前必須確認並套用同等限制，做不到就
+留在原本已授權的 host。實際使用仍需登入與對應方案，主 agent 負責驗證結果。
 
 ## 角色與協調
 

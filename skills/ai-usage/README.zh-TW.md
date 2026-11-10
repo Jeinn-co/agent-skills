@@ -180,8 +180,8 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    例如 `2h32m left`。用量條跑在時間條前面，就代表用得比時間過得快。
 3. **Now** —— 該 CLI 最新一個本機 session 的 model 與 effort，以及這家自己的用量頁連結
    （Claude、ChatGPT、Grok）。
-4. **Model and effort guide** —— 根據下方參考資料整理的寫程式、規劃與 review 起點，
-   ★ 標示文件中的預設 effort。建議附有查閱日期，不代表你的目前設定。
+4. **我的用法** —— 平時使用的三平台預設與先升 effort 的順序，以及經 Notion 核對、
+   附日期的六個 s-agent 角色安排快照；報表不會修改 CLI 設定，也不會即時讀取或同步 Notion。
 5. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是
    挑選規則選出的那一檔。兩邊各有分數、`$`（依 API 價格的每題成本）與 CP（分數 ÷ `$`）。
    `*` 表示這家沒有任何一檔到 50%，改列它的最高分。CursorBench 沒收錄的 model（例如上圖的
