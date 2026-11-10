@@ -98,18 +98,18 @@ Before the Qualified table, render both personal-usage tables from `html_report.
 
 #### Qualified (Artificial Analysis)
 
-_Standard: any of the provider's models scoring ≥ 45 on the AA Intelligence Index → highest CP among those · none reach 45 → its highest score._
+_Standard: any of the provider's models scoring ≥ 45 on the Artificial Analysis Intelligence Index → highest CP among those · none reach 45 → its highest score._
 
 | Provider | Now | Now $ | Now CP | Qualified | Qualified $ | Qualified CP |
 |---|---|--:|--:|---|--:|--:|
-| Claude | Opus 5.5 High · AA 51.8 · ? · 56M · ? | $3.46 | 15.0 | Opus 5.5 Medium · AA 48.2 | $2.45 | 19.7 |
-| ChatGPT | GPT-6.1 Sol High · AA 50.3 · ? · 25M · ? | $0.59 | 85.2 | GPT-6.1 Sol Medium · AA 46.3 | $0.36 | 129.0 |
-| Grok | no local session | | | Grok 4.7 Extra High · AA 35.5 \* | $7.77 | 4.6 |
-| Muse | Muse Spark 1.3 Max · AA 36.6 · ? · 123M · ? | $2.39 | 15.3 | Muse Wonder Max · AA 43.6 \* | $6.95 | 6.3 |
-| Gemini | Gemini 3.8 Flash High · AA 30.8 · ? · 126M · ? | $7.77 | 4.0 | Gemini 4 Argon High · AA 50.4 | $9.95 | 5.1 |
+| Claude | Opus 5.5 High · 51.8 · ? · 56M · ? | $3.46 | 15.0 | Opus 5.5 Medium · 48.2 | $2.45 | 19.7 |
+| ChatGPT | GPT-6.1 Sol High · 50.3 · ? · 25M · ? | $0.59 | 85.2 | GPT-6.1 Sol Medium · 46.3 | $0.36 | 129.0 |
+| Grok | no local session | | | Grok 4.7 Extra High · 35.5 \* | $7.77 | 4.6 |
+| Muse | Muse Spark 1.3 Max · 36.6 · ? · 123M · ? | $2.39 | 15.3 | Muse Wonder Max · 43.6 \* | $6.95 | 6.3 |
+| Gemini | Gemini 3.8 Flash High · 30.8 · ? · 126M · ? | $7.77 | 4.0 | Gemini 4 Argon High · 50.4 | $9.95 | 5.1 |
 
-_$ = AA's cost per index task at API prices, not subscription quota. CP = index points ÷ $; higher is better. \* nothing from this provider reaches 45: its highest._
-_Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index._
+_$ = Artificial Analysis's cost per index task at API prices, not subscription quota. CP = index points ÷ $; higher is better. \* nothing from this provider reaches 45: its highest._
+_Muse is scored as plain Muse Spark 1.3._
 
 > **→ Use ChatGPT right now:** the most usage left — 100% in its tightest window.
 
@@ -149,15 +149,15 @@ Rules:
   Provider, Now, Now $, Now CP, Qualified, Qualified $, Qualified CP and the header
   Qualified (Artificial Analysis). When localizing, preserve the meaning of Qualified;
   do not relabel it as Recommended.
-  The Now cell is `<model effort> · AA <index> · <speed> · <verbosity> · <latency>`
+  The Now cell is `<model effort> · <index> · <speed> · <verbosity> · <latency>`
   (the five AA model-page figures: index, cost in the `$` column, speed, verbosity, latency)
-  and the Qualified cell `<model effort> · AA <index>`, no percent sign. Copy `speed` /
+  and the Qualified cell `<model effort> · <index>`, no percent sign and no `AA` label. Copy `speed` /
   `verbosity` / `latency` from the `bench` line onto Now only; a missing one is `?`.
   A `bench … not listed` shows `not listed` in Now; a `pick … not listed` shows `—` in every Qualified column. Never borrow another model's
   or effort's numbers. Keep the filter to the one header line and the formula to the
   one footnote line, as in the sample; the footnote says higher is better, because a
   bare "CP" reads as a cost.
-  The `$` footnote states AA's cost per index task at API prices, not subscription
+  The `$` footnote states Artificial Analysis's cost per index task at API prices, not subscription
   quota. When localizing CP's unit, spell out index points
   per US dollar so it cannot be mistaken for cents. A `(mapped from …)` row gets the
   short clause at the end of that footnote, not a line of its own.
