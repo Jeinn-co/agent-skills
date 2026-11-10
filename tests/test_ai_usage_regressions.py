@@ -591,72 +591,50 @@ class ArtificialAnalysisTests(unittest.TestCase):
         self.assertEqual(cursorbench._aa_verbosity(25376903), "25M")
         self.assertEqual(cursorbench._aa_latency(46.5526), "46.6s")
 
-    def test_leaderboard_rows_print_like_the_page(self):
-        sys.path.insert(0, str(SKILL))
-        import cursorbench
-        from unittest import mock
-        rows = [{"label": "Opus 5.5 High", "score": 56, "cost": 3.97, "tokens": 53078, "steps": 68}]
-        with mock.patch.object(cursorbench, "published", return_value=rows):
-            self.assertEqual(cursorbench.rows(), {"Opus 5.5 High": ["56.0%", "$3.97", "53,078", "68"]})
 
-
-class AAExtraPickTests(unittest.TestCase):
-    def test_extra_qualifies_only_when_it_reaches_target(self):
-        sys.path.insert(0, str(SKILL))
-        import cursorbench
-        from unittest import mock
-
-        boards = {"GPT-6.1 Sol": {"high": (50.237, 0.319, 0.0)}}
-        with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda m: boards.get(m, {})):
-            hit = cursorbench.extra_pick("codex")
-            self.assertEqual(hit[:4], ("GPT-6.1 Sol High", 50.237, 0.319, "cp"))
-            self.assertIsNone(cursorbench.extra_pick("agy"))
-            self.assertIsNone(cursorbench.extra_pick("grok"))
-        boards = {"GPT-6.1 Sol": {"high": (45.0, 0.32, 0.0)}}
-        with mock.patch.object(cursorbench, "aa_rows", side_effect=lambda m: boards.get(m, {})):
-            self.assertIsNone(cursorbench.extra_pick("codex"))
-
-
-class AAExtraFailureTests(unittest.TestCase):
-    def test_pick_table_survives_a_failing_extra(self):
-        sys.path.insert(0, str(SKILL))
-        import cursorbench
-        from unittest import mock
-
-        board = {"Gemini 3.8 Flash High": ["39.6%", "$4.70", "162,565", "324"]}
-        with mock.patch.object(cursorbench, "rows", return_value=board), \
-                mock.patch.object(cursorbench, "aa_rows", side_effect=RuntimeError("AA down")), \
-                mock.patch.object(sys, "argv", ["cursorbench.py", "agy=gemini-3.8-flash:high"]):
-            import io, contextlib
-            out = io.StringIO()
-            with contextlib.redirect_stdout(out):
-                code = cursorbench.main()
-        self.assertEqual(code, 0)
-        self.assertIn("pick    agy  Gemini 3.8 Flash High  score 39.6%", out.getvalue())
-
-    def test_aa_bench_line_prints_speed_verbosity_latency(self):
+class AAQualifiedMainTests(unittest.TestCase):
+    def run_main(self, rows, argv, aa=None):
         sys.path.insert(0, str(SKILL))
         import cursorbench
         from unittest import mock
         import io, contextlib
-
-        board = {}
-        aa = {"high": (50.237, 0.319, 13191.8, 50.854, 25376903.0, 46.5526)}
-        with mock.patch.object(cursorbench, "rows", return_value=board), \
-                mock.patch.object(cursorbench, "aa_rows", return_value=aa), \
-                mock.patch.object(sys, "argv", ["cursorbench.py", "codex=gpt-6.1-sol:high"]):
-            out = io.StringIO()
+        patches = [mock.patch.object(cursorbench, "published", side_effect=rows if isinstance(rows, Exception) else None,
+                                     return_value=None if isinstance(rows, Exception) else rows),
+                   mock.patch.object(sys, "argv", ["cursorbench.py", *argv])]
+        if aa is not None:
+            patches.append(mock.patch.object(cursorbench, "aa_rows", return_value=aa))
+        out = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            for patch in patches:
+                stack.enter_context(patch)
             with contextlib.redirect_stdout(out):
                 code = cursorbench.main()
+        return code, out.getvalue()
+
+    def test_aa_down_prints_bench_failed(self):
+        code, out = self.run_main(RuntimeError("AA down"), ["agy=gemini-3.8-flash:high"])
+        self.assertEqual(code, 1)
+        self.assertIn("bench failed (AA down)", out)
+
+    def test_aa_bench_line_prints_speed_verbosity_latency(self):
+        rows = [{"model": "GPT-6.1 Sol", "effort": "High", "score": 50.237, "cost": 0.319}]
+        aa = {"high": (50.237, 0.319, 0.0, 50.854, 25376903.0, 46.5526)}
+        code, out = self.run_main(rows, ["codex=gpt-6.1-sol:high"], aa)
         self.assertEqual(code, 0)
-        line = [ln for ln in out.getvalue().splitlines() if ln.startswith("bench")][0]
-        self.assertIn("aa 50", line)
+        line = [ln for ln in out.splitlines() if ln.startswith("bench")][0]
+        self.assertIn("GPT-6.1 Sol High  aa 50.2", line)
         self.assertIn("cost $0.32", line)
         self.assertIn("speed 50.9/s", line)
         self.assertIn("verbosity 25M", line)
         self.assertIn("latency 46.6s", line)
         self.assertIn("(AA)", line)
-        self.assertNotIn("output tokens", line)
+        self.assertIn("pick    codex  GPT-6.1 Sol High  aa 50.2", out)
+
+    def test_unlisted_current_model_still_gets_a_pick(self):
+        rows = [{"model": "Gemini 4 Argon", "effort": "High", "score": 50.4, "cost": 9.95}]
+        code, out = self.run_main(rows, ["agy=gemini-3.8-flash:high"], {})
+        self.assertIn("bench   agy  Gemini 3.8 Flash  high  not listed", out)
+        self.assertIn("pick    agy  Gemini 4 Argon High  aa 50.4", out)
 
 
 class CursorBenchNameTests(unittest.TestCase):
@@ -684,31 +662,27 @@ class CursorBenchNameTests(unittest.TestCase):
         for (cli, model), expected in cases.items():
             self.assertEqual(cursorbench.name(cli, model) or None, expected, (cli, model))
 
-    def test_pick_searches_the_provider_for_50_percent(self):
+    def test_pick_searches_the_provider_for_45_on_aa(self):
         sys.path.insert(0, str(SKILL))
         import cursorbench
 
-        board = {
-            "Opus 5.5 Max": ["57.8%", "$13.43"],
-            "Opus 5.5 High": ["56.0%", "$3.97"],
-            "Opus 5.5 Low": ["43.7%", "$1.17"],
-            "Fable 5.1 Max": ["51.8%", "$17.28"],
-            "Grok 4.7 Extra High": ["46.3%", "$6.01"],
-            "Grok 4.7 Medium": ["41.6%", "$3.49"],
-            "Grok 4.6 High": ["40.4%", "$5.20"],
-            "Muse Spark 1.3 Max": ["41.6%", "$2.64"],
-            "Muse Spark 1.3 Minimal": ["24.3%", "$0.56"],
-            "GPT-5.6 Sol Max": ["41.7%", "$8.23"],
-        }
-        # Claude reaches 50%: best cp among >= 50% rows of any Claude model; Low is out
-        self.assertEqual(cursorbench.pick(board, "claude", "Opus 5.5")[0], "Opus 5.5 High")
-        self.assertEqual(cursorbench.pick(board, "claude", "Opus 5.5")[3], "cp")
-        # nothing from Grok reaches 50%: its highest score, not its best cp, and no floor
-        self.assertEqual(cursorbench.pick(board, "grok", "Grok 4.7")[:2], ("Grok 4.7 Extra High", 46.3))
-        self.assertEqual(cursorbench.pick(board, "grok", "Grok 4.7")[3], "closest")
-        self.assertEqual(cursorbench.pick(board, "muse", "Muse Spark 1.3")[0], "Muse Spark 1.3 Max")
-        # an unlisted current model gets no pick, even though older GPT rows exist
-        self.assertIs(cursorbench.pick(board, "codex", "GPT-6 Sol"), False)
+        def row(model, effort, score, cost):
+            return {"model": model, "effort": effort, "score": score, "cost": cost}
+        rows = [
+            row("Opus 5.5", "High", 51.8, 3.46), row("Opus 5.5", "Medium", 48.2, 2.45),
+            row("Sonnet 5.5", "High", 41.5, 1.64), row("Fable 5.2", "Low", 53.9, 3.10),
+            row("Grok 4.7", "Extra High", 35.5, 7.77), row("Grok 4.7", "Low", 20.0, 0.50),
+            row("Gemini 4 Carbon", "Medium", 58.3, 6.59), row("Gemini 4 Argon", "High", 50.4, 9.95),
+            row("Gemini 3.8 Flash", "Medium", 30.1, 6.26), row("Opus 5.5", "None", 60.0, 0.10),
+        ]
+        # Claude reaches 45: best cp among >= 45 rows; Sonnet High is cheaper but below 45,
+        # and an effort AA labels "None" is not a CLI effort
+        self.assertEqual(cursorbench.pick(rows, "claude"), ("Opus 5.5 Medium", 48.2, 2.45, "cp"))
+        # nothing from Grok reaches 45: its highest score, not its best cp
+        self.assertEqual(cursorbench.pick(rows, "grok"), ("Grok 4.7 Extra High", 35.5, 7.77, "closest"))
+        # an unavailable model is never picked, even with the best cp
+        self.assertEqual(cursorbench.pick(rows, "agy")[0], "Gemini 4 Argon High")
+        self.assertIsNone(cursorbench.pick(rows, "muse"))
 
 
 class UsageBarTests(unittest.TestCase):
@@ -762,20 +736,19 @@ class AdviceTests(unittest.TestCase):
             "> **Warning:** Claude week is 85% used; resets in 3d6h.",
             "> **→ Use Grok right now:** 100% left in its tightest window."])
 
-    def test_near_tie_goes_to_higher_cursorbench_score_but_not_aa(self):
-        raw = """\
-            ### CLAUDE
+    def test_near_tie_goes_to_higher_aa_score(self):
+        raw = """            ### CLAUDE
             plan: pro
             week    10.0% used  resets Oct 26 at 4:59pm  bar x
             ### CHATGPT
             plan: plus
             outer    5.0% used  window 168h  resets 10-30 01:11 (6d14h)  bar x
             ### CURSORBENCH
-            bench   claude  Opus 5.5 High  score 56.0%  cost $3.97  cp 14.1
+            bench   claude  Opus 5.5 High  aa 51.8  cost $3.46  cp 15.0  (AA)
             bench   codex  GPT-6.1 Sol High  {}
             """
-        self.assertIn("Use Claude", self.advice(raw.format("score 40.0%  cost $1.00  cp 40.0"))[-1])
-        self.assertIn("Use ChatGPT", self.advice(raw.format("aa 50  cost $0.32  cp 157.4  (AA)"))[-1])
+        self.assertIn("Use Claude", self.advice(raw.format("aa 40.0  cost $1.00  cp 40.0  (AA)"))[-1])
+        self.assertIn("Use ChatGPT", self.advice(raw.format("aa 55.0  cost $0.32  cp 171.9  (AA)"))[-1])
 
     def test_free_plan_is_never_picked(self):
         lines = self.advice("""\

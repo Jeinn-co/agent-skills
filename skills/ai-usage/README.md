@@ -51,7 +51,7 @@ The agent host must allow this skill to launch local subprocesses. Each provider
 must also be able to reach its own service over the internet. Quota probes use
 the provider CLIs or the optional browser adapter. Claude quota and reset grants
 use one authenticated GET to api.anthropic.com with existing CLI credentials. The benchmark helper
-also fetches public CursorBench and Artificial Analysis pages without credentials, and
+also fetches public Artificial Analysis rows without credentials, and
 the update check reads this skill's published `SKILL.md` from `raw.githubusercontent.com`.
 
 ### 4. Platform
@@ -228,15 +228,14 @@ Read top to bottom:
 4. **My usage** — personal daily defaults and effort-first escalation, plus a dated
    snapshot of the six s-agent role assignments checked against Notion. This section
    does not change CLI settings or fetch/sync Notion during report generation.
-5. **Qualified (CursorBench)** — one row per CLI. *Now* is the model + effort you ran
-   last; *Qualified* is the effort the pick rule chooses. Each side shows its score,
-   `$` (cost per task at API prices) and CP (score ÷ `$`). `*` marks a provider with
-   nothing at 50%, so its highest score is shown. A model CursorBench does not list, like
-   GPT-6.1 Sol above, falls back to Artificial Analysis and shows `AA <index>`.
+5. **Qualified (Artificial Analysis)** — one row per CLI. *Now* is the model + effort you
+   ran last; *Qualified* is the model + effort the pick rule chooses. Each side shows its AA
+   Intelligence Index, `$` (AA's cost per index task at API prices) and CP (index ÷ `$`).
+   `*` marks a provider with nothing at 45, so its highest score is shown.
 6. **Compare models** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
 In chat the agent shows only the recommendation — **→** which tool to use right now (the
-one with the most usage left in its tightest window, free or unnamed plans such as Gemini's `?` skipped; benchmark score breaks a near tie) and why, after a **Warning** line when a weekly window is over 80% — and a link to the page.
+one with the most usage left in its tightest window, free or unnamed plans such as Gemini's `?` skipped; AA score breaks a near tie) and why, after a **Warning** line when a weekly window is over 80% — and a link to the page.
 The launcher works these lines out itself (`### ADVICE`), so the agent only copies them and
 loads a short `SKILL.md`; running `./run.sh` in a terminal shows the same lines at no token cost.
 `setup` can switch the output to Markdown, which renders the whole report in chat as
@@ -286,26 +285,19 @@ of that CLI's newest local session, read from the session files the CLI already
 writes (`session_info.py`; no network, nothing launched). It reflects the last turn
 that was sent, so a model switched since then appears after the next message.
 
-**CursorBench.** Below the providers, one table row per CLI you use: the
-[CursorBench](https://cursor.com/cursorbench) score, cost / task, tokens / task and
-steps / task of the exact model + effort that CLI ran last, plus CP (score ÷ cost per
-task, points per dollar at Cursor's API prices — higher is better). The report's table
-shows the score, `$` and CP for both sides; tokens and steps stay in the raw output. One qualified row per
-provider: across every model and effort CursorBench lists for that provider, the best CP at a
-score of 50% or more; when nothing from that provider reaches 50%, its highest score. A model CursorBench does not list shows `not listed`, never a
-neighbouring row. For such a model the row falls back to its
-[Artificial Analysis](https://artificialanalysis.ai) rows, marked `AA`: the AA
-Intelligence Index, cost per index task, speed, verbosity and latency (the five figures
-on AA's model page), with the same qualified rule over that
-model's own efforts. AA is a different test set, so its score and CP are never compared
-with CursorBench's. One exception, on request: when nothing a provider has on CursorBench
-reaches 50%, a model listed in `AA_EXTRA` whose AA pick does reach 50 fills the qualified
-cell, marked `AA`. For ChatGPT that is GPT-6.1 Sol (AA 50) over GPT-5.6 Sol Max (41.7%). Only when AA has no row either does the report add one `ref` line
-naming the newest listed same-provider row at the same effort, for orientation only.
-`cursorbench.py` does not scrape either site itself: it reads the rows
-[AI Model Compare](https://jeinn-co.github.io/ai-model-compare/) publishes
-(`data/cursorbench.json`, and `data/aa.json` only when an AA row is needed), which that
-site refreshes from CursorBench and Artificial Analysis every six hours. Benchmark
+**Qualified (Artificial Analysis).** Below the providers, one table row per CLI you use:
+the [Artificial Analysis](https://artificialanalysis.ai) Intelligence Index, cost per
+index task, speed, verbosity and latency (the five figures on AA's model page) of the
+exact model + effort that CLI ran last, plus CP (index ÷ cost per task, points per dollar
+at API prices — higher is better). One qualified row per provider: across every model and
+effort AA lists for that provider, the best CP at an index of 45 or more; when nothing from
+that provider reaches 45, its highest score. Models that are not publicly available
+(`UNAVAILABLE` in `cursorbench.py`, currently Gemini 4 Carbon) are never picked. A model
+AA does not list shows `not listed`, never a neighbouring row. CursorBench is no longer
+used: Cursor runs it and its own Composer is on it.
+`cursorbench.py` (the file keeps its old name) does not scrape AA itself: it reads the
+`data/aa.json` rows [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
+publishes, which that site refreshes from Artificial Analysis every six hours. Benchmark
 figures can therefore be up to six hours old. With the one update-check request to
 `raw.githubusercontent.com`, those are the public HTTP requests the skill's own code
 makes, and they send no credentials. Separately, Claude reset grants use one

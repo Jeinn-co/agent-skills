@@ -38,28 +38,20 @@ names no plan. There is no 5h row; never invent one.
 (`TIER_NAMES`, e.g. `High Usage`), else `?`; a 5h window and a week, both with reset
 clocks. Print the plan exactly as the probe does; never map an id by hand.
 
-**CursorBench** — after the five providers, `### CURSORBENCH` holds one `bench` line per
-CLI with a local session (the CursorBench row for that CLI's current model + effort, or
-`not listed`), or `bench <cli> no local session` when there is none, then one `pick`
-line per provider, including providers without an installed CLI or a local session.
-Their Qualified model is selected from that provider's public benchmark rows using
-the same rule and AA extras; never invent a current model or quota for them.
-The `pick` line selects the best `cp` among rows scoring at least 50%, searched
-across every model and effort CursorBench lists for that provider; when none
-reaches 50%, it selects the provider's highest score. `rule cp` /
-`rule closest` says which applied. A CLI whose current model is unlisted gets `pick …
-not listed` — unless Artificial Analysis has a page for it: then its `bench` and `pick`
-lines end in `(AA)` and carry `aa <index>` (the AA Intelligence Index, a different test
-set) instead of a CursorBench percent, with AA's cost, speed (median output tok/s),
-verbosity (index output tokens, e.g. `25M`) and latency (time to first answer token),
-and the same pick
-rule applied to that model's own efforts. When a provider's own pick is only `rule
-closest`, a model listed in `AA_EXTRA` (`cursorbench.py`; GPT-6.1 Sol for ChatGPT) whose
-own AA pick reaches 50 takes the `pick` line, marked `(AA)` and `rule cp`, even though the
-Now side is a CursorBench row — the user asked for it. Only when AA has no page either does a `ref`
-line follow, naming the newest listed same-provider row at the same effort —
-orientation only, never compared. `cp` is score ÷ cost per task: points per US dollar at Cursor's API
-prices, not the subscription price. `(mapped from …-contributor)` means the CLI runs
+**Qualified (Artificial Analysis)** — after the five providers, `### CURSORBENCH` (the
+section keeps its old name) holds one `bench` line per CLI with a local session (the
+Artificial Analysis row for that CLI's current model + effort, or `not listed`), or
+`bench <cli> no local session` when there is none, then one `pick` line per provider,
+including providers without an installed CLI or a local session. Never invent a current
+model or quota for them. Every line ends in `(AA)` and carries `aa <index>` (the AA
+Intelligence Index) with AA's cost per index task; a `bench` line adds speed (median
+output tok/s), verbosity (index output tokens, e.g. `25M`) and latency (time to first
+answer token). The `pick` line selects the best `cp` among rows scoring at least 45,
+searched across every model and effort AA lists for that provider; when none reaches 45,
+it selects the provider's highest score. `rule cp` / `rule closest` says which applied.
+Models in `UNAVAILABLE` (`cursorbench.py`; Gemini 4 Carbon) are never picked. `cp` is
+index points / cost per task: points per US dollar at API prices, not the subscription
+price. `(mapped from …-contributor)` means the CLI runs
 Muse's contributor variant and the row is plain Muse Spark; it applies even when the
 effort is `?` (`bench muse  Muse Spark 1.3  ?  not listed  (mapped from …)`), so the Now
 cell shows the mapped name — `Muse Spark 1.3 ? · not listed` — never the raw
@@ -102,22 +94,22 @@ inline code so every font draws them at the same width. Sample:
 
 #### My usage
 
-Before the Qualified table, render both personal-usage tables from `html_report.py` in the report language: daily defaults with effort-first escalation, and the six s-agent role assignments. Preserve full model versions, effort values, the snapshot date and Notion source link. State how the defaults were chosen (Artificial Analysis, dominated options skipped, daily default the cheapest remaining option scoring at least 45, cross-checked with ARC-AGI-2 and Terminal-Bench) and keep the footnote on Gemini availability, that the effort-first escalation order itself is a workflow choice, that model availability depends on the account, and the role table is a static snapshot rather than a live Notion read or a change to CLI settings. Do not include the former general Model and effort guide.
+Before the Qualified table, render both personal-usage tables from `html_report.py` in the report language: daily defaults with effort-first escalation, and the six s-agent role assignments. Preserve full model versions, effort values, the snapshot date and Notion source link. State how the defaults were chosen (Artificial Analysis, dominated options skipped, daily default the cheapest remaining option scoring at least 45, cross-checked with ARC-AGI-2 and Terminal-Bench) and keep the note on Gemini 4 Carbon's limited access and the footnote on Gemini availability, that the effort-first escalation order itself is a workflow choice, that model availability depends on the account, and the role table is a static snapshot rather than a live Notion read or a change to CLI settings. Do not include the former general Model and effort guide.
 
-#### Qualified (CursorBench)
+#### Qualified (Artificial Analysis)
 
-_Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score_
+_Standard: any of the provider's models scoring ≥ 45 on the AA Intelligence Index → highest CP among those · none reach 45 → its highest score._
 
 | Provider | Now | Now $ | Now CP | Qualified | Qualified $ | Qualified CP |
 |---|---|--:|--:|---|--:|--:|
-| Claude | Opus 5.5 High · 56.0% | $3.97 | 14.1 | Opus 5.5 Medium · 52.5% | $2.91 | 18.0 |
-| ChatGPT | GPT-6.1 Sol High · AA 50 · 50.9/s · 25M · 46.6s | $1.32 | 37.9 | GPT-6.1 Sol High · AA 50 | $1.32 | 37.9 |
-| Grok | Grok 4.7 High · 43.9% | $4.69 | 9.4 | Grok 4.7 Extra High · 46.3% \* | $6.01 | 7.7 |
-| Muse | Muse Spark 1.3 Max · 41.6% | $2.64 | 15.8 | Muse Spark 1.3 Max · 41.6% \* | $2.64 | 15.8 |
-| Gemini | Gemini 3.8 Flash High · 39.6% | $4.70 | 8.4 | Gemini 4 Argon High · AA 53 | $1.99 | 26.4 |
+| Claude | Opus 5.5 High · AA 51.8 · ? · 56M · ? | $3.46 | 15.0 | Opus 5.5 Medium · AA 48.2 | $2.45 | 19.7 |
+| ChatGPT | GPT-6.1 Sol High · AA 50.3 · ? · 25M · ? | $0.59 | 85.2 | GPT-6.1 Sol Medium · AA 46.3 | $0.36 | 129.0 |
+| Grok | no local session | | | Grok 4.7 Extra High · AA 35.5 \* | $7.77 | 4.6 |
+| Muse | Muse Spark 1.3 Max · AA 36.6 · ? · 123M · ? | $2.39 | 15.3 | Muse Wonder Max · AA 43.6 \* | $6.95 | 6.3 |
+| Gemini | Gemini 3.8 Flash High · AA 30.8 · ? · 126M · ? | $7.77 | 4.0 | Gemini 4 Argon High · AA 50.4 | $9.95 | 5.1 |
 
-_$ = cost per task at API prices (AA rows: AA's cost per index task), not subscription quota. CP = score ÷ $; higher is better. \* nothing from this provider reaches 50%: its highest._
-_Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index (another test set): its score and CP are not comparable with CursorBench's._
+_$ = AA's cost per index task at API prices, not subscription quota. CP = index points ÷ $; higher is better. \* nothing from this provider reaches 45: its highest._
+_Muse is scored as plain Muse Spark 1.3. AA = Artificial Analysis Intelligence Index._
 
 > **→ Use ChatGPT right now:** the most usage left — 100% in its tightest window.
 
@@ -149,37 +141,33 @@ Rules:
   (Qualified: model effort · score, then its CP), all exactly as printed. Each side has
   its own score, its own `$` column (the line's `cost`, two decimals, as printed) and its
   own CP column, so no number reads as the other side's. No tokens column. The `Standard` line
-  always prints, unshortened and in italics, directly under the `Qualified (CursorBench)`
+  always prints, unshortened and in italics, directly under the `Qualified (Artificial Analysis)`
   heading. Mark a Qualified cell whose
   `pick` line says `rule closest` with `*` and keep the `*` footnote explaining that
-  this provider has no model or effort at 50%, so its highest score is shown.
+  this provider has no model or effort at 45, so its highest score is shown.
   The Qualified model can differ from the Now model (e.g. Fable 5.1). Use the labels
   Provider, Now, Now $, Now CP, Qualified, Qualified $, Qualified CP and the header
-  Qualified (CursorBench). When localizing, preserve the meaning of Qualified;
+  Qualified (Artificial Analysis). When localizing, preserve the meaning of Qualified;
   do not relabel it as Recommended.
-  An `(AA)` line fills its Now cell as `<model effort> · AA <index> · <speed> · <verbosity> · <latency>`
+  The Now cell is `<model effort> · AA <index> · <speed> · <verbosity> · <latency>`
   (the five AA model-page figures: index, cost in the `$` column, speed, verbosity, latency)
-  and its Qualified cell as `<model effort> · AA <index>`, no percent sign, and adds the AA
-  clause to the footnote explaining that AA is the Artificial Analysis Intelligence
-  Index, a different test set whose scores and CP cannot be compared with CursorBench.
-  Copy `speed` / `verbosity` / `latency`
-  from the `bench` line onto Now only; a missing one is `?`. An `(AA)` row never decides the `→` line
-  on score or CP against CursorBench rows.
-  A `bench … not listed` shows `not listed` in Now; a `pick … not listed` shows `—` in every Qualified column. When a `ref` line exists for that provider, add one table row directly under its row with Provider `↳ ref` and the Now cell `<model effort> · <score> · CP <cp>`, other cells empty. Never borrow another model's
+  and the Qualified cell `<model effort> · AA <index>`, no percent sign. Copy `speed` /
+  `verbosity` / `latency` from the `bench` line onto Now only; a missing one is `?`.
+  A `bench … not listed` shows `not listed` in Now; a `pick … not listed` shows `—` in every Qualified column. Never borrow another model's
   or effort's numbers. Keep the filter to the one header line and the formula to the
   one footnote line, as in the sample; the footnote says higher is better, because a
   bare "CP" reads as a cost.
-  The `$` footnote states cost per task at API prices (AA rows: AA's cost per index
-  task), not subscription quota. When localizing CP's unit, spell out score points
+  The `$` footnote states AA's cost per index task at API prices, not subscription
+  quota. When localizing CP's unit, spell out index points
   per US dollar so it cannot be mistaken for cents. A `(mapped from …)` row gets the
   short clause at the end of that footnote, not a line of its own.
   Omit the table only for `bench failed`, and say it failed.
-- The pick rule lives in `cursorbench.py` (across the provider's listed models: ≥ 50% →
-  highest CP; otherwise the highest score). Do not re-pick
+- The pick rule lives in `cursorbench.py` (across the provider's AA models: ≥ 45 →
+  highest CP; otherwise the highest score; `UNAVAILABLE` models skipped). Do not re-pick
   by hand or re-rank by today's usage. That applies to the Qualified table only; the
   `→` line below is chosen by usage left.
 - The warning and `→` lines are the launcher's `### ADVICE` lines (headroom = 100 −
-  tightest window; near ties go to the higher CursorBench score, see `advice()` in
+  tightest window; near ties go to the higher AA score, see `advice()` in
   `html_report.py`). Copy them; never re-pick.
 - **Links** follow it as Markdown links, so they are clickable. First the
   `**Usage pages:**` line: one link per provider shown in this report (never a provider

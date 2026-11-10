@@ -230,9 +230,8 @@ def advice(raw, now=None):
         # `?` counts as free: Gemini's /usage names no plan, and there it means free.
         if pcts and p["plan"].lower() not in ("free", "?"):
             bench = data["bench"].get(clis.get(p["name"]), "")
-            score = re.search(r"score ([\d.]+)%", bench)
-            ranked.append((100 - max(pcts), float(score.group(1)) if score and "(AA)" not in bench
-                           else None, p["name"]))
+            score = re.search(r"\baa ([\d.]+)", bench)
+            ranked.append((100 - max(pcts), float(score.group(1)) if score else None, p["name"]))
     if not ranked:
         return lines
     ranked.sort(key=lambda item: -item[0])
@@ -336,7 +335,7 @@ def card(p, now, loading=False):
 
 
 def bench_rows(data, loading=False):
-    """The CursorBench <tr>s; `loading` gives one skeleton row per provider."""
+    """The Qualified (AA) <tr>s; `loading` gives one skeleton row per provider."""
     if loading:
         return "".join('<tr><td colspan="7"><div class="skel"></div></td></tr>'
                        for _ in data["providers"])
@@ -364,7 +363,7 @@ def card_html(raw, now=None):
 
 
 def bench_html(raw):
-    """The CursorBench rows for `raw` (`### CURSORBENCH` plus its lines)."""
+    """The Qualified (AA) rows for `raw` (`### CURSORBENCH` plus its lines)."""
     return bench_rows(parse(raw))
 
 
@@ -484,13 +483,13 @@ tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-lef
 <h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
 <h3>My usage</h3>
-<p class="std">Daily use: raise effort first, then switch to a stronger model. Chosen on 2026-11-10 from Artificial Analysis: options that another of the same CLI beats on both score and cost are skipped; the daily default is the cheapest remaining option scoring at least 45, and harder tasks are the next ones up. Cross-checked with ARC-AGI-2 and Terminal-Bench; on ARC-AGI-2, Opus 5.5 / high beats Fable 5.2 / low and medium.</p>
+<p class="std">Daily use: raise effort first, then switch to a stronger model. Chosen on 2026-11-10 from Artificial Analysis: options that another of the same CLI beats on both score and cost are skipped; the daily default is the cheapest remaining option scoring at least 45, and harder tasks are the next ones up. Cross-checked with ARC-AGI-2 and Terminal-Bench; on ARC-AGI-2, Opus 5.5 / high beats Fable 5.2 / low and medium. Gemini 4 Carbon tops Artificial Analysis but is left out: Google currently gives it only to selected cybersecurity defenders through its Fairwind program (checked 2026-11-10).</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>Platform</th><th>Daily default</th><th>Harder tasks</th><th>Special use</th></tr></thead><tbody>
 <tr class="anth"><td>Claude Code</td><td>Opus 5.5 / medium</td><td>Fable 5.2 / low &rarr; Fable 5.2 / medium</td><td>&mdash;</td></tr>
 <tr class="oai"><td>Codex</td><td>GPT-6.1-Sol / medium</td><td>GPT-6.1-Sol / high &rarr; GPT-6.1-Sol / max</td><td>GPT-6.1-Terra: visual understanding and app operation</td></tr>
 <tr class="gemini"><td>Gemini</td><td>Gemini 3.8 Flash / medium</td><td>Gemini 4 Argon / high</td><td>&mdash;</td></tr>
 </tbody></table></div>
-<p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings. Gemini 3.8 Flash scores below 45 but is the only Gemini model most accounts can use. Gemini 4 Carbon tops Artificial Analysis but is not publicly available yet (2026-11-10).</p>
+<p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings. Gemini 3.8 Flash scores below 45 but is the only Gemini model most accounts can use.</p>
 <h3>Delegated roles</h3>
 <p class="std">s-agent role configuration snapshot, checked on 2026-11-10. Select roles for the task and start with one subagent; the full team is not launched every time.</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>Role / responsibility</th><th>Claude Code</th><th>Codex</th><th>Gemini</th></tr></thead><tbody>
@@ -502,14 +501,14 @@ tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-lef
 <tr><td>DevOps: environments and operations</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 3.8 Flash / high</td></tr>
 </tbody></table></div>
 <p class="foot">Source: <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</p>
-<h3>Qualified (CursorBench)</h3>
-<p class="std">Standard: any of the provider's models ≥ 50% → highest CP among those · none reach 50% → its highest score</p>
+<h3>Qualified (Artificial Analysis)</h3>
+<p class="std">Standard: any of the provider's models scoring ≥ 45 on the AA Intelligence Index → highest CP among those · none reach 45 → its highest score.</p>
 <div class="tablewrap"><table><thead><tr><th>Provider</th><th>Now</th><th class="num">Now $</th>
 <th class="num">Now CP</th><th>Qualified</th><th class="num">Qualified $</th><th class="num">Qualified CP</th></tr></thead>
 <tbody id="bench">@@bench@@</tbody></table></div>
-<p class="foot">$ = cost per task at API prices (AA rows: AA's cost per index task), not subscription quota.
-CP = score points per US dollar; higher is better. * nothing from this provider reaches 50%: its highest.
-AA = Artificial Analysis Intelligence Index (another test set): not comparable with CursorBench.</p>
+<p class="foot">$ = AA's cost per index task at API prices, not subscription quota.
+CP = index points per US dollar; higher is better. * nothing from this provider reaches 45: its highest.
+AA = Artificial Analysis Intelligence Index.</p>
 @@skipped@@
 <p class="links">Compare models: <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 </main><script>@@expiry_script@@</script></body></html>

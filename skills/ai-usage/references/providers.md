@@ -164,8 +164,7 @@ report what comes back.
 - **Subprocess and network access.** The host must allow local process launches, and
   each installed provider CLI must be able to reach its own service. Direct
   public HTTP requests the Python code makes are one GET of AI Model Compare's
-  `data/cursorbench.json` (`cursorbench.py`), one GET of its `data/aa.json` when a
-  current model CursorBench does not list needs an AA row, and, for step 0 only,
+  `data/aa.json` (`cursorbench.py`), and, for step 0 only,
   one GET of this skill's published `SKILL.md` on `raw.githubusercontent.com`; no
   credential is sent to these public sources. Claude quota and reset grants use
   one authenticated GET to api.anthropic.com; credentials are sent only to that vendor.
@@ -222,8 +221,8 @@ defaults. See the docstring in `session_info.py` for the files
 and fields. A `?` means the file did not carry that field — print `?`, never a guess.
 One exception: Muse records no effort for TUI turns unless `/effort` was used, and then
 runs at its documented default (`muse --help`: "default: high"); the probe prints
-`effort  high (default)`. Print it as `effort high (default)`; CursorBench looks it up
-as High.
+`effort  high (default)`. Print it as `effort high (default)`; the AA lookup uses
+High.
 `no local session` means that CLI has never run here; print it as one row.
 
 

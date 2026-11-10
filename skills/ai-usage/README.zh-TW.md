@@ -182,10 +182,9 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    （Claude、ChatGPT、Grok）。
 4. **我的用法** —— 平時使用的三平台預設與先升 effort 的順序，以及經 Notion 核對、
    附日期的六個 s-agent 角色安排快照；報表不會修改 CLI 設定，也不會即時讀取或同步 Notion。
-5. **合格（CursorBench）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；「合格」是
-   挑選規則選出的那一檔。兩邊各有分數、`$`（依 API 價格的每題成本）與 CP（分數 ÷ `$`）。
-   `*` 表示這家沒有任何一檔到 50%，改列它的最高分。CursorBench 沒收錄的 model（例如上圖的
-   GPT-6.1 Sol）改用 Artificial Analysis，顯示 `AA <指數>`。
+5. **合格（Artificial Analysis）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；
+   「合格」是挑選規則選出的 model + effort。兩邊各有 AA 智力指數、`$`（AA 每題成本，依 API
+   價格）與 CP（指數 ÷ `$`）。`*` 表示這家沒有任何一檔到 45，改列它的最高分。
 6. **Compare models** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
 對話框裡只顯示推薦 —— **→** 現在該用哪一個（看最緊的視窗誰剩最多額度，免費或沒有方案名稱（如 Gemini 的 `?`）不算，差距 10 點內才比跑分）、附一句理由；週視窗超過 80% 時前面多一行
@@ -227,16 +226,15 @@ CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。刻意不�
 model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`；不連網、不啟動
 任何程式）。反映的是最後送出的那一輪，所以之後才切換的 model 要等下一則訊息才會出現。
 
-**CursorBench。** 各 provider 下方有一張表，每個你在用的 CLI 一列：該 CLI 最後一次用的
-model + effort 在 [CursorBench](https://cursor.com/cursorbench) 的分數、每題成本、每題
-tokens、每題 steps，以及 CP（分數 ÷ 每題成本，也就是依 Cursor 的 API 價格，每 1 美元換到的 CursorBench 分數，
-越高越划算）。報表的表格兩邊都列分數、`$` 與 CP；tokens 與 steps 只留在原始輸出。每家再列一個「合格」組合：同一個 model 裡，在該家所有模型與強度中，分數 ≥ 50% 裡 CP 最高的一檔；整家都達不到 50% 時，取該家最高分。CursorBench 沒收錄的 model 顯示 `not listed`，
-絕不借用相鄰那列的數字。這種 model 改用它在 [Artificial Analysis](https://artificialanalysis.ai)
-的資料，標 `AA`：AA 智力指數、每題成本、speed、verbosity、latency（AA 模型頁那五個量值），合格規則套在該 model 自己的各強度上。AA 是
-另一套題，分數與 CP 不跟 CursorBench 比。唯一例外（依使用者要求）：某家在 CursorBench 上沒有任何模型到 50% 時，`AA_EXTRA` 裡列的 model 若在 AA 上有一檔到 50，就放進合格欄並標 `AA`。例子是 ChatGPT 的 GPT-6.1 Sol（AA 50）取代 GPT-5.6 Sol Max（41.7%）。AA 也沒有資料時，才多一行 `ref`，標示同家最新、同強度的一列，
-僅供對照。`cursorbench.py` 自己不爬這兩個網站，而是讀 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
-發布的資料（`data/cursorbench.json`，需要 AA 時再讀 `data/aa.json`）；那個網站每 6 小時從 CursorBench 與
-Artificial Analysis 更新一次，所以跑分數字最多晚 6 小時。加上更新檢查對 `raw.githubusercontent.com` 的一次請求，
+**合格（Artificial Analysis）。** 各 provider 下方有一張表，每個你在用的 CLI 一列：該 CLI
+最後一次用的 model + effort 在 [Artificial Analysis](https://artificialanalysis.ai) 的智力指數、
+每題成本、speed、verbosity、latency（AA 模型頁那五個量值），以及 CP（指數 ÷ 每題成本，依 API
+價格每 1 美元換到的分數，越高越划算）。每家再列一個「合格」組合：在該家 AA 上所有模型與強度中，
+指數 ≥ 45 裡 CP 最高的一檔；整家都達不到 45 時，取該家最高分。尚未公開提供的模型（`cursorbench.py`
+的 `UNAVAILABLE`，目前是 Gemini 4 Carbon）不會被選。AA 沒收錄的 model 顯示 `not listed`，絕不借用
+相鄰那列的數字。不再使用 CursorBench：它由 Cursor 自己測，自家的 Composer 也在榜上。
+`cursorbench.py`（檔名沿用）自己不爬 AA，而是讀 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
+發布的 `data/aa.json`；那個網站每 6 小時從 Artificial Analysis 更新一次，所以跑分數字最多晚 6 小時。加上更新檢查對 `raw.githubusercontent.com` 的一次請求，
 這些公開請求不帶憑證。Claude reset grants 另使用既有 CLI access token，
 唯讀 GET 官方 api.anthropic.com；token 不會送給公開跑分或更新來源。
 

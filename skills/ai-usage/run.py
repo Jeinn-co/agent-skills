@@ -28,7 +28,7 @@ HERE = Path(__file__).resolve().parent
 # muse serve        -> MSP usage/read after one tiny turn -- live, see muse_usage.py
 # agy -p "/usage"   -> Antigravity CLI quota pools (Gemini) -- live, see agy_usage.py
 # session_info.py <cli>  -> newest local session file     -- model/effort/permission
-# cursorbench.py cli=model:effort ...  -> cursor.com/cursorbench rows for those models
+# cursorbench.py cli=model:effort ...  -> Artificial Analysis rows and picks for those models
 PROBES = (("CLAUDE", "claude_usage.py", "claude"),
           ("CHATGPT", "codex_usage.py", "codex"),
           ("GROK", "grok_usage.py", "grok"),
