@@ -468,7 +468,7 @@ background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}}
 .now{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}
-h3{font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:36px 0 8px}.std{color:var(--muted);font-size:14px;margin:0 0 8px;font-style:italic}
+h3{font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:36px 0 8px}.std{color:var(--muted);font-size:14px;margin:0 0 8px;font-style:italic}.rule{color:var(--accent);font-size:18px;font-weight:700;border-left:4px solid var(--accent);padding:6px 12px;margin:4px 0 12px}
 .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
 table{border-collapse:collapse;width:100%;font-size:15px}th,td{padding:9px 12px;text-align:left;
 border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}
@@ -483,6 +483,7 @@ tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-lef
 <h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
 <h3>My usage</h3>
+<p class="rule">Feels dumb or not proactive? Don't second-guess it: move up a step right away.</p>
 <p class="std">Daily use: raise effort first, then switch to a stronger model. Chosen on 2026-11-10 from Artificial Analysis: options that another of the same CLI beats on both score and cost are skipped; the daily default is the cheapest remaining option scoring at least 45, and harder or important tasks start at the cheapest scoring at least 50. Artificial Analysis scores Gemini 4 Argon only at high, so its medium default rests on ARC-AGI-2 (87.1 against 91.2 at under half the cost). Cross-checked with ARC-AGI-2 and Terminal-Bench; on ARC-AGI-2, Opus 5.5 / high beats Fable 5.2 / low and medium. Gemini 4 Carbon tops Artificial Analysis but is left out: Google currently gives it only to selected cybersecurity defenders through its Fairwind program (checked 2026-11-10).</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>Platform</th><th>Daily default</th><th>Harder tasks</th><th>Special use</th></tr></thead><tbody>
 <tr class="anth"><td>Claude Code</td><td>Opus 5.5 / medium</td><td>Fable 5.2 / low &rarr; Fable 5.2 / medium</td><td>&mdash;</td></tr>
