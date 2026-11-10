@@ -463,20 +463,20 @@ PAGE = """<!doctype html>
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
 :root[data-theme=dark]{@@dark@@}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
-font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
+font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px clamp(14px,4vw,40px) 48px;-webkit-font-smoothing:antialiased}
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
 .sub{color:var(--muted);margin:0 0 20px}
-.grid{display:grid;grid-template-columns:1fr;gap:14px}
-.card{--brand:100,116,139;background:linear-gradient(180deg,rgba(var(--brand),.09),transparent 100px),var(--card);border:1px solid var(--line);border-left:4px solid rgb(var(--brand));border-radius:12px;padding:20px 22px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.grid{display:grid;grid-template-columns:1fr;gap:20px}
+.card{--brand:100,116,139;background:linear-gradient(180deg,rgba(var(--brand),.09),transparent 100px),var(--card);border:1px solid var(--line);border-left:4px solid rgb(var(--brand));border-radius:12px;padding:22px clamp(16px,3vw,28px) 20px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .card[data-id=CLAUDE],.anth{--brand:217,119,87}
 .card[data-id=CHATGPT],.oai{--brand:16,163,127}
 .card[data-id=GROK]{--brand:148,163,184}
 .card[data-id=MUSE]{--brand:149,83,255}
 .card[data-id=GEMINI],.gemini{--brand:49,134,255}
-header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin-bottom:16px}
 h2{font-size:17px;font-weight:600;margin:0}.logo{width:18px;height:18px;margin-right:8px;vertical-align:-3px}.plan{color:var(--muted);font-size:14px;border:1px solid var(--line);
 border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color:var(--accent);text-decoration:none}
-.row{display:grid;grid-template-columns:64px 1fr 56px 112px;align-items:center;gap:10px;margin:8px 0}
+.row{display:grid;grid-template-columns:64px 1fr 56px 112px;align-items:center;gap:6px 12px;margin:10px 0}
 .lbl,.reset-credits{font-size:13px}
 .lbl{color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:999px;overflow:hidden}
 .row.time{margin:-2px 0 26px}.tbar{position:relative;height:14px;display:flex;align-items:center}
@@ -510,15 +510,15 @@ border:1px solid var(--accent);border-radius:6px;background:transparent;color:va
 background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}}
-.now{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
+.now{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}
-h3{font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:36px 0 8px}.std{color:var(--muted);font-size:14px;margin:0 0 8px;font-style:italic}.rule{color:var(--accent);font-size:18px;font-weight:700;border-left:4px solid var(--accent);padding:6px 12px;margin:4px 0 12px}
+h3{font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:48px 0 10px}.std{color:var(--muted);font-size:14px;margin:0 0 14px;font-style:italic}.rule{color:var(--accent);font-size:18px;font-weight:700;border-left:4px solid var(--accent);padding:6px 14px;margin:0 0 12px}
 .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
-table{border-collapse:collapse;width:100%;font-size:15px}th,td{padding:9px 12px;text-align:left;
+table{border-collapse:collapse;width:100%;font-size:15px}th,td{padding:10px 16px;text-align:left;
 border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}
 tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums}.score{color:var(--muted)}
-.foot{color:var(--muted);font-size:14px;margin:8px 0}.muted{color:var(--muted)}
-.links{margin-top:20px}a{color:var(--accent)}
+.foot{color:var(--muted);font-size:14px;margin:10px 4px 0}.muted{color:var(--muted)}
+.links{margin:32px 0 0}a{color:var(--accent)}
 :root:not([data-lang=zh]) .l-zh,:root[data-lang=zh] .l-en{display:none}
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .lang{font:inherit;font-size:14px;min-height:32px;padding:4px 14px;border:1px solid var(--accent);border-radius:999px;background:transparent;color:var(--accent);cursor:pointer}
@@ -526,7 +526,8 @@ tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabu
 tr.anth td,tr.oai td,tr.gemini td,td.anth,td.oai,td.gemini{background:rgba(var(--brand),.07)}
 tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-left:4px solid rgb(var(--brand))}
 .usage-guide td{white-space:normal;min-width:140px}
-@media (max-width:480px){.row{grid-template-columns:44px 1fr 40px}.reset{grid-column:2/4}.left{grid-column:2/4}}
+@media (max-width:480px){.row{grid-template-columns:44px 1fr 40px}.reset{grid-column:2/4}.left{grid-column:2/4}
+.row.time{row-gap:24px;margin-bottom:18px}h3{margin-top:40px}th,td{padding:9px 12px}}
 </style></head><body><main>
 <div class="top"><h1>AI Usage</h1><button type="button" class="lang" id="lang">中文</button></div><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>

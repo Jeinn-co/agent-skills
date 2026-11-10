@@ -161,27 +161,43 @@ PING = ("ai-usage %s %s" % (portable.VERSION, HERE)).encode("utf-8")
 # re-reads the last report; the button shows skeleton cards and fetches each provider
 # with its own request, so every card fills in as soon as its CLI answers.
 SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>AI Usage</title>
-<style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0}
+<style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0;
+--ring:#2563eb}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
---page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569}}
+--page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569;--ring:#93c5fd}}
 :root[data-theme=dark]{color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;
---btn:#475569}
-html,body{margin:0;height:100%}body{box-sizing:border-box;padding:16px;display:flex;
-flex-direction:column;gap:12px;background:var(--page)}
-iframe{flex:1;min-height:0;width:100%;box-sizing:border-box;border:1px solid var(--edge);
-border-radius:12px;background:var(--frame)}
-#bar{display:flex;justify-content:space-between;gap:12px;align-items:center;
-font:12px system-ui,sans-serif;color:CanvasText}
-#bar h1{font-size:20px;font-weight:600;margin:0 0 2px}#meta{opacity:.7}
-#updated:not(:empty)::after{content:" · "}#tools{display:flex;gap:8px}
-button,select{padding:5px 12px;border:0;border-radius:12px;font:inherit;background:var(--btn);
-color:inherit;cursor:pointer}</style>
+--btn:#475569;--ring:#93c5fd}
+html,body{margin:0;height:100%}body{box-sizing:border-box;padding:24px clamp(12px,3vw,32px);
+display:flex;flex-direction:column;gap:20px;background:var(--page)}
+/* bar and frame share one centred column, as wide as the report's content plus its padding */
+body>*{width:100%;max-width:1120px;align-self:center}
+iframe{flex:1;min-height:0;box-sizing:border-box;border:1px solid var(--edge);
+border-radius:16px;background:var(--frame)}
+#bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;align-items:center;
+padding:0 4px;box-sizing:border-box;font:13px/1.4 system-ui,sans-serif;color:CanvasText}
+#bar h1{font-size:22px;font-weight:600;line-height:1.2;margin:0 0 4px}#meta{opacity:.75}
+#updated:not(:empty)::after{content:" · "}#tools{display:flex;flex-wrap:wrap;gap:8px}
+button,select{padding:0 14px;border:0;border-radius:999px;font:inherit;background:var(--btn);
+color:inherit;cursor:pointer}
+#tools button,.sel{display:inline-flex;align-items:center;gap:6px;height:34px;box-sizing:border-box}
+.ico{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+/* the select fills the whole pill so its native list opens aligned to the pill and at least as wide */
+.sel{position:relative;padding:0}
+.sel select{appearance:none;-webkit-appearance:none;height:100%;padding:0 26px 0 34px}
+.sel .ico{position:absolute;left:14px;pointer-events:none}.sel .chev{left:auto;right:10px;width:10px;height:10px}
+#theme option{background:var(--page);color:CanvasText}
+.sel{border-radius:999px}
+#tools button:focus-visible,:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--ring);outline-offset:2px}
+#tools :focus:not(:focus-visible),.sel select:focus{outline:0}</style>
 </head><body><header id="bar"><div><h1>AI Usage</h1><div id="meta"><span id="updated"></span><span>ai-usage __VERSION__</span></div></div>
-<div id="tools"><select id="theme" aria-label="Theme"><option value="auto">Auto</option>
-<option value="light">Light</option><option value="dark">Dark</option></select>
-<button id="refresh">Refresh</button></div></header><iframe id="report"></iframe><script>
+<div id="tools"><button id="lang" type="button"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg><span>中文</span></button><label class="sel"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><select id="theme" aria-label="Theme"><option value="auto">Auto</option>
+<option value="light">Light</option><option value="dark">Dark</option></select><svg class="ico chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75l3 3 3-3"/></svg></label>
+<button id="refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg><span>Refresh</span></button></div></header><iframe id="report"></iframe><script>
 const frame = document.getElementById("report"), button = document.getElementById("refresh");
 const picker = document.getElementById("theme");
+// Chrome treats a mouse-focused <select> as :focus-visible, so the ring is keyed to the last input.
+addEventListener("pointerdown", () => document.documentElement.classList.add("mouse"), true);
+addEventListener("keydown", () => document.documentElement.classList.remove("mouse"), true);
 const THEMES = ["auto", "light", "dark"];
 const SKELETON = __SKELETON__;
 let theme = "auto";  // Auto follows the OS; the choice is kept per browser
@@ -207,6 +223,29 @@ picker.onchange = () => {
   applyTheme(document);
   if (frame.contentDocument) applyTheme(frame.contentDocument);
 };
+// Same key as the report's own switch, so the srcdoc report opens in this language too.
+const langButton = document.getElementById("lang");
+let lang;
+try { lang = localStorage.getItem("ai-usage-lang"); } catch (e) {}
+if (lang !== "zh" && lang !== "en") lang = /^zh/i.test(navigator.language || "") ? "zh" : "en";
+const applyLang = doc => {
+  doc.documentElement.dataset.lang = lang;
+  doc.documentElement.lang = lang === "zh" ? "zh-Hant" : "en";
+};
+const labelLang = () => {
+  langButton.querySelector("span").textContent = lang === "zh" ? "EN" : "中文";
+  langButton.setAttribute("aria-label", lang === "zh" ? "Switch to English" : "切換成中文");
+};
+labelLang();
+langButton.onclick = () => {
+  lang = lang === "zh" ? "en" : "zh";
+  try { localStorage.setItem("ai-usage-lang", lang); } catch (e) {}
+  labelLang();
+  if (frame.contentDocument) {
+    applyLang(frame.contentDocument);
+    frame.contentWindow.updateResetExpiry?.();
+  }
+};
 const stamp = ms => {  // when the shown report was produced, in local time
   const d = new Date(ms), p = n => String(n).padStart(2, "0");
   document.getElementById("updated").textContent = ms ? "Updated " + p(d.getMonth() + 1) + "-" +
@@ -216,7 +255,8 @@ stamp(__UPDATED__);
 frame.onload = () => {
   const main = frame.contentDocument.querySelector("main");
   if (main) {
-    main.querySelector("h1")?.remove();
+    // The bar above has the title and the language switch, so drop the report's own.
+    (main.querySelector(".top") || main.querySelector("h1"))?.remove();
     main.querySelector(".sub")?.remove();
     frame.contentDocument.body.style.paddingTop = "20px";
   }
@@ -279,16 +319,16 @@ const update = (doc, ids, bench) => {
 };
 const busy = work => {
   button.disabled = true;
-  button.textContent = "Refreshing\\u2026";
+  button.querySelector("span").textContent = "Refreshing\\u2026";
   stamp(0);
   return work()
     .then(written => {
       stamp(Number(written));
-      button.textContent = "Refresh";
+      button.querySelector("span").textContent = "Refresh";
     })
     .catch(e => {
       show(notice("Fetch failed (" + e + "). Press Retry."));
-      button.textContent = "Retry";
+      button.querySelector("span").textContent = "Retry";
     })
     .finally(() => { button.disabled = false; });
 };
