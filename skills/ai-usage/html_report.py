@@ -487,18 +487,18 @@ tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-lef
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>Platform</th><th>Daily default</th><th>Harder tasks</th><th>Special use</th></tr></thead><tbody>
 <tr class="anth"><td>Claude Code</td><td>Fable 5.2 / low</td><td>Fable 5.2 / medium &rarr; Fable 5.2 / high</td><td>&mdash;</td></tr>
 <tr class="oai"><td>Codex</td><td>GPT-6.1-Sol / high</td><td>GPT-6.1-Sol / xhigh &rarr; GPT-6.1-Sol / max</td><td>GPT-6.1-Terra: visual understanding and app operation</td></tr>
-<tr class="gemini"><td>Gemini</td><td>Gemini 3.8 Flash / medium</td><td>Gemini 4 Argon / high</td><td>&mdash;</td></tr>
+<tr class="gemini"><td>Gemini</td><td>Gemini 4 Argon / high</td><td>&mdash;</td><td>&mdash;</td></tr>
 </tbody></table></div>
-<p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings. Gemini 3.8 Flash scores below 50 but is the only Gemini model most accounts can use.</p>
+<p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings. Gemini 4 Argon / high is the only publicly available Gemini option scoring 50 or more, so Gemini has no harder step yet.</p>
 <h3>Delegated roles</h3>
 <p class="std">s-agent role configuration snapshot, checked on 2026-11-10. Select roles for the task and start with one subagent; the full team is not launched every time.</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>Role / responsibility</th><th>Claude Code</th><th>Codex</th><th>Gemini</th></tr></thead><tbody>
-<tr><td>PM: requirements and planning</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
-<tr><td>Designer: UI, interaction and accessibility</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Terra / medium</td><td class="gemini">Gemini 3.8 Flash / medium</td></tr>
-<tr><td>Developer: implementation and bug fixes</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 3.8 Flash / medium</td></tr>
-<tr><td>QA: reproduction and acceptance checks</td><td class="anth">Fable 5.2 / medium</td><td class="oai">GPT-6.1-Sol / xhigh</td><td class="gemini">Gemini 3.8 Flash / high</td></tr>
-<tr><td>Reviewer: independent review</td><td class="anth">Fable 5.2 / medium</td><td class="oai">GPT-6.1-Sol / xhigh</td><td class="gemini">Gemini 3.8 Flash / high</td></tr>
-<tr><td>DevOps: environments and operations</td><td class="anth">Fable 5.2 / medium</td><td class="oai">GPT-6.1-Sol / xhigh</td><td class="gemini">Gemini 3.8 Flash / high</td></tr>
+<tr><td>PM: requirements and planning</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td>Designer: UI, interaction and accessibility</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Terra / medium</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td>Developer: implementation and bug fixes</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td>QA: reproduction and acceptance checks</td><td class="anth">Fable 5.2 / medium</td><td class="oai">GPT-6.1-Sol / xhigh</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td>Reviewer: independent review</td><td class="anth">Fable 5.2 / medium</td><td class="oai">GPT-6.1-Sol / xhigh</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td>DevOps: environments and operations</td><td class="anth">Fable 5.2 / medium</td><td class="oai">GPT-6.1-Sol / xhigh</td><td class="gemini">Gemini 4 Argon / high</td></tr>
 </tbody></table></div>
 <p class="foot">Source: <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</p>
 <h3>Qualified (Artificial Analysis)</h3>

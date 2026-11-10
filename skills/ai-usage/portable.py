@@ -16,7 +16,7 @@ Neither has any effect on macOS or Linux.
 import atexit, datetime, json, os, shutil, signal, subprocess, sys, time
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.21.3"
+VERSION = "1.21.4"
 # Seconds per lookup. The chat report keeps 20; the browser page, which shows each
 # provider as soon as it answers, passes a longer one to its probes in AI_USAGE_TIMEOUT.
 CALL_TIMEOUT = float(os.environ.get("AI_USAGE_TIMEOUT") or 20)
