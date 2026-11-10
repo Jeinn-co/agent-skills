@@ -1,6 +1,6 @@
 """Render run.py's tab-separated check lines as one self-contained HTML page.
 
-No scripts and no external requests: the page only shows what run.py printed.
+No external requests: the page only shows what run.py printed.
 """
 import datetime
 import html
@@ -26,6 +26,10 @@ COMPARE = "https://jeinn-co.github.io/ai-model-compare/"
 
 def esc(text):
     return html.escape(str(text), quote=True)
+
+
+def bi(en, zh):
+    return '<span class="l-en">%s</span><span class="l-zh">%s</span>' % (en, zh)
 
 
 def parse(lines):
@@ -93,25 +97,25 @@ def row(r, loading=False):
         late = ' data-timeout' if "timed out after" in r["note"] else ""
         return ('<tr%s%s><td>%s</td><td colspan="2" class="%s">%s</td>'
                 '<td><span class="badge %s">%s</span></td></tr>'
-                % (row_id, late, label, kind, esc(r["note"]), kind,
-                   "not installed" if kind == "muted" else "check failed"))
+                % (row_id, late, label, kind, bi("not installed", "未安裝") if kind == "muted" else esc(r["note"]), kind,
+                   bi("not installed", "未安裝") if kind == "muted" else bi("check failed", "檢查失敗")))
     released = r.get("released", "?")
     if r["name"] == "grok" and released != "?":
         released = "≤ " + released + " *"
     status = r.get("status", "?")
     if status == "update available":
-        badge = ('<span class="badge up">update</span> <code>%s</code>' % esc(r.get("update_cmd", "")))
+        badge = ('<span class="badge up">%s</span> <code>%s</code>' % (bi("update", "可更新"), esc(r.get("update_cmd", ""))))
     elif status == "up to date":
-        badge = '<span class="badge ok">up to date</span>'
+        badge = '<span class="badge ok">%s</span>' % bi('up to date', '已是最新版')
     else:
         badge = '<span class="badge muted">%s</span>' % esc(status)
     # data-tool marks rows the served page gives an Update button.
     marker = row_id + (' data-tool="%s"' % esc(r["name"]) if status == "update available" else "")
     return ("<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span></td>"
-            "<td><b>%s</b> <span class=\"sub\">released %s</span></td><td>%s"
-            "<div class=\"sub\">channel %s</div></td></tr>"
+            "<td><b>%s</b> <span class=\"sub\">%s %s</span></td><td>%s"
+            "<div class=\"sub\">%s %s</div></td></tr>"
             % (marker, label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")),
-               esc(r.get("latest", "?")), esc(released), badge, esc(r.get("channel", "?"))))
+               esc(r.get("latest", "?")), bi("released", "發布"), esc(released), badge, bi("channel", "頻道"), esc(r.get("channel", "?"))))
 
 
 def row_html(lines):
@@ -127,20 +131,22 @@ def render(lines, now=None, loading=False):
     outdated = [NAMES[r["name"]] for r in rows if r.get("status") == "update available"]
     failed = [NAMES[r["name"]] for r in rows if r.get("note") not in (None, "not installed")]
     parts = []
+    parts_zh = []
     if outdated:
         parts.append("%d update%s available: %s" % (
             len(outdated), "" if len(outdated) == 1 else "s", ", ".join(outdated)))
+        parts_zh.append("%d 個可更新：%s" % (len(outdated), ", ".join(outdated)))
     if failed:
         parts.append("Check failed: %s" % ", ".join(failed))
+        parts_zh.append("檢查失敗：%s" % ", ".join(failed))
     if loading:
-        summary = '<p class="summary muted">Checking versions…</p>'
+        summary = '<p class="summary muted">%s</p>' % bi('Checking versions…', '正在檢查版本…')
     else:
         kind = "up" if outdated else "bad" if failed else "ok"
-        summary = '<p class="summary %s">%s</p>' % (kind, esc(" · ".join(parts) or "All up to date"))
+        summary = '<p class="summary %s">%s</p>' % (kind, bi(esc(" · ".join(parts) or "All up to date"), esc(" · ".join(parts_zh) or "全部已是最新版")))
     grok = not loading and any(r["name"] == "grok" and "note" not in r for r in rows)
-    foot = ('<p class="foot">* Grok release time is approximate (third-party mirror); official: '
-            'x.ai/build/changelog</p>' if grok else "")
-    skip = ('<p class="foot">Not checked (setup): %s</p>' % esc(", ".join(skipped)) if skipped else "")
+    foot = '<p class="foot">%s</p>' % bi('* Grok release time is approximate (third-party mirror); official: x.ai/build/changelog', '* Grok 發布時間為約略值（第三方鏡像）；官方：x.ai/build/changelog') if grok else ''
+    skip = '<p class="foot">%s %s</p>' % (bi('Not checked (setup):', '未檢查（設定）：'), esc(', '.join(skipped))) if skipped else ''
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(version)),
                        ("rows", body), ("summary", summary), ("foot", foot),
@@ -159,12 +165,15 @@ PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CLI Versions</title>
+<script>(function(){var l;try{l=localStorage.getItem('ai-cli-version-lang')}catch(e){}if(l!=='zh'&&l!=='en')l=/^zh/i.test(navigator.language||'')?'zh':'en';document.documentElement.dataset.lang=l;document.documentElement.lang=l==='zh'?'zh-Hant':'en'})();</script>
 <style>
+:root:not([data-lang=zh]) .l-zh,:root[data-lang=zh] .l-en{display:none}
+.title-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px}.lang{font:inherit;font-size:14px;min-height:32px;padding:4px 14px;border:1px solid var(--accent);border-radius:999px;background:transparent;color:var(--accent);cursor:pointer}.lang:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 :root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--ok:#15803d;--up:#b45309;--bad:#dc2626;--accent:#2563eb}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
 :root[data-theme=dark]{@@dark@@}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
-font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px 16px;-webkit-font-smoothing:antialiased}
+font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px clamp(14px,4vw,40px) 48px;-webkit-font-smoothing:antialiased}
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}.top{color:var(--muted);margin:0 0 16px}
 .summary{font-size:17px;font-weight:500;margin:0 0 18px}.summary.ok{color:var(--ok)}.summary.up{color:var(--up)}.summary.bad{color:var(--bad)}.summary.muted{color:var(--muted)}
 .skel{height:10px;margin:8px 0;border-radius:999px;background:linear-gradient(90deg,var(--track) 30%,var(--card) 50%,var(--track) 70%);
@@ -172,7 +181,7 @@ background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}}
 .tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-table{border-collapse:collapse;width:100%}.logo{width:16px;height:16px;margin-right:8px;vertical-align:-3px}th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);
+table{border-collapse:collapse;width:100%}.logo{width:16px;height:16px;margin-right:8px;vertical-align:-3px}th,td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--line);
 vertical-align:top}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}tr:last-child td{border-bottom:0}
 tr[data-row=claude]{--brand:217,119,87}tr[data-row=codex]{--brand:16,163,127}
 tr[data-row=grok]{--brand:148,163,184}tr[data-row=muse]{--brand:149,83,255}tr[data-row=agy]{--brand:49,134,255}
@@ -181,13 +190,13 @@ tr[data-row] td{background:rgba(var(--brand),.07)}tr[data-row] td:first-child{bo
 font-weight:500;letter-spacing:.02em;border:1px solid currentColor}.badge.ok{color:var(--ok)}.badge.up{color:var(--up)}
 .badge.bad{color:var(--bad)}.badge.muted{color:var(--muted)}td.bad{color:var(--bad)}td.muted{color:var(--muted)}
 code{font-family:ui-monospace,Consolas,monospace;font-size:14px;background:var(--bg);padding:1px 6px;border-radius:6px}
-.foot{color:var(--muted);font-size:14px;margin:10px 0}a{color:var(--accent)}
+.foot{color:var(--muted);font-size:14px;margin:10px 4px 0}a{color:var(--accent)}
 </style></head><body><main>
-<h1>CLI Versions</h1><p class="top">@@time@@ · ai-cli-version @@version@@</p>
+<div class="title-row"><h1>CLI Versions</h1><button type="button" class="lang" id="lang">中文</button></div><p class="top">@@time@@ · ai-cli-version @@version@@</p>
 @@summary@@
-<div class="tablewrap"><table><thead><tr><th>Tool</th><th>Installed</th><th>Latest</th><th>Status</th></tr></thead>
+<div class="tablewrap"><table><thead><tr><th><span class="l-en">Tool</span><span class="l-zh">工具</span></th><th><span class="l-en">Installed</span><span class="l-zh">已安裝</span></th><th><span class="l-en">Latest</span><span class="l-zh">最新版</span></th><th><span class="l-en">Status</span><span class="l-zh">狀態</span></th></tr></thead>
 <tbody>@@rows@@</tbody></table></div>
 <div id="foot">@@foot@@@@skipped@@</div>
-<p>Compare models: <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
-</main></body></html>
+<p><span class="l-en">Compare models: </span><span class="l-zh">比較模型：</span><a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
+</main><script>(function(){var r=document.documentElement,b=document.getElementById('lang');function label(){var z=r.dataset.lang==='zh';b.textContent=z?'EN':'中文';b.setAttribute('aria-label',z?'Switch to English':'切換成中文')}b.onclick=function(){var l=r.dataset.lang==='zh'?'en':'zh';r.dataset.lang=l;r.lang=l==='zh'?'zh-Hant':'en';try{localStorage.setItem('ai-cli-version-lang',l)}catch(e){}label()};label()})();</script></body></html>
 """

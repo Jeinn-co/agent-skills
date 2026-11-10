@@ -5,6 +5,8 @@
 一份報表看你的 Claude Code、Codex、Grok Build、Muse Code、Antigravity（Gemini）CLI 是不是最新版 —— 你目前的版本和安裝時間，
 以及最新版本和發佈時間。
 
+HTML 報表支援英文與繁體中文。點主題選單旁的地球按鈕切換語言；預設依瀏覽器語言，並記住你的選擇。
+
 版本檢查永遠是唯讀的。有任一 CLI 不是最新版時，agent 會提供兩個選項：按 `y` 更新全部
 過期 CLI，按 `Esc` 全部跳過。
 

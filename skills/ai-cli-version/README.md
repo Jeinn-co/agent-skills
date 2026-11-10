@@ -3,6 +3,9 @@
 One report for whether your Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date — the
 version you have and when you installed it, the latest version and when it was released.
 
+The HTML report supports English and Traditional Chinese. Use the globe button beside
+the theme picker; it starts with your browser language and remembers your choice.
+
 The version check is always read-only. When an update is available, the agent offers two
 choices: `y` updates every outdated CLI, while `Esc` skips all updates.
 

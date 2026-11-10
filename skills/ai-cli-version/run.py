@@ -29,7 +29,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.15.1"
+VERSION = "1.16.0"
 
 # Seconds per check. The chat report keeps 20; the browser page, which shows each tool
 # as soon as it answers, passes a longer one to its probes in AI_CLI_VERSION_TIMEOUT.
@@ -499,33 +499,63 @@ EMPTY_PAGE = ('<!doctype html><html><head><meta charset="utf-8"><style>%s</style
 # skeleton rows and checks each tool with its own request, so every row fills in as soon
 # as its tool answers.
 SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>CLI Versions</title>
-<style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
---page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569}}
-:root[data-theme=dark]{color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;
---btn:#475569}
-html,body{margin:0;height:100%}body{box-sizing:border-box;padding:16px;display:flex;
-flex-direction:column;gap:12px;background:var(--page)}
-iframe{flex:1;min-height:0;width:100%;box-sizing:border-box;border:1px solid var(--edge);
-border-radius:12px;background:var(--frame)}
-#bar{display:flex;justify-content:space-between;gap:12px;align-items:center;
-font:12px system-ui,sans-serif;color:CanvasText}
-#bar h1{font-size:20px;font-weight:600;margin:0 0 2px}#meta{opacity:.7}
-#updated:not(:empty)::after{content:" · "}#tools{display:flex;gap:8px}
-button,select{padding:5px 12px;border:0;border-radius:12px;font:inherit;background:var(--btn);
-color:inherit;cursor:pointer}button:disabled{opacity:.6;cursor:default}
-#all{background:#2563eb;color:#fff}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) #all{background:#93c5fd;
-color:#0f172a}}:root[data-theme=dark] #all{background:#93c5fd;color:#0f172a}</style>
+<style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0;--ring:#2563eb}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569;--ring:#93c5fd}}
+:root[data-theme=dark]{color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569;--ring:#93c5fd}
+html,body{margin:0;height:100%}body{box-sizing:border-box;padding:24px clamp(12px,3vw,32px);display:flex;flex-direction:column;gap:20px;background:var(--page)}
+body>*{width:100%;max-width:1120px;align-self:center}
+iframe{flex:1;min-height:0;box-sizing:border-box;border:1px solid var(--edge);border-radius:16px;background:var(--frame)}
+#bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;align-items:center;padding:0 4px;box-sizing:border-box;font:13px/1.4 system-ui,sans-serif;color:CanvasText}
+#bar h1{font-size:22px;font-weight:600;line-height:1.2;margin:0 0 4px}#meta{opacity:.75}
+#updated:not(:empty)::after{content:" · "}#tools{display:flex;flex-wrap:wrap;gap:8px}
+button,select{padding:0 14px;border:0;border-radius:999px;font:inherit;background:var(--btn);color:inherit;cursor:pointer}button:disabled{opacity:.6;cursor:default}
+#tools button,.sel{display:inline-flex;align-items:center;gap:6px;height:34px;box-sizing:border-box}
+.ico{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sel{position:relative;padding:0;border-radius:999px}.sel select{appearance:none;-webkit-appearance:none;height:100%;padding:0 26px 0 34px}
+.sel .ico{position:absolute;left:14px;pointer-events:none}.sel .chev{left:auto;right:10px;width:10px;height:10px}
+#theme option{background:var(--page);color:CanvasText}
+#tools button:focus-visible,:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--ring);outline-offset:2px}
+#tools :focus:not(:focus-visible),.sel select:focus{outline:0}
+#all[hidden]{display:none}#all{background:#2563eb;color:#fff}@media (prefers-color-scheme:dark){:root:not([data-theme=light]) #all{background:#93c5fd;color:#0f172a}}:root[data-theme=dark] #all{background:#93c5fd;color:#0f172a}</style>
 </head><body><header id="bar"><div><h1>CLI Versions</h1><div id="meta"><span id="updated"></span><span>ai-cli-version __VERSION__</span></div></div>
-<div id="tools"><select id="theme" aria-label="Theme"><option value="auto">Auto</option>
-<option value="light">Light</option><option value="dark">Dark</option></select>
-<button id="all" hidden></button><button id="refresh">Refresh</button></div></header>
+<div id="tools"><button id="lang" type="button"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg><span>中文</span></button><label class="sel"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><select id="theme" aria-label="Theme"><option value="auto">Auto</option>
+<option value="light">Light</option><option value="dark">Dark</option></select><svg class="ico chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75l3 3 3-3"/></svg></label>
+<button id="all" hidden></button><button id="refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg><span>Refresh</span></button></div></header>
 <iframe id="report"></iframe><script>
 const frame = document.getElementById("report"), button = document.getElementById("refresh");
 const allButton = document.getElementById("all");
 const picker = document.getElementById("theme");
+addEventListener("pointerdown", () => document.documentElement.classList.add("mouse"), true);
+addEventListener("keydown", () => document.documentElement.classList.remove("mouse"), true);
 const THEMES = ["auto", "light", "dark"];
+let lang;
+try { lang = localStorage.getItem("ai-cli-version-lang"); } catch (e) {}
+if (lang !== "zh" && lang !== "en") lang = /^zh/i.test(navigator.language || "") ? "zh" : "en";
+const t = (en, zh) => lang === "zh" ? zh : en;
+const langButton = document.getElementById("lang");
+let refreshState = "refresh", updatedAt = __UPDATED__;
+const applyLang = doc => {
+  doc.documentElement.dataset.lang = lang;
+  doc.documentElement.lang = lang === "zh" ? "zh-Hant" : "en";
+};
+const refreshLabel = () => { button.querySelector("span").textContent = refreshState === "busy" ? t("Refreshing…", "重新整理中…") : refreshState === "retry" ? t("Retry", "重試") : t("Refresh", "重新整理"); };
+const labels = () => {
+  applyLang(document);
+  if (frame.contentDocument) applyLang(frame.contentDocument);
+  langButton.querySelector("span").textContent = t("中文", "EN");
+  langButton.setAttribute("aria-label", t("切換成中文", "Switch to English"));
+  picker.setAttribute("aria-label", t("Theme", "主題"));
+  [picker.options[0].textContent, picker.options[1].textContent, picker.options[2].textContent] =
+    [t("Auto", "自動"), t("Light", "淺色"), t("Dark", "深色")];
+  refreshLabel();
+};
+langButton.onclick = () => {
+  lang = lang === "zh" ? "en" : "zh";
+  try { localStorage.setItem("ai-cli-version-lang", lang); } catch (e) {}
+  labels(); stamp(updatedAt); syncButtons();
+  frame.contentDocument?.querySelectorAll(".acv-err").forEach(el => { el.textContent = t("Update failed: ", "更新失敗：") + failures[el.dataset.tool]; });
+};
+labels();
 const SKELETON = __SKELETON__;
 let theme = "auto";  // Auto follows the OS; the choice is kept per browser
 try { theme = localStorage.getItem("ai-cli-version-theme") || "auto"; } catch (e) {}
@@ -551,8 +581,9 @@ picker.onchange = () => {
   if (frame.contentDocument) applyTheme(frame.contentDocument);
 };
 const stamp = ms => {  // when the shown report was written, in local time
+  updatedAt = ms;
   const d = new Date(ms), p = n => String(n).padStart(2, "0");
-  document.getElementById("updated").textContent = ms ? "Updated " + p(d.getMonth() + 1) + "-" +
+  document.getElementById("updated").textContent = ms ? t("Updated ", "更新於 ") + p(d.getMonth() + 1) + "-" +
     p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) : "";
 };
 stamp(__UPDATED__);
@@ -568,17 +599,16 @@ const syncButtons = () => {
   const rows = [...(frame.contentDocument?.querySelectorAll("tr[data-tool]") || [])];
   allButton.hidden = rows.length < 2 && !queue.length;
   allButton.disabled = busy || (updating && !queue.length);
-  allButton.textContent = !updating ? "Update all (" + rows.length + ")" :
-    queue.length ? "Cancel queued (" + queue.length + ")" : "Finishing\\u2026";
+  allButton.textContent = !updating ? t("Update all (", "全部更新（") + rows.length + t(")", "）") :
+    queue.length ? t("Cancel queued (", "取消佇列（") + queue.length + t(")", "）") : t("Finishing…", "即將完成…");
   // While updates run, only a queued row's button works, and it cancels just that tool;
   // the running row and rows outside the queue stay disabled until the queue ends.
   frame.contentDocument?.querySelectorAll("button.acv-up").forEach(b => {
     const tool = b.dataset.tool, queued = pending.has(tool) && tool !== current;
     b.disabled = busy || (updating && !queued);
-    if (queued) b.textContent = "Queued \\u00b7 Cancel";
-    else if (!pending.has(tool) && b.textContent.startsWith("Queued")) {
-      b.textContent = failures[tool] ? "Retry" : "Update";
-    }
+    if (queued) b.textContent = t("Queued · Cancel", "佇列中 · 取消");
+    else if (tool === current) b.textContent = t("Updating…", "更新中…");
+    else b.textContent = failures[tool] ? t("Retry", "重試") : t("Update", "更新");
   });
 };
 const setBusy = on => { busy = on; syncButtons(); };
@@ -595,7 +625,7 @@ const decorate = doc => {
   if (!doc.getElementById("acv-style")) {
     const main = doc.querySelector("main");
     if (main) {  // the shell already shows the title and version
-      main.querySelector("h1")?.remove();
+      main.querySelector(".title-row")?.remove();
       main.querySelector(".top")?.remove();
       doc.body.style.paddingTop = "20px";
     }
@@ -614,21 +644,22 @@ const decorate = doc => {
     const up = doc.createElement("button");
     up.className = "acv-up";
     up.dataset.tool = tool;
-    up.textContent = pending.has(tool) && tool !== current ? "Queued \\u00b7 Cancel" :
-      failures[tool] ? "Retry" : "Update";
+    up.textContent = pending.has(tool) && tool !== current ? t("Queued · Cancel", "佇列中 · 取消") :
+      failures[tool] ? t("Retry", "重試") : t("Update", "更新");
     up.onclick = () => pending.has(tool) && tool !== current ? cancelQueued([tool]) :
       enqueueTools([tool]);
     (cell.querySelector("code") || cell.firstElementChild || cell).after(up);
     if (failures[tool]) {
       const err = doc.createElement("div");
       err.className = "acv-err";
-      err.textContent = "Update failed: " + failures[tool];
+      err.dataset.tool = tool;
+      err.textContent = t("Update failed: ", "更新失敗：") + failures[tool];
       cell.appendChild(err);
     }
   }
   syncButtons();
 };
-frame.onload = () => decorate(frame.contentDocument);
+frame.onload = () => { applyLang(frame.contentDocument); decorate(frame.contentDocument); };
 // Puts the summary above the table and the notes below it from a freshly saved page.
 const swapSummary = (doc, fresh) => {
   for (const sel of [".summary", "#foot"]) {
@@ -670,7 +701,7 @@ const check = (doc, tools) => {
     const cell = doc.querySelector('tr[data-row="' + CSS.escape(tool) + '"] .skel')?.parentElement;
     if (cell) {
       cell.className = "bad";
-      cell.textContent = "check failed (" + e + ")";
+      cell.textContent = t("check failed (", "檢查失敗（") + e + t(")", "）");
     }
   }))).then(() => post("/finish", {lines})).then(r => {
     swapSummary(doc, new DOMParser().parseFromString(r.page, "text/html"));
@@ -679,7 +710,7 @@ const check = (doc, tools) => {
   });
 };
 get("/last")
-  .then(show, e => show(notice("Could not load the report (" + e + ").")))
+  .then(show, e => show(notice(t("Could not load the report (", "無法載入報表（") + e + t(").", "）。"))))
   .then(doc => {
     // A row whose check ran out of the chat report's 20 s is checked again here, with
     // the page's longer budget.
@@ -691,13 +722,13 @@ get("/last")
       row.insertAdjacentHTML("beforeend", SKELETON);
     }
     setBusy(true);
-    button.textContent = "Refreshing\\u2026";
+    refreshState = "busy"; refreshLabel();
     stamp(0);
     check(doc, late.map(row => row.dataset.row))
-      .then(() => { button.textContent = "Refresh"; })
+      .then(() => { refreshState = "refresh"; refreshLabel(); })
       .catch(e => {
-        show(notice("Check failed (" + e + "). Press Retry."));
-        button.textContent = "Retry";
+        show(notice(t("Check failed (", "檢查失敗（") + e + t("). Press Retry.", "）。請按重試。")));
+        refreshState = "retry"; refreshLabel();
       })
       .finally(() => { setBusy(false); });
   });
@@ -748,9 +779,9 @@ const updateTools = async () => {
     cell.querySelector(".acv-err")?.remove();
     const status = doc.createElement("div");
     status.className = "acv-run";
-    status.textContent = "Updating\\u2026";
+    status.textContent = t("Updating…", "更新中…");
     cell.appendChild(status);
-    if (up) up.textContent = "Updating\\u2026";
+    if (up) up.textContent = t("Updating…", "更新中…");
     const start = Date.now();
     let line = "";
     const tick = setInterval(() => {
@@ -778,13 +809,13 @@ const updateTools = async () => {
     if (swapped && !failures[tool]) {
       const note = doc.createElement("div");
       note.className = "acv-run";
-      note.textContent = "Updated just now";
+      note.textContent = t("Updated just now", "剛剛已更新");
       swapped.lastElementChild.appendChild(note);
     } else if (!swapped) {
       reloadAll = true;  // no saved lines: fall back to a full check
-      status.textContent = failures[tool] ? "Failed: " + failures[tool] : "Done";
+      status.textContent = failures[tool] ? t("Failed: ", "失敗：") + failures[tool] : t("Done", "完成");
       status.title = status.textContent;
-      if (up) up.textContent = failures[tool] ? "Retry" : "Updated";
+      if (up) up.textContent = failures[tool] ? t("Retry", "重試") : t("Updated", "已更新");
     }
     syncButtons();
   }
@@ -795,14 +826,14 @@ const updateTools = async () => {
 };
 const refresh = () => {
   setBusy(true);
-  button.textContent = "Refreshing\\u2026";
+  refreshState = "busy"; refreshLabel();
   stamp(0);
   return get("/skeleton").then(show)
     .then(doc => check(doc, [...doc.querySelectorAll("tr[data-row]")].map(row => row.dataset.row)))
-    .then(() => { button.textContent = "Refresh"; })
+    .then(() => { refreshState = "refresh"; refreshLabel(); })
     .catch(e => {
-      show(notice("Check failed (" + e + "). Press Retry."));
-      button.textContent = "Retry";
+      show(notice(t("Check failed (", "檢查失敗（") + e + t("). Press Retry.", "）。請按重試。")));
+      refreshState = "retry"; refreshLabel();
     })
     .finally(() => { setBusy(false); });
 };
