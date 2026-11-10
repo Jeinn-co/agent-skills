@@ -155,11 +155,11 @@ Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmar
 setup 先顯示目前設定，問**保留**或**修改**。選**修改**後，只列這台電腦已安裝的 CLI：
 支援多選的 host 使用勾選清單，超出選項上限時分頁；其他 host 在一般對話中顯示**編號清單**，
 每行一個 CLI 與目前狀態，再用簡短輸入框詢問要保留的編號（例如 `1,2`）。清單不塞進問題標題，
-避免換行被擠成一段。也接受 CLI 名稱、`keep` 或 `all`；中途取消不會更改原設定。輸出格式（HTML 或 Markdown）也用同樣方式問。設定存在 `~/.config/ai-usage/config.json`，
+避免換行被擠成一段。也接受 CLI 名稱、`keep` 或 `all`；中途取消不會更改原設定。設定存在 `~/.config/ai-usage/config.json`，
 更新 skill 也不會被蓋掉。之後的報告會跳過沒選的 provider —— 不會啟動它們的 CLI，所以跳過
 Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): …`。全部勾選就回到預設。
 在 agent 外面：`run.py --show-providers`、`run.py --set-providers claude,codex`、
-`run.py --set-providers all`、`run.py --set-output html|md`。
+`run.py --set-providers all`。
 
 ## 輸出長什麼樣
 
@@ -188,7 +188,7 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
 6. **Compare models** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
 對話框裡只顯示推薦 —— **→** 現在該用哪一個（看最緊的視窗誰剩最多額度，免費或沒有方案名稱（如 Gemini 的 `?`）不算，差距 10 點內才比跑分）、附一句理由；週視窗超過 80% 時前面多一行
-**Warning** —— 以及報表連結。這幾行由 launcher 自己算好（`### ADVICE`），agent 只照抄，載入的 `SKILL.md` 也很短；直接在終端機跑 `./run.sh` 一樣看得到，不耗 token。`setup` 可以改成 Markdown，整份報表直接以表格顯示在對話框裡，不開網頁。
+**Warning** —— 以及報表連結。這幾行由 launcher 自己算好（`### ADVICE`），agent 只照抄，載入的 `SKILL.md` 也很短；直接在終端機跑 `./run.sh` 一樣看得到，不耗 token。報表一律是 HTML 網頁；右上角的 **EN / 中文** 按鈕可切換英文與繁體中文，並記住選擇，下次開報表沿用；還沒選過時跟著瀏覽器語言。
 
 它使用各 provider 現有的 CLI 登入資訊，在 Codex 裡面跑也能取得 Claude、Grok、Muse 和 Gemini 的數字。
 
@@ -288,7 +288,7 @@ Claude grants API 未公開，欄位改變時顯示 unavailable，不影響已�
 日期預設使用系統時區，可在個人設定指定固定時差；顯示剩餘時間，隱藏券名稱與時區標籤。
 缺資料顯示 unavailable，不當成 0；付費 credits 餘額另計，不兌換 reset。
 HTML 倒數直接使用原始 expiry epoch 毫秒，保留秒數與夏令時間重複時段。
-內部 `reset-expiry` JSON 資料會保存在 raw report 與卡片回應，不會顯示在一般終端或 Markdown。
+內部 `reset-expiry` JSON 資料會保存在 raw report 與卡片回應，不會顯示在一般終端。
 舊版純文字報表仍可顯示到期日期，但不反推可能有歧義的時間，因此只靜態顯示。
 
 **刻意不回報的。** 這裡報錯數字比不報更糟：

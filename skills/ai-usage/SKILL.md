@@ -3,7 +3,7 @@ name: ai-usage
 description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, banked reset counts and expiry dates for Claude and ChatGPT, the model / effort of each CLI's newest session, and that model's Artificial Analysis score, cost and CP. `setup` chooses which providers to report. It first checks GitHub for a newer version of itself and asks y/n before updating. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 metadata:
   author: Jeinn
-  version: "1.22.1"
+  version: "1.23.0"
 ---
 
 
@@ -62,7 +62,7 @@ provider's official browser flow (`claude auth login --claudeai` or `codex login
 never click it or start that flow automatically. After the CLI confirms sign-in, the
 page refreshes usage. Static HTML files use the terminal-command fallback instead.
 
-- **HTML output** (default): the last line is `### HTML <target>`, an
+- **Output**: the last line is `### HTML <target>`, an
   `http://127.0.0.1:…/` URL (the local page with a Refresh button) or a file path. Print
   only, with no preamble or recap:
   1. the `### ADVICE` lines as they are (a `> **Warning:**` line when a week window is
@@ -72,8 +72,6 @@ page refreshes usage. Static HTML files use the terminal-command fallback instea
   3. `**Report:** [Open the HTML report](<target>)`: the URL as printed, or
      `file:///<path with forward slashes>` for a path. Add a short note for each
      parenthesised note on that line (`Refresh unavailable: …`, `could not open a browser`).
-- **Markdown output** (no `### HTML` line, setup saved `md`): read
-  `references/markdown-report.md` and render the report it describes.
 
 Do not suggest installing a missing CLI unless asked. `references/providers.md`
 explains where each number comes from. Banked resets are read-only: never redeem a
@@ -82,7 +80,7 @@ request reads both quota windows and reset grants using existing CLI credentials
 This read never refreshes or writes credentials. If the request fails, the probe
 falls back to CLI `/usage`. ChatGPT uses `account/rateLimits/read`, including reset details.
 Original expiry epochs are carried in internal `reset-expiry` JSON records for HTML;
-these records are hidden from normal terminal and Markdown output. Legacy text-only
+these records are hidden from normal terminal output. Legacy text-only
 reports display static expiry text without guessing an instant from a local date.
 
 The Claude probe reads the CLI's existing OAuth login (environment, Keychain or

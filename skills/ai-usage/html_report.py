@@ -119,8 +119,18 @@ def remaining_minutes(reset, now):
     return None
 
 
+def bi(en, zh):
+    """Both languages; the page shows the one its switch is on. Arguments are HTML."""
+    return '<span class="l-en">%s</span><span class="l-zh">%s</span>' % (en, zh)
+
+
 CLOCK = ('<svg class="clock" viewBox="0 0 16 16" aria-hidden="true">'
          '<circle cx="8" cy="8" r="6.25"/><path d="M8 4.6V8l2.4 1.5"/></svg>')
+
+
+def window_label(label):
+    """A window's label; `week` also reads in Chinese, the rest are names or `5h`."""
+    return bi("week", "週") if label == "week" else esc(label)
 
 
 def left_text(minutes):
@@ -274,7 +284,7 @@ def card(p, now, loading=False):
             '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
             '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
             '<div class="pct">%s</div><div class="reset">%s</div></div>'
-            % (hue(w["pct"]), esc(w.get("display", w["label"])), min(w["pct"], 100),
+            % (hue(w["pct"]), window_label(w.get("display", w["label"])), min(w["pct"], 100),
                esc(w["shown"]), esc(shown)))
         left = remaining_minutes(when, now) if when else None
         total = w.get("duration")
@@ -296,7 +306,7 @@ def card(p, now, loading=False):
                 '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
                 '<div class="scale">%s</div></div>'
                 '<div class="left">%s%s</div></div>'
-                % (n, share, scale, CLOCK, esc(left_text(left))))
+                % (n, share, scale, CLOCK, bi(esc(left_text(left)), esc("剩 " + left_text(left)[:-5]))))
     reset_group = False
     for index, note in enumerate([] if loading else p["notes"]):
         if reset_group and not re.match(r"Reset(?: \d+:| \(| details:)", note):
@@ -319,19 +329,21 @@ def card(p, now, loading=False):
         rows.append(SKELETON)
         now_line = '<span class="skel" style="display:inline-block;width:30%;vertical-align:middle"></span>'
     elif p["model"]:
-        now_line = "<code>%s</code> · effort %s · %s ago" % (
+        head = "<code>%s</code> · effort %s · %s" % (
             esc(p["model"]), esc(p["effort"] or "?"), esc((p["age"] or "?").replace(" ago", "")))
+        now_line = bi(head + " ago", head + " 前")
     else:
-        now_line = "no local session"
+        now_line = bi("no local session", "沒有本機 session")
     timed_out = any(note.startswith(TIMED_OUT) for note in p["notes"])
     clis = {name: cli for cli, name in CLI_NAMES.items()}
     link = USAGE_PAGES.get(p["name"])
     return ('<section class="card" data-id="%s"%s><header><h2>%s%s</h2><span class="plan">%s</span>%s</header>%s'
-            '<div class="now">Now: %s</div></section>'
+            '<div class="now">%s%s</div></section>'
             % (esc(p["id"]), " data-timeout" if timed_out and not loading else "",
                logo(clis[p["name"]]), esc(p["name"]), "…" if loading else esc(p["plan"]),
-               '<a class="usage" href="%s" target="_blank" rel="noopener">Usage page</a>' % esc(link) if link else "",
-               "".join(rows), now_line))
+               '<a class="usage" href="%s" target="_blank" rel="noopener">%s</a>'
+               % (esc(link), bi("Usage page", "用量頁")) if link else "",
+               "".join(rows), bi("Now: ", "目前："), now_line))
 
 
 def bench_rows(data, loading=False):
@@ -372,13 +384,15 @@ def render(raw, now=None, loading=False):
     now = now or datetime.datetime.now()
     data = parse(raw)
     cards = "".join(card(p, now, loading) for p in data["providers"])
-    skipped = ('<p class="muted">Not checked (setup): %s</p>' % esc(", ".join(data["skipped"]))
+    skipped = ('<p class="muted">%s%s</p>' % (bi("Not checked (setup): ", "未檢查（setup）："),
+                                             esc(", ".join(data["skipped"])))
                if data["skipped"] else "")
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", cards), ("bench", bench_rows(data, loading)),
                        ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK),
-                       ("expiry_script", EXPIRY_SCRIPT)):
+                       ("expiry_script", EXPIRY_SCRIPT), ("lang_head", LANG_HEAD),
+                       ("lang_script", LANG_SCRIPT)):
         page = page.replace("@@%s@@" % key, value)
     return page
 
@@ -398,22 +412,52 @@ EXPIRY_SCRIPT = """function updateResetExpiry() {
     note.toggleAttribute('data-urgent', left <= 30);
     note.style.setProperty('--reset-hue', Math.max(0, Math.min(40, (left - 60) / 6)));
     const minutes = Math.max(0, Math.floor(left));
-    const units = [[Math.floor(minutes / 1440), 'day'],
-      [Math.floor(minutes % 1440 / 60), 'hour'], [minutes % 60, 'minute']];
+    const zh = Boolean(document.documentElement && document.documentElement.dataset.lang === 'zh');
+    const units = [[Math.floor(minutes / 1440), zh ? '天' : 'day'],
+      [Math.floor(minutes % 1440 / 60), zh ? '小時' : 'hour'], [minutes % 60, zh ? '分鐘' : 'minute']];
     const duration = (minutes >= 1440 ? units.slice(0, 2) : units)
-      .filter(([n]) => n).map(([n, unit]) => n + ' ' + unit + (n === 1 ? '' : 's')).join(' ');
-    note.querySelector('[data-reset-remaining]').textContent = left <= 0 ? 'expired' :
-      (duration || 'less than a minute') + ' left';
+      .filter(([n]) => n).map(([n, unit]) => n + ' ' + unit + (zh || n === 1 ? '' : 's')).join(' ');
+    note.querySelector('[data-reset-remaining]').textContent = left <= 0 ? (zh ? '已過期' : 'expired') :
+      zh ? '剩 ' + (duration || '不到一分鐘') : (duration || 'less than a minute') + ' left';
   });
 }
 updateResetExpiry();
 setInterval(updateResetExpiry, 60000);
 """
 
+# Picks the language before the page paints: the last choice, else the browser's language.
+LANG_HEAD = """(function () {
+  var lang;
+  try { lang = localStorage.getItem('ai-usage-lang'); } catch (e) {}
+  if (lang !== 'zh' && lang !== 'en') lang = /^zh/i.test(navigator.language || '') ? 'zh' : 'en';
+  document.documentElement.dataset.lang = lang;
+  document.documentElement.lang = lang === 'zh' ? 'zh-Hant' : 'en';
+})();"""
+
+# The switch names the other language and remembers the choice for the next report.
+LANG_SCRIPT = """(function () {
+  var root = document.documentElement, button = document.getElementById('lang');
+  function label() {
+    var zh = root.dataset.lang === 'zh';
+    button.textContent = zh ? 'EN' : '中文';
+    button.setAttribute('aria-label', zh ? 'Switch to English' : '切換成中文');
+  }
+  button.addEventListener('click', function () {
+    var lang = root.dataset.lang === 'zh' ? 'en' : 'zh';
+    root.dataset.lang = lang;
+    root.lang = lang === 'zh' ? 'zh-Hant' : 'en';
+    try { localStorage.setItem('ai-usage-lang', lang); } catch (e) {}
+    label();
+    if (typeof updateResetExpiry === 'function') updateResetExpiry();
+  });
+  label();
+})();"""
+
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI Usage</title>
+<script>@@lang_head@@</script>
 <style>
 :root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--tick:#94a3b8;--fl:45%;--tl:25%;--accent:#2563eb;--anth:rgba(217,119,87,.07);--oai:rgba(16,163,127,.07)}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
@@ -475,41 +519,47 @@ border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);fon
 tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums}.score{color:var(--muted)}
 .foot{color:var(--muted);font-size:14px;margin:8px 0}.muted{color:var(--muted)}
 .links{margin-top:20px}a{color:var(--accent)}
+:root:not([data-lang=zh]) .l-zh,:root[data-lang=zh] .l-en{display:none}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.lang{font:inherit;font-size:14px;min-height:32px;padding:4px 14px;border:1px solid var(--accent);border-radius:999px;background:transparent;color:var(--accent);cursor:pointer}
+.lang:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 tr.anth td,tr.oai td,tr.gemini td,td.anth,td.oai,td.gemini{background:rgba(var(--brand),.07)}
 tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-left:4px solid rgb(var(--brand))}
 .usage-guide td{white-space:normal;min-width:140px}
 @media (max-width:480px){.row{grid-template-columns:44px 1fr 40px}.reset{grid-column:2/4}.left{grid-column:2/4}}
 </style></head><body><main>
-<h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
+<div class="top"><h1>AI Usage</h1><button type="button" class="lang" id="lang">中文</button></div><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
-<h3>My usage</h3>
-<p class="rule">Feels dumb or not proactive? Don't second-guess it: move up a step right away.</p>
-<p class="std">Daily use: raise effort first, then switch to a stronger model. Chosen on 2026-11-10 from Artificial Analysis: options that another of the same CLI beats on both score and cost are skipped; the daily default is the cheapest remaining option scoring at least 45, and harder or important tasks start at the cheapest scoring at least 50. Artificial Analysis scores Gemini 4 Argon only at high, so its medium default rests on ARC-AGI-2 (87.1 against 91.2 at under half the cost). Cross-checked with ARC-AGI-2 and Terminal-Bench; on ARC-AGI-2, Opus 5.5 / high beats Fable 5.2 / low and medium. Gemini 4 Carbon tops Artificial Analysis but is left out: Google currently gives it only to selected cybersecurity defenders through its Fairwind program (checked 2026-11-10).</p>
-<div class="tablewrap"><table class="usage-guide"><thead><tr><th>Platform</th><th>Daily default</th><th>Harder tasks</th><th>Special use</th></tr></thead><tbody>
+<h3><span class="l-en">My usage</span><span class="l-zh">我的用法</span></h3>
+<p class="rule"><span class="l-en">Feels dumb or not proactive? Don't second-guess it: move up a step right away.</span><span class="l-zh">覺得它很笨、不主動？不要懷疑，馬上升級。</span></p>
+<p class="std"><span class="l-en">Daily use: raise effort first, then switch to a stronger model. Chosen on 2026-11-10 from Artificial Analysis: options that another of the same CLI beats on both score and cost are skipped; the daily default is the cheapest remaining option scoring at least 45, and harder or important tasks start at the cheapest scoring at least 50. Artificial Analysis scores Gemini 4 Argon only at high, so its medium default rests on ARC-AGI-2 (87.1 against 91.2 at under half the cost). Cross-checked with ARC-AGI-2 and Terminal-Bench; on ARC-AGI-2, Opus 5.5 / high beats Fable 5.2 / low and medium. Gemini 4 Carbon tops Artificial Analysis but is left out: Google currently gives it only to selected cybersecurity defenders through its Fairwind program (checked 2026-11-10).</span><span class="l-zh">平日：先升 effort，不夠再換更強的模型。2026-11-10 依 Artificial Analysis 挑選：同一家 CLI 中有更便宜且更高分選項的組合先排除；平日預設取 45 分以上最便宜的一檔，進階或重要任務從 50 分以上最便宜的一檔開始。Artificial Analysis 只測了 Gemini 4 Argon 的 high，所以它的 medium 預設依 ARC-AGI-2 選定（87.1 對 91.2，成本不到一半）。以 ARC-AGI-2 與 Terminal-Bench 交叉確認；ARC-AGI-2 上 Opus 5.5 / high 勝過 Fable 5.2 / low 與 medium。Gemini 4 Carbon 在 Artificial Analysis 排名最高但不列入：Google 目前只透過 Fairwind 計畫開放給經挑選的資安防禦單位（2026-11-10 確認）。</span></p>
+<div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Platform</span><span class="l-zh">平台</span></th><th><span class="l-en">Daily default</span><span class="l-zh">平日預設</span></th><th><span class="l-en">Harder tasks</span><span class="l-zh">進階任務</span></th><th><span class="l-en">Special use</span><span class="l-zh">特殊用途</span></th></tr></thead><tbody>
 <tr class="anth"><td>Claude Code</td><td>Opus 5.5 / medium</td><td>Fable 5.2 / low &rarr; Fable 5.2 / medium</td><td>&mdash;</td></tr>
-<tr class="oai"><td>Codex</td><td>GPT-6.1-Sol / medium</td><td>GPT-6.1-Sol / high &rarr; GPT-6.1-Sol / max</td><td>GPT-6.1-Terra: visual understanding and app operation</td></tr>
+<tr class="oai"><td>Codex</td><td>GPT-6.1-Sol / medium</td><td>GPT-6.1-Sol / high &rarr; GPT-6.1-Sol / max</td><td><span class="l-en">GPT-6.1-Terra: visual understanding and app operation</span><span class="l-zh">GPT-6.1-Terra：視覺理解與操作 app</span></td></tr>
 <tr class="gemini"><td>Gemini</td><td>Gemini 4 Argon / medium</td><td>Gemini 4 Argon / high</td><td>&mdash;</td></tr>
 </tbody></table></div>
-<p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings.</p>
-<h3>Delegated roles</h3>
-<p class="std">s-agent role configuration snapshot, checked on 2026-11-10. Select roles for the task and start with one subagent; the full team is not launched every time.</p>
-<div class="tablewrap"><table class="usage-guide"><thead><tr><th>Role / responsibility</th><th>Claude Code</th><th>Codex</th><th>Gemini</th></tr></thead><tbody>
-<tr><td>PM: requirements and planning</td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
-<tr><td>Designer: UI, interaction and accessibility</td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Terra / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
-<tr><td>Developer: implementation and bug fixes</td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
-<tr><td>QA: reproduction and acceptance checks</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
-<tr><td>Reviewer: independent review</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
-<tr><td>DevOps: environments and operations</td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<p class="foot"><span class="l-en">Model availability depends on the account and current model list. These preferences do not change CLI settings.</span><span class="l-zh">模型能不能用，取決於帳號與目前的模型清單。這些偏好不會更改 CLI 設定。</span></p>
+<h3><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h3>
+<p class="std"><span class="l-en">s-agent role configuration snapshot, checked on 2026-11-10. Select roles for the task and start with one subagent; the full team is not launched every time.</span><span class="l-zh">s-agent 角色設定快照，2026-11-10 核對。依任務挑角色，先派一個子 agent；不會每次都跑完整團隊。</span></p>
+<div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Role / responsibility</span><span class="l-zh">角色／職責</span></th><th>Claude Code</th><th>Codex</th><th>Gemini</th></tr></thead><tbody>
+<tr><td><span class="l-en">PM: requirements and planning</span><span class="l-zh">PM：需求與規劃</span></td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
+<tr><td><span class="l-en">Designer: UI, interaction and accessibility</span><span class="l-zh">Designer：UI、互動與無障礙</span></td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Terra / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
+<tr><td><span class="l-en">Developer: implementation and bug fixes</span><span class="l-zh">Developer：實作與修 bug</span></td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
+<tr><td><span class="l-en">QA: reproduction and acceptance checks</span><span class="l-zh">QA：重現問題與驗收</span></td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td><span class="l-en">Reviewer: independent review</span><span class="l-zh">Reviewer：獨立審查</span></td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td><span class="l-en">DevOps: environments and operations</span><span class="l-zh">DevOps：環境與維運</span></td><td class="anth">Fable 5.2 / low</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
 </tbody></table></div>
-<p class="foot">Source: <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</p>
-<h3>Qualified (Artificial Analysis)</h3>
-<p class="std">Standard (the bar for important tasks): any of the provider's models scoring ≥ 50 on the Artificial Analysis Intelligence Index → highest CP among those · none reach 50 → its highest score.</p>
-<div class="tablewrap"><table><thead><tr><th>Provider</th><th>Now</th><th class="num">Now $</th>
-<th class="num">Now CP</th><th>Qualified</th><th class="num">Qualified $</th><th class="num">Qualified CP</th></tr></thead>
+<p class="foot"><span class="l-en">Source: <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</span><span class="l-zh">來源：<a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent 角色設定</a>。這是靜態快照，不是即時讀取或同步 Notion，也不代表帳號能用這些模型。實際派工時會另外檢查設定、工具與帳號權限。</span></p>
+<h3><span class="l-en">Qualified (Artificial Analysis)</span><span class="l-zh">合格（Artificial Analysis）</span></h3>
+<p class="std"><span class="l-en">Standard (the bar for important tasks): any of the provider's models scoring ≥ 50 on the Artificial Analysis Intelligence Index → highest CP among those · none reach 50 → its highest score.</span><span class="l-zh">標準（重要任務的門檻）：該家任一模型在 Artificial Analysis Intelligence Index 達 50 分以上 → 取其中 CP 最高者 · 都未達 50 → 取該家最高分。</span></p>
+<div class="tablewrap"><table><thead><tr><th><span class="l-en">Provider</span><span class="l-zh">供應商</span></th><th><span class="l-en">Now</span><span class="l-zh">目前</span></th><th class="num"><span class="l-en">Now $</span><span class="l-zh">目前 $</span></th>
+<th class="num"><span class="l-en">Now CP</span><span class="l-zh">目前 CP</span></th><th><span class="l-en">Qualified</span><span class="l-zh">合格</span></th><th class="num"><span class="l-en">Qualified $</span><span class="l-zh">合格 $</span></th><th class="num"><span class="l-en">Qualified CP</span><span class="l-zh">合格 CP</span></th></tr></thead>
 <tbody id="bench">@@bench@@</tbody></table></div>
-<p class="foot">$ = Artificial Analysis's cost per index task at API prices, not subscription quota.
-CP = index points per US dollar; higher is better. * nothing from this provider reaches 50: its highest.</p>
+<p class="foot"><span class="l-en">$ = Artificial Analysis's cost per index task at API prices, not subscription quota.
+CP = index points per US dollar; higher is better. * nothing from this provider reaches 50: its highest.</span><span class="l-zh">$ = Artificial Analysis 每個指數任務的成本（API 價格），不是訂閱額度。
+CP = 每 1 美元換到的指數分數，越高越好。* 這家沒有任何選項達 50：列出它的最高分。</span></p>
 @@skipped@@
-<p class="links">Compare models: <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
-</main><script>@@expiry_script@@</script></body></html>
+<p class="links"><span class="l-en">Compare models: </span><span class="l-zh">比較模型：</span><a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
+</main><script>@@lang_script@@
+@@expiry_script@@</script></body></html>
 """

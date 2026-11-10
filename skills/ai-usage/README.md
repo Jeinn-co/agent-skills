@@ -195,13 +195,12 @@ checkboxes for installed CLIs, using multiple pages if needed. Other hosts show 
 numbered list in the normal chat, one CLI and its current state per line, then ask
 for numbers in a short input question (e.g. `1,2`). The list stays outside the question
 widget so its layout remains readable. CLI names, `keep` and `all` also work;
-cancellation keeps the saved selection unchanged. The output format — HTML or Markdown — is asked
-the same way. Choices are saved in `~/.config/ai-usage/config.json`, so updating the
+cancellation keeps the saved selection unchanged. Choices are saved in `~/.config/ai-usage/config.json`, so updating the
 skill keeps them. Later reports skip the other providers — no CLI is launched for them,
 so a skipped Muse costs no probe call — and list them as `Not checked (setup): …`.
 Choose every provider to go back to the default. Outside an agent:
 `run.py --show-providers`, `run.py --set-providers claude,codex`,
-`run.py --set-providers all`, `run.py --set-output html|md`.
+`run.py --set-providers all`.
 
 ## What it prints
 
@@ -238,8 +237,9 @@ In chat the agent shows only the recommendation — **→** which tool to use ri
 one with the most usage left in its tightest window, free or unnamed plans such as Gemini's `?` skipped; AA score breaks a near tie) and why, after a **Warning** line when a weekly window is over 80% — and a link to the page.
 The launcher works these lines out itself (`### ADVICE`), so the agent only copies them and
 loads a short `SKILL.md`; running `./run.sh` in a terminal shows the same lines at no token cost.
-`setup` can switch the output to Markdown, which renders the whole report in chat as
-tables and opens no page.
+The report is always the HTML page. Its **EN / 中文** button switches the page between
+English and Traditional Chinese and remembers the choice for the next report; with no
+choice yet, the page follows the browser's language.
 
 It uses each provider's existing CLI login, so running it inside Codex also reads
 your Claude, Grok, Muse and Gemini accounts.
@@ -364,7 +364,7 @@ redeems resets. An unavailable reset lookup leaves valid usage windows intact.
 The Claude grants endpoint is undocumented; changed fields remain unavailable.
 HTML timers use original expiry epoch milliseconds, including seconds and DST folds.
 Internal `reset-expiry` JSON records travel in saved raw reports and card responses,
-but are hidden from normal terminal and Markdown output. Old text-only reports
+but are hidden from normal terminal output. Old text-only reports
 remain readable with static expiry text; no ambiguous local date is guessed.
 
 **Deliberately not reported.** A wrong number here is worse than no number:

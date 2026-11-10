@@ -1,6 +1,6 @@
 # Setup — choose which providers to report
 
-`/ai-usage setup` (alias `/uu setup`) changes which providers the report covers and the output format. It does
+`/ai-usage setup` (alias `/uu setup`) changes which providers the report covers. The report is always the HTML page. It does
 not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (Grok),
 `muse` (Muse), `agy` (Gemini).
 
@@ -33,20 +33,14 @@ not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (
    `--set-providers all` when every provider is chosen and every CLI is installed. It
    prints the saved `providers=<ids>`. Nothing chosen, a dismissed picker, or an invalid
    reply saves nothing: say the selection is unchanged.
-4. Then ask the output format the same way — one single-select question, header
-   `Output`: `Output — now: <HTML|Markdown>. Keep or change?` with options `Keep`
-   (description: the current format) and the other format (`HTML` — a page opened in the
-   browser, or `Markdown` — shown in chat). Without a choice tool, ask `keep`, `html` or
-   `md`. Save only a change, with `--set-output html` or `--set-output md`; `Keep` or a
-   dismissed question keeps the format.
-5. Only when `agy` is reported: ask the Gemini pools the same way — header `Gemini`:
+4. Only when `agy` is reported: ask the Gemini pools the same way — header `Gemini`:
    `Gemini pools — now: <Gemini + Claude/GPT|Gemini only>. Keep or change?` with `Keep`
    and the other choice. agy reports two quota pools: native Gemini models (`gemini`)
    and the Claude and GPT models it also offers (`cl+gpt`). Without a choice tool, ask
    `keep`, `all` or `gemini`. Save only a change, with `--set-agy-pools gemini` or
    `--set-agy-pools all`; `--show-providers` prints the current `agy_pools=`.
-6. Report one line: `Reporting: <names> · Not reported: <names> · Output: <HTML|Markdown>`,
-   or `Reporting all providers · Output: <HTML|Markdown>`; add `· Gemini: Gemini only`
+5. Report one line: `Reporting: <names> · Not reported: <names>`, or
+   `Reporting all providers`; add `· Gemini: Gemini only`
    when the Claude/GPT pool is hidden.
 
 The selection is saved in `~/.config/ai-usage/config.json` (`$XDG_CONFIG_HOME` when set),

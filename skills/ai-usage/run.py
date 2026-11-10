@@ -41,9 +41,6 @@ IDS = [cli for _, _, cli in PROBES]
 CONFIG = portable.config_path()
 
 
-OUTPUTS = ("html", "md")
-
-
 def load_config():
     try:
         with open(CONFIG, encoding="utf-8") as fh:
@@ -63,12 +60,6 @@ def save_config(data):
     os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
     with open(CONFIG, "w", encoding="utf-8") as fh:
         json.dump(data, fh)
-
-
-def output_format():
-    """`html` unless setup saved `md`."""
-    value = load_config().get("output")
-    return value if value in OUTPUTS else "html"
 
 
 def selected():
@@ -141,7 +132,6 @@ if "--check-skill" in sys.argv:
 if "--show-providers" in sys.argv:
     print("providers=" + ",".join(selected()))
     print("installed=" + ",".join(installed()))
-    print("output=" + output_format())
     print("agy_pools=" + ",".join(agy_pools()))
     sys.exit(0)
 if len(sys.argv) == 3 and sys.argv[1] == "--set-agy-pools":
@@ -151,14 +141,6 @@ if len(sys.argv) == 3 and sys.argv[1] == "--set-agy-pools":
     config["agy_pools"] = ["gemini"] if sys.argv[2] == "gemini" else None
     save_config(config)
     print("agy_pools=" + ",".join(agy_pools()))
-    sys.exit(0)
-if len(sys.argv) == 3 and sys.argv[1] == "--set-output":
-    if sys.argv[2] not in OUTPUTS:
-        sys.exit("unknown output: %s; choose html or md" % sys.argv[2])
-    config = load_config()
-    config["output"] = None if sys.argv[2] == "html" else sys.argv[2]
-    save_config(config)
-    print("output=" + output_format())
     sys.exit(0)
 if len(sys.argv) == 3 and sys.argv[1] == "--set-providers":
     print("providers=" + ",".join(set_providers(sys.argv[2])))
@@ -481,7 +463,7 @@ def usage(script, timeout=portable.CALL_TIMEOUT):
             return plan + "".join(windows) + detail + "\n"
         return "usage call timed out after %gs; skipped\n" % timeout
     if script == "agy_usage.py" and agy_pools() == ["gemini"]:
-        # Setup hid the Claude/GPT pool: drop its row before cards, advice and markdown see it.
+        # Setup hid the Claude/GPT pool: drop its row before cards and advice see it.
         out = "".join(line for line in out.splitlines(True) if not line.startswith("cl+gpt "))
     return out
 
@@ -688,8 +670,8 @@ if "--serve" in sys.argv:
             pass
     sys.exit(0)
 
-# Setup decides the output format; html unless `--set-output md` was saved.
-HTML = output_format() == "html"
+# The report is always the HTML page; AI_USAGE_NO_PAGE=1 (tests) prints the text only.
+HTML = not os.environ.get("AI_USAGE_NO_PAGE")
 # Keep a copy of everything printed so html_report can build the advice and the page.
 import io
 _real_stdout = sys.stdout

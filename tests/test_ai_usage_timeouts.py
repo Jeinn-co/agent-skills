@@ -74,10 +74,8 @@ class LookupTimeoutTests(unittest.TestCase):
             if slow_bench:
                 bench = "print('partial benchmark', flush=True)\nimport time; time.sleep(60)\n"
             (target / "cursorbench.py").write_text(bench, encoding="utf-8")
-            # Own config: every provider, Markdown output, so no browser tab opens.
-            (target / "ai-usage").mkdir()
-            (target / "ai-usage" / "config.json").write_text('{"output": "md"}', encoding="utf-8")
-            env = dict(os.environ, XDG_CONFIG_HOME=str(target))
+            # Own (empty) config: every provider; AI_USAGE_NO_PAGE keeps a browser tab from opening.
+            env = dict(os.environ, XDG_CONFIG_HOME=str(target), AI_USAGE_NO_PAGE="1")
             return subprocess.run(
                 [sys.executable, "-c",
                  "import portable,runpy; portable.CALL_TIMEOUT=0.5; runpy.run_path('run.py')"],
