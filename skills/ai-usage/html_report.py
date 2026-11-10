@@ -486,9 +486,9 @@ tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-lef
 <h3>My usage</h3>
 <p class="std">Daily use: raise effort first, then switch to a stronger model. Chosen on 2026-11-10 by Artificial Analysis score per dollar, skipping any option that another of the same CLI beats on both score and cost, and cross-checked with ARC-AGI-2 and Terminal-Bench.</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>Platform</th><th>Daily default</th><th>Harder tasks</th><th>Special use</th></tr></thead><tbody>
-<tr class="anth"><td>Claude Code</td><td><b>Opus 5.5 / medium</b></td><td>Fable 5.2 / low &rarr; Fable 5.2 / medium</td><td>&mdash;</td></tr>
-<tr class="oai"><td>Codex</td><td><b>GPT-6.1-Sol / medium</b></td><td>GPT-6.1-Sol / high &rarr; GPT-6.1-Sol / max</td><td>GPT-6.1-Terra: visual understanding and app operation</td></tr>
-<tr class="gemini"><td>Gemini</td><td><b>Gemini 3.8 Flash / medium</b></td><td>Gemini 3.8 Flash / high &rarr; Gemini 4 Argon / high</td><td>&mdash;</td></tr>
+<tr class="anth"><td>Claude Code</td><td>Opus 5.5 / medium</td><td>Fable 5.2 / low &rarr; Fable 5.2 / medium</td><td>&mdash;</td></tr>
+<tr class="oai"><td>Codex</td><td>GPT-6.1-Sol / medium</td><td>GPT-6.1-Sol / high &rarr; GPT-6.1-Sol / max</td><td>GPT-6.1-Terra: visual understanding and app operation</td></tr>
+<tr class="gemini"><td>Gemini</td><td>Gemini 3.8 Flash / medium</td><td>Gemini 3.8 Flash / high &rarr; Gemini 4 Argon / high</td><td>&mdash;</td></tr>
 </tbody></table></div>
 <p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings.</p>
 <h3>Delegated roles</h3>
