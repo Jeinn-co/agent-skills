@@ -484,13 +484,13 @@ tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-lef
 <h1>AI Usage</h1><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
 <h3>My usage</h3>
-<p class="std">Daily use: raise effort first, then switch to a stronger model. Chosen on 2026-11-10 by Artificial Analysis score per dollar, skipping any option that another of the same CLI beats on both score and cost, and cross-checked with ARC-AGI-2 and Terminal-Bench.</p>
+<p class="std">Daily use: raise effort first, then switch to a stronger model. Chosen on 2026-11-10 from Artificial Analysis: options that another of the same CLI beats on both score and cost are skipped; the daily default is the cheapest remaining option scoring at least 45, and harder tasks are the next ones up. Cross-checked with ARC-AGI-2 and Terminal-Bench; on ARC-AGI-2, Opus 5.5 / high beats Fable 5.2 / low and medium.</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>Platform</th><th>Daily default</th><th>Harder tasks</th><th>Special use</th></tr></thead><tbody>
 <tr class="anth"><td>Claude Code</td><td>Opus 5.5 / medium</td><td>Fable 5.2 / low &rarr; Fable 5.2 / medium</td><td>&mdash;</td></tr>
 <tr class="oai"><td>Codex</td><td>GPT-6.1-Sol / medium</td><td>GPT-6.1-Sol / high &rarr; GPT-6.1-Sol / max</td><td>GPT-6.1-Terra: visual understanding and app operation</td></tr>
-<tr class="gemini"><td>Gemini</td><td>Gemini 3.8 Flash / medium</td><td>Gemini 3.8 Flash / high &rarr; Gemini 4 Argon / high</td><td>&mdash;</td></tr>
+<tr class="gemini"><td>Gemini</td><td>Gemini 3.8 Flash / medium</td><td>Gemini 4 Argon / high</td><td>&mdash;</td></tr>
 </tbody></table></div>
-<p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings.</p>
+<p class="foot">Model availability depends on the account and current model list. These preferences do not change CLI settings. Gemini 3.8 Flash scores below 45 but is the only Gemini model most accounts can use. Gemini 4 Carbon tops Artificial Analysis but is not publicly available yet (2026-11-10).</p>
 <h3>Delegated roles</h3>
 <p class="std">s-agent role configuration snapshot, checked on 2026-11-10. Select roles for the task and start with one subagent; the full team is not launched every time.</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>Role / responsibility</th><th>Claude Code</th><th>Codex</th><th>Gemini</th></tr></thead><tbody>

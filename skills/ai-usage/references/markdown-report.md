@@ -102,7 +102,7 @@ inline code so every font draws them at the same width. Sample:
 
 #### My usage
 
-Before the Qualified table, render both personal-usage tables from `html_report.py` in the report language: daily defaults with effort-first escalation, and the six s-agent role assignments. Preserve full model versions, effort values, the snapshot date and Notion source link. State how the defaults were chosen (Artificial Analysis score per dollar, cross-checked with ARC-AGI-2 and Terminal-Bench), that the effort-first escalation order itself is a workflow choice, that model availability depends on the account, and the role table is a static snapshot rather than a live Notion read or a change to CLI settings. Do not include the former general Model and effort guide.
+Before the Qualified table, render both personal-usage tables from `html_report.py` in the report language: daily defaults with effort-first escalation, and the six s-agent role assignments. Preserve full model versions, effort values, the snapshot date and Notion source link. State how the defaults were chosen (Artificial Analysis, dominated options skipped, daily default the cheapest remaining option scoring at least 45, cross-checked with ARC-AGI-2 and Terminal-Bench) and keep the footnote on Gemini availability, that the effort-first escalation order itself is a workflow choice, that model availability depends on the account, and the role table is a static snapshot rather than a live Notion read or a change to CLI settings. Do not include the former general Model and effort guide.
 
 #### Qualified (CursorBench)
 
