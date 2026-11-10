@@ -231,7 +231,7 @@ Read top to bottom:
 5. **Qualified (Artificial Analysis)** — one row per CLI. *Now* is the model + effort you
    ran last; *Qualified* is the model + effort the pick rule chooses. Each side shows its AA
    Intelligence Index, `$` (AA's cost per index task at API prices) and CP (index ÷ `$`).
-   `*` marks a provider with nothing at 45, so its highest score is shown.
+   `*` marks a provider with nothing at 50, so its highest score is shown.
 6. **Compare models** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
 In chat the agent shows only the recommendation — **→** which tool to use right now (the
@@ -290,8 +290,8 @@ the [Artificial Analysis](https://artificialanalysis.ai) Intelligence Index, cos
 index task, speed, verbosity and latency (the five figures on AA's model page) of the
 exact model + effort that CLI ran last, plus CP (index ÷ cost per task, points per dollar
 at API prices — higher is better). One qualified row per provider: across every model and
-effort AA lists for that provider, the best CP at an index of 45 or more; when nothing from
-that provider reaches 45, its highest score. Models that are not publicly available
+effort AA lists for that provider, the best CP at an index of 50 or more; when nothing from
+that provider reaches 50, its highest score. Models that are not publicly available
 (`UNAVAILABLE` in `cursorbench.py`, currently Gemini 4 Carbon) are never picked. A model
 AA does not list shows `not listed`, never a neighbouring row. CursorBench is no longer
 used: Cursor runs it and its own Composer is on it.

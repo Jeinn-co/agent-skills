@@ -662,7 +662,7 @@ class CursorBenchNameTests(unittest.TestCase):
         for (cli, model), expected in cases.items():
             self.assertEqual(cursorbench.name(cli, model) or None, expected, (cli, model))
 
-    def test_pick_searches_the_provider_for_45_on_aa(self):
+    def test_pick_searches_the_provider_for_50_on_aa(self):
         sys.path.insert(0, str(SKILL))
         import cursorbench
 
@@ -675,10 +675,10 @@ class CursorBenchNameTests(unittest.TestCase):
             row("Gemini 4 Carbon", "Medium", 58.3, 6.59), row("Gemini 4 Argon", "High", 50.4, 9.95),
             row("Gemini 3.8 Flash", "Medium", 30.1, 6.26), row("Opus 5.5", "None", 60.0, 0.10),
         ]
-        # Claude reaches 45: best cp among >= 45 rows; Sonnet High is cheaper but below 45,
+        # Claude reaches 50: best cp among >= 50 rows; Opus Medium has a better cp but is below 50,
         # and an effort AA labels "None" is not a CLI effort
-        self.assertEqual(cursorbench.pick(rows, "claude"), ("Opus 5.5 Medium", 48.2, 2.45, "cp"))
-        # nothing from Grok reaches 45: its highest score, not its best cp
+        self.assertEqual(cursorbench.pick(rows, "claude"), ("Fable 5.2 Low", 53.9, 3.10, "cp"))
+        # nothing from Grok reaches 50: its highest score, not its best cp
         self.assertEqual(cursorbench.pick(rows, "grok"), ("Grok 4.7 Extra High", 35.5, 7.77, "closest"))
         # an unavailable model is never picked, even with the best cp
         self.assertEqual(cursorbench.pick(rows, "agy")[0], "Gemini 4 Argon High")

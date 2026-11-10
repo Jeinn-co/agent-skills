@@ -37,7 +37,7 @@ AA_URL = "https://jeinn-co.github.io/ai-model-compare/data/aa.json"
 EFFORT = {"minimal": "Minimal", "low": "Low", "medium": "Medium", "high": "High",
           "xhigh": "Extra High", "max": "Max"}
 SUFFIX = {label: key for key, label in EFFORT.items()}
-TARGET = 45.0  # AA Intelligence Index points to reach whenever the provider can
+TARGET = 50.0  # AA Intelligence Index points to reach whenever the provider can
 # Model names each CLI can run.
 FAMILY = {"claude": r"(Opus|Sonnet|Fable|Haiku) ", "codex": r"GPT-", "grok": r"Grok ",
           "muse": r"Muse ", "agy": r"Gemini "}

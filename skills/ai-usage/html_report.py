@@ -502,12 +502,12 @@ tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-lef
 </tbody></table></div>
 <p class="foot">Source: <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</p>
 <h3>Qualified (Artificial Analysis)</h3>
-<p class="std">Standard: any of the provider's models scoring ≥ 45 on the Artificial Analysis Intelligence Index → highest CP among those · none reach 45 → its highest score.</p>
+<p class="std">Standard: any of the provider's models scoring ≥ 50 on the Artificial Analysis Intelligence Index → highest CP among those · none reach 50 → its highest score.</p>
 <div class="tablewrap"><table><thead><tr><th>Provider</th><th>Now</th><th class="num">Now $</th>
 <th class="num">Now CP</th><th>Qualified</th><th class="num">Qualified $</th><th class="num">Qualified CP</th></tr></thead>
 <tbody id="bench">@@bench@@</tbody></table></div>
 <p class="foot">$ = Artificial Analysis's cost per index task at API prices, not subscription quota.
-CP = index points per US dollar; higher is better. * nothing from this provider reaches 45: its highest.</p>
+CP = index points per US dollar; higher is better. * nothing from this provider reaches 50: its highest.</p>
 @@skipped@@
 <p class="links">Compare models: <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 </main><script>@@expiry_script@@</script></body></html>

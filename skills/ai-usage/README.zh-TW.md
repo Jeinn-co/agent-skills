@@ -184,7 +184,7 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    附日期的六個 s-agent 角色安排快照；報表不會修改 CLI 設定，也不會即時讀取或同步 Notion。
 5. **合格（Artificial Analysis）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；
    「合格」是挑選規則選出的 model + effort。兩邊各有 AA 智力指數、`$`（AA 每題成本，依 API
-   價格）與 CP（指數 ÷ `$`）。`*` 表示這家沒有任何一檔到 45，改列它的最高分。
+   價格）與 CP（指數 ÷ `$`）。`*` 表示這家沒有任何一檔到 50，改列它的最高分。
 6. **Compare models** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
 對話框裡只顯示推薦 —— **→** 現在該用哪一個（看最緊的視窗誰剩最多額度，免費或沒有方案名稱（如 Gemini 的 `?`）不算，差距 10 點內才比跑分）、附一句理由；週視窗超過 80% 時前面多一行
@@ -230,7 +230,7 @@ model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`
 最後一次用的 model + effort 在 [Artificial Analysis](https://artificialanalysis.ai) 的智力指數、
 每題成本、speed、verbosity、latency（AA 模型頁那五個量值），以及 CP（指數 ÷ 每題成本，依 API
 價格每 1 美元換到的分數，越高越划算）。每家再列一個「合格」組合：在該家 AA 上所有模型與強度中，
-指數 ≥ 45 裡 CP 最高的一檔；整家都達不到 45 時，取該家最高分。尚未公開提供的模型（`cursorbench.py`
+指數 ≥ 50 裡 CP 最高的一檔；整家都達不到 50 時，取該家最高分。尚未公開提供的模型（`cursorbench.py`
 的 `UNAVAILABLE`，目前是 Gemini 4 Carbon）不會被選。AA 沒收錄的 model 顯示 `not listed`，絕不借用
 相鄰那列的數字。不再使用 CursorBench：它由 Cursor 自己測，自家的 Composer 也在榜上。
 `cursorbench.py`（檔名沿用）自己不爬 AA，而是讀 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
