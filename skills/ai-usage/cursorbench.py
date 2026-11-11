@@ -56,7 +56,7 @@ def pick(rows, cli):
     found = []
     for r in rows:
         model, effort = r.get("model") or "", SUFFIX.get(r.get("effort"))
-        # Personal task routing, not a claim that Fable/low always costs more.
+        # Fable/low keeps Fable's 2x token rates and barely shortens replies: not a cheap tier.
         if cli == "claude" and model.startswith("Fable ") and effort in ("minimal", "low"):
             continue
         if (effort and model not in UNAVAILABLE and re.match(FAMILY.get(cli, r"$^"), model + " ")
