@@ -225,8 +225,8 @@ Read top to bottom:
 3. **Now** — the model and effort of that CLI's newest local session, plus a link to the
    provider's own usage page (Claude, ChatGPT, Grok).
 4. **My usage** — model and effort choices based on official guidance first, then my habits
-   (Claude: Opus 5.5 / high for all work, only downgrades written out, and no Fable because
-   it is too expensive; Codex: GPT-6.1-Sol /
+   (Claude: Opus 5.5 / high for all work, only downgrades written out, and no Fable
+   ($8/$40 per million input/output tokens); Codex: GPT-6.1-Sol /
    medium or high), plus a dated
    snapshot of the six s-agent role assignments checked against Notion. This section
    does not change CLI settings or fetch/sync Notion during report generation.
