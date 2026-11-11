@@ -13,7 +13,7 @@ class UsageGuidanceTests(unittest.TestCase):
         row = re.search(r'<tr class="anth"><td>Claude Code</td>(.*?)</tr>', page).group(1)
         daily, harder, special = [html.unescape(re.sub(r'<[^>]+>', '', cell))
                                   for cell in re.findall(r'<td>(.*?)</td>', row)]
-        self.assertIn('Opus 5.5 / low', daily)
+        self.assertIn('Opus 5.5 / high', daily)
         self.assertIn('Opus 5.5 / medium', daily)
         self.assertNotIn('Fable', daily)
         self.assertIn('Fable 5.2 / medium', harder)

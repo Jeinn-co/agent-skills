@@ -180,8 +180,8 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    例如 `2h32m left`。用量條跑在時間條前面，就代表用得比時間過得快。
 3. **Now** —— 該 CLI 最新一個本機 session 的 model 與 effort，以及這家自己的用量頁連結
    （Claude、ChatGPT、Grok）。
-4. **我的用法** —— 依任務選模型與 effort（Claude 日常用 Opus 5.5 / low 或 medium，
-   難題用 Fable 5.2 / medium 或 high），以及經 Notion 核對、
+4. **我的用法** —— 以官方建議為主、再加上我的習慣來選模型與 effort（Claude 日常用 Opus 5.5 /
+   medium 或 high，難題用 Fable 5.2 / medium 或 high；Codex 用 GPT-6.1-Sol / medium 或 high），以及經 Notion 核對、
    附日期的六個 s-agent 角色安排快照；報表不會修改 CLI 設定，也不會即時讀取或同步 Notion。
 5. **合格（Artificial Analysis）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；
    「合格」是挑選規則選出的 model + effort。兩邊各有 AA 智力指數、`$`（AA 每題成本，依 API
@@ -231,7 +231,7 @@ model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`
 最後一次用的 model + effort 在 [Artificial Analysis](https://artificialanalysis.ai) 的智力指數、
 每題成本、speed、verbosity、latency（AA 模型頁那五個量值），以及 CP（指數 ÷ 每題成本，依 API
 價格每 1 美元換到的分數，越高越划算）。每家再列一個「合格」組合：在該家 AA 上所有模型與強度中，
-指數 ≥ 50 且符合選用規則者裡 CP 最高的一檔（個人 Claude 規則不推薦 Fable / low 或 minimal，
+指數 ≥ 50 且符合選用規則者裡 CP 最高的一檔（Claude 的挑選依「我的用法」，不選 Fable / low 或 minimal，
 但保留其目前模型實測數據）；整家都達不到 50 時，取該家最高分。尚未公開提供的模型（`cursorbench.py`
 的 `UNAVAILABLE`，目前是 Gemini 4 Carbon）不會被選。AA 沒收錄的 model 顯示 `not listed`，絕不借用
 相鄰那列的數字。不再使用 CursorBench：它由 Cursor 自己測，自家的 Composer 也在榜上。
