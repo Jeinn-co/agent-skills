@@ -676,8 +676,8 @@ class CursorBenchNameTests(unittest.TestCase):
             row("Gemini 3.8 Flash", "Medium", 30.1, 6.26), row("Opus 5.5", "None", 60.0, 0.10),
         ]
         # Claude reaches 50: best cp among >= 50 rows; Opus Medium has a better cp but is below 50,
-        # and an effort AA labels "None" is not a CLI effort
-        self.assertEqual(cursorbench.pick(rows, "claude"), ("Fable 5.2 Low", 53.9, 3.10, "cp"))
+        # Fable is never picked, and an effort AA labels "None" is not a CLI effort
+        self.assertEqual(cursorbench.pick(rows, "claude"), ("Opus 5.5 High", 51.8, 3.46, "cp"))
         # nothing from Grok reaches 50: its highest score, not its best cp
         self.assertEqual(cursorbench.pick(rows, "grok"), ("Grok 4.7 Extra High", 35.5, 7.77, "closest"))
         # an unavailable model is never picked, even with the best cp

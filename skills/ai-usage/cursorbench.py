@@ -22,7 +22,7 @@ Then one `pick` line per CLI, searched across every model and effort AA lists fo
 provider (FAMILY): the highest cp that scores at least TARGET; when nothing from that
 provider reaches TARGET, its highest score, the closest it gets. The line says which
 rule applied (`rule cp` / `rule closest`). Models in UNAVAILABLE are never picked.
-Claude picks follow My usage, which runs Fable at medium or higher; low/minimal remain
+Claude picks never use Fable (too expensive), whatever its score; Fable rows remain
 visible as current-model benchmarks but are excluded from Qualified picks. An
 empty model means no local session: print that status and still select the provider's
 Qualified model, independently of whether its CLI is installed.
@@ -56,8 +56,8 @@ def pick(rows, cli):
     found = []
     for r in rows:
         model, effort = r.get("model") or "", SUFFIX.get(r.get("effort"))
-        # My usage runs Fable at medium or higher, though AA may rate Fable/low well.
-        if cli == "claude" and model.startswith("Fable ") and effort in ("minimal", "low"):
+        # No Fable for Claude picks: twice Opus's token rates, whatever the score.
+        if cli == "claude" and model.startswith("Fable "):
             continue
         if (effort and model not in UNAVAILABLE and re.match(FAMILY.get(cli, r"$^"), model + " ")
                 and r.get("score") is not None and (r.get("cost") or 0) > 0):
