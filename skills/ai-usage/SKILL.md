@@ -3,7 +3,7 @@ name: ai-usage
 description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, banked reset counts and expiry dates for Claude and ChatGPT, the model / effort of each CLI's newest session, and that model's Artificial Analysis score, cost and CP. `setup` chooses which providers to report. It first checks GitHub for a newer version of itself and asks y/n before updating. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 metadata:
   author: Jeinn
-  version: "1.23.2"
+  version: "1.23.3"
 ---
 
 
