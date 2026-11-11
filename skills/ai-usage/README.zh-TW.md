@@ -181,7 +181,7 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
 3. **Now** —— 該 CLI 最新一個本機 session 的 model 與 effort，以及這家自己的用量頁連結
    （Claude、ChatGPT、Grok）。
 4. **我的用法** —— 以官方建議為主、再加上我的習慣來選模型與 effort（Claude 日常用 Opus 5.5 /
-   medium 或 high，難題用 Fable 5.2 / medium 或 high；Codex 用 GPT-6.1-Sol / medium 或 high），以及經 Notion 核對、
+   medium 或 high，難題用 Fable 5.2 / medium 或 high，Fable 很貴、能少用就少用；Codex 用 GPT-6.1-Sol / medium 或 high），以及經 Notion 核對、
    附日期的六個 s-agent 角色安排快照；報表不會修改 CLI 設定，也不會即時讀取或同步 Notion。
 5. **合格（Artificial Analysis）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；
    「合格」是挑選規則選出的 model + effort。兩邊各有 AA 智力指數、`$`（AA 每題成本，依 API

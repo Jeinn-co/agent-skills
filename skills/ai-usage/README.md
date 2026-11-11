@@ -226,7 +226,8 @@ Read top to bottom:
    provider's own usage page (Claude, ChatGPT, Grok).
 4. **My usage** — model and effort choices based on official guidance first, then my habits
    (Claude: Opus 5.5 / medium or high for routine work, Fable 5.2 / medium or high for
-   difficult work; Codex: GPT-6.1-Sol / medium or high), plus a dated
+   difficult work, used as little as possible because Fable is expensive; Codex: GPT-6.1-Sol /
+   medium or high), plus a dated
    snapshot of the six s-agent role assignments checked against Notion. This section
    does not change CLI settings or fetch/sync Notion during report generation.
 5. **Qualified (Artificial Analysis)** — one row per CLI. *Now* is the model + effort you
