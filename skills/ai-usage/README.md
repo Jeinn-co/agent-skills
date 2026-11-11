@@ -224,7 +224,8 @@ Read top to bottom:
    faster than it runs out.
 3. **Now** — the model and effort of that CLI's newest local session, plus a link to the
    provider's own usage page (Claude, ChatGPT, Grok).
-4. **My usage** — personal daily defaults and effort-first escalation, plus a dated
+4. **My usage** — task-based model and effort choices (Claude: Opus 5.5 / low or medium for
+   routine work, Fable 5.2 / medium or high for difficult work), plus a dated
    snapshot of the six s-agent role assignments checked against Notion. This section
    does not change CLI settings or fetch/sync Notion during report generation.
 5. **Qualified (Artificial Analysis)** — one row per CLI. *Now* is the model + effort you
@@ -290,7 +291,9 @@ the [Artificial Analysis](https://artificialanalysis.ai) Intelligence Index, cos
 index task, speed, verbosity and latency (the five figures on AA's model page) of the
 exact model + effort that CLI ran last, plus CP (index ÷ cost per task, points per dollar
 at API prices — higher is better). One qualified row per provider: across every model and
-effort AA lists for that provider, the best CP at an index of 50 or more; when nothing from
+eligible effort AA lists for that provider, the best CP at an index of 50 or more
+(Claude personal routing excludes Fable / low and minimal from picks, while retaining
+their current-model measurements); when nothing from
 that provider reaches 50, its highest score. Models that are not publicly available
 (`UNAVAILABLE` in `cursorbench.py`, currently Gemini 4 Carbon) are never picked. A model
 AA does not list shows `not listed`, never a neighbouring row. CursorBench is no longer
