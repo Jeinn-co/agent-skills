@@ -681,7 +681,8 @@ class CursorBenchNameTests(unittest.TestCase):
         # nothing from Grok reaches 50: its highest score, not its best cp
         self.assertEqual(cursorbench.pick(rows, "grok"), ("Grok 4.7 Extra High", 35.5, 7.77, "closest"))
         # an unavailable model is never picked, even with the best cp
-        self.assertEqual(cursorbench.pick(rows, "agy")[0], "Gemini 4 Argon High")
+        with mock.patch.object(cursorbench, "UNAVAILABLE", {"Gemini 4 Carbon"}):
+            self.assertEqual(cursorbench.pick(rows, "agy")[0], "Gemini 4 Argon High")
         self.assertIsNone(cursorbench.pick(rows, "muse"))
 
 

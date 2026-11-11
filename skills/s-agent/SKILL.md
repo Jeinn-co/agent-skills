@@ -96,8 +96,8 @@ Catalog format (illustrative identifiers, not model recommendations):
 {"codex":{"available-model":["supported-effort"]},"claude":{"available-model":["supported-effort"]},"gemini":{"available-model":["supported-effort"]}}
 ```
 
-The helper requires exactly `schema_version: 1` and six roles (`pm`, `designer`,
-`developer`, `qa`, `reviewer`, `devops`), each with exactly `codex` and `claude`
+The helper requires exactly `schema_version: 1` and six roles (`planner`, `designer`,
+`executor`, `reviewer`, `devops`, `security`), each with exactly `codex` and `claude`
 objects containing only `model` and `effort`. A `gemini` object with the same fields
 is optional, but must be present on all six roles when used. The catalog must
 cover exactly the platforms in the policy. Existing two-platform policies remain valid. It rejects duplicates, unsupported
@@ -166,12 +166,12 @@ a family-alias model override, which would take precedence and lose the pin.
 
 | Role | Responsibility |
 |---|---|
-| `pm` / PO | User needs, scope, priorities and acceptance criteria. |
+| `planner` | Turns a request into an executable plan: scope, acceptance criteria, steps and checks. |
 | `designer` | UI/UX, flows, accessibility and component states. |
-| `developer` | Investigation, technical implementation and fixes. |
-| `qa` | Reproduction, regression testing and acceptance checks. |
-| `reviewer` | Independent correctness, security and regression review. |
+| `executor` | Implements an approved plan step by step and verifies each step. |
+| `reviewer` | Independent review and testing: correctness, security, regressions and acceptance. |
 | `devops` | CI/CD, environments, logs and operational reliability. |
+| `security` | Security scans of code, dependencies and configuration; read-only, verified findings. |
 
 Start with one subagent. Add only independent work with explicit file ownership,
 up to the smaller of three concurrent subagents and the host limit. Sequence

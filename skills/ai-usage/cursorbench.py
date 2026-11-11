@@ -44,9 +44,9 @@ TARGET = 50.0  # AA Intelligence Index points to reach whenever the provider can
 FAMILY = {"claude": r"(Opus|Sonnet|Fable|Haiku) ", "codex": r"GPT-", "grok": r"Grok ",
           "muse": r"Muse ", "agy": r"Gemini "}
 # Scored on AA but not publicly available, so never a pick.
-# shortcut: kept by hand (2026-11-10: Carbon is limited to Google's Fairwind cyber
-# defenders); drop an entry once the model is open to everyone.
-UNAVAILABLE = {"Gemini 4 Carbon"}
+# shortcut: kept by hand; add a model only when its vendor's own page says it is not open.
+# Empty since Google opened Gemini 4 Carbon to paying API developers (2026-11-10).
+UNAVAILABLE = set()
 
 
 def pick(rows, cli):

@@ -168,7 +168,7 @@ PAGE = """<!doctype html>
 <script>(function(){var l;try{l=localStorage.getItem('ai-cli-version-lang')}catch(e){}if(l!=='zh'&&l!=='en')l=/^zh/i.test(navigator.language||'')?'zh':'en';document.documentElement.dataset.lang=l;document.documentElement.lang=l==='zh'?'zh-Hant':'en'})();</script>
 <style>
 :root:not([data-lang=zh]) .l-zh,:root[data-lang=zh] .l-en{display:none}
-.title-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px}.lang{font:inherit;font-size:14px;min-height:32px;padding:4px 14px;border:1px solid var(--accent);border-radius:999px;background:transparent;color:var(--accent);cursor:pointer}.lang:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.title-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px}.lang{font:inherit;font-size:14px;min-height:32px;padding:4px 14px;border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);cursor:pointer}.lang:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 :root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--ok:#15803d;--up:#b45309;--bad:#dc2626;--accent:#2563eb}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
 :root[data-theme=dark]{@@dark@@}
@@ -176,20 +176,20 @@ PAGE = """<!doctype html>
 font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px clamp(14px,4vw,40px) 48px;-webkit-font-smoothing:antialiased}
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}.top{color:var(--muted);margin:0 0 16px}
 .summary{font-size:17px;font-weight:500;margin:0 0 18px}.summary.ok{color:var(--ok)}.summary.up{color:var(--up)}.summary.bad{color:var(--bad)}.summary.muted{color:var(--muted)}
-.skel{height:10px;margin:8px 0;border-radius:999px;background:linear-gradient(90deg,var(--track) 30%,var(--card) 50%,var(--track) 70%);
+.skel{height:10px;margin:8px 0;border-radius:4px;background:linear-gradient(90deg,var(--track) 30%,var(--card) 50%,var(--track) 70%);
 background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}}
-.tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 table{border-collapse:collapse;width:100%}.logo{width:16px;height:16px;margin-right:8px;vertical-align:-3px}th,td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--line);
 vertical-align:top}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}tr:last-child td{border-bottom:0}
 tr[data-row=claude]{--brand:217,119,87}tr[data-row=codex]{--brand:16,163,127}
 tr[data-row=grok]{--brand:148,163,184}tr[data-row=muse]{--brand:149,83,255}tr[data-row=agy]{--brand:49,134,255}
 tr[data-row] td{background:rgba(var(--brand),.07)}tr[data-row] td:first-child{border-left:4px solid rgb(var(--brand))}
-.sub{color:var(--muted);font-size:14px}.badge{display:inline-block;border-radius:999px;padding:1px 10px;font-size:13px;
+.sub{color:var(--muted);font-size:14px}.badge{display:inline-block;border-radius:4px;padding:1px 10px;font-size:13px;
 font-weight:500;letter-spacing:.02em;border:1px solid currentColor}.badge.ok{color:var(--ok)}.badge.up{color:var(--up)}
 .badge.bad{color:var(--bad)}.badge.muted{color:var(--muted)}td.bad{color:var(--bad)}td.muted{color:var(--muted)}
-code{font-family:ui-monospace,Consolas,monospace;font-size:14px;background:var(--bg);padding:1px 6px;border-radius:6px}
+code{font-family:ui-monospace,Consolas,monospace;font-size:14px;background:var(--bg);padding:1px 6px;border-radius:4px}
 .foot{color:var(--muted);font-size:14px;margin:10px 4px 0}a{color:var(--accent)}
 </style></head><body><main>
 <div class="title-row"><h1>CLI Versions</h1><button type="button" class="lang" id="lang">中文</button></div><p class="top">@@time@@ · ai-cli-version @@version@@</p>
@@ -197,6 +197,6 @@ code{font-family:ui-monospace,Consolas,monospace;font-size:14px;background:var(-
 <div class="tablewrap"><table><thead><tr><th><span class="l-en">Tool</span><span class="l-zh">工具</span></th><th><span class="l-en">Installed</span><span class="l-zh">已安裝</span></th><th><span class="l-en">Latest</span><span class="l-zh">最新版</span></th><th><span class="l-en">Status</span><span class="l-zh">狀態</span></th></tr></thead>
 <tbody>@@rows@@</tbody></table></div>
 <div id="foot">@@foot@@@@skipped@@</div>
-<p><span class="l-en">Compare models: </span><span class="l-zh">比較模型：</span><a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
+<p><span class="l-en">Model selection guide: </span><span class="l-zh">選型參考：</span><a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 </main><script>(function(){var r=document.documentElement,b=document.getElementById('lang');function label(){var z=r.dataset.lang==='zh';b.textContent=z?'EN':'中文';b.setAttribute('aria-label',z?'Switch to English':'切換成中文')}b.onclick=function(){var l=r.dataset.lang==='zh'?'en':'zh';r.dataset.lang=l;r.lang=l==='zh'?'zh-Hant':'en';try{localStorage.setItem('ai-cli-version-lang',l)}catch(e){}label()};label()})();</script></body></html>
 """

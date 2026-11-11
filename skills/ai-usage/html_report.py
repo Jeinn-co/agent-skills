@@ -346,6 +346,10 @@ def card(p, now, loading=False):
                "".join(rows), bi("Now: ", "目前："), now_line))
 
 
+# Row tint class per CLI; the CSS gives each the same --brand as its provider card.
+BRAND = {"claude": "anth", "codex": "oai", "grok": "grok", "muse": "muse", "agy": "gemini"}
+
+
 def bench_rows(data, loading=False):
     """The Qualified (AA) <tr>s; `loading` gives one skeleton row per provider."""
     if loading:
@@ -361,10 +365,10 @@ def bench_rows(data, loading=False):
         kn, ks, kc, kp, kaa = figure(k) if k else ("—", "", "", "", False)
         closest = "rule closest" in k
         rows.append(
-            "<tr><td>%s</td><td>%s <span class=\"score\">%s</span></td><td class=\"num\">%s</td>"
+            "<tr class=\"%s\"><td>%s</td><td>%s <span class=\"score\">%s</span></td><td class=\"num\">%s</td>"
             "<td class=\"num\">%s</td><td>%s <span class=\"score\">%s</span>%s</td>"
             "<td class=\"num\">%s</td><td class=\"num\">%s</td></tr>"
-            % (esc(CLI_NAMES[cli]), esc(bn), esc(bs), esc(bc), esc(bp), esc(kn), esc(ks),
+            % (BRAND[cli], esc(CLI_NAMES[cli]), esc(bn), esc(bs), esc(bc), esc(bp), esc(kn), esc(ks),
                " *" if closest else "", esc(kc), esc(kp)))
     return "".join(rows)
 
@@ -400,9 +404,9 @@ def render(raw, now=None, loading=False):
 # Tailwind CSS 3.4 Slate with blue; usage colour is an HSL hue from hue(), and its
 # lightness (--tl) keeps every text colour at least 4.5:1
 # on its card. Dark is used when the OS is dark, unless `data-theme` on <html> forces one.
-DARK = ("--bg:#1e293b;--card:#334155;--text:#f1f5f9;--muted:#cbd5e1;--line:#475569;"
+DARK = ("color-scheme:dark;--bg:#1e293b;--card:#334155;--text:#f1f5f9;--muted:#cbd5e1;--line:#475569;"
         "--track:#475569;--tick:#94a3b8;--fl:55%;--tl:78%;"
-        "--accent:#93c5fd;--anth:rgba(217,119,87,.16);--oai:rgba(16,163,127,.16)")
+        "--accent:#93c5fd;--tint:.14")
 
 EXPIRY_SCRIPT = """function updateResetExpiry() {
   document.querySelectorAll('[data-reset-expires]').forEach(note => {
@@ -459,7 +463,7 @@ PAGE = """<!doctype html>
 <title>AI Usage</title>
 <script>@@lang_head@@</script>
 <style>
-:root{--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--tick:#94a3b8;--fl:45%;--tl:25%;--accent:#2563eb;--anth:rgba(217,119,87,.07);--oai:rgba(16,163,127,.07)}
+:root{color-scheme:light;--bg:#f1f5f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--line:#e2e8f0;--track:#e2e8f0;--tick:#94a3b8;--fl:45%;--tl:25%;--accent:#2563eb;--tint:.07}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){@@dark@@}}
 :root[data-theme=dark]{@@dark@@}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
@@ -467,18 +471,19 @@ font:16px/1.6 "Inter","Segoe UI",system-ui,-apple-system,sans-serif;padding:40px
 main{max-width:1040px;margin:0 auto}h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px}
 .sub{color:var(--muted);margin:0 0 20px}
 .grid{display:grid;grid-template-columns:1fr;gap:20px}
-.card{--brand:100,116,139;background:linear-gradient(180deg,rgba(var(--brand),.09),transparent 100px),var(--card);border:1px solid var(--line);border-left:4px solid rgb(var(--brand));border-radius:12px;padding:22px clamp(16px,3vw,28px) 20px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card,.panel{--pad:clamp(16px,3vw,28px);background:var(--card);border:1px solid var(--line);border-radius:4px;padding:22px var(--pad) 20px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card{--brand:100,116,139;background:linear-gradient(180deg,rgba(var(--brand),.09),transparent 100px),var(--card);border-left:4px solid rgb(var(--brand))}
 .card[data-id=CLAUDE],.anth{--brand:217,119,87}
 .card[data-id=CHATGPT],.oai{--brand:16,163,127}
-.card[data-id=GROK]{--brand:148,163,184}
-.card[data-id=MUSE]{--brand:149,83,255}
+.card[data-id=GROK],.grok{--brand:148,163,184}
+.card[data-id=MUSE],.muse{--brand:149,83,255}
 .card[data-id=GEMINI],.gemini{--brand:49,134,255}
 header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin-bottom:16px}
 h2{font-size:17px;font-weight:600;margin:0}.logo{width:18px;height:18px;margin-right:8px;vertical-align:-3px}.plan{color:var(--muted);font-size:14px;border:1px solid var(--line);
-border-radius:999px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color:var(--accent);text-decoration:none}
+border-radius:4px;padding:1px 8px}.usage{margin-left:auto;font-size:14px;color:var(--accent);text-decoration:none}
 .row{display:grid;grid-template-columns:64px 1fr 56px 112px;align-items:center;gap:6px 12px;margin:10px 0}
 .lbl,.reset-credits{font-size:13px}
-.lbl{color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:999px;overflow:hidden}
+.lbl{color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.track{height:8px;background:var(--track);border-radius:4px;overflow:hidden}
 .row.time{margin:-2px 0 26px}.tbar{position:relative;height:14px;display:flex;align-items:center}
 .ticks{position:absolute;inset:0;border-right:2px solid var(--tick);
 background:repeating-linear-gradient(to right,var(--tick) 0 2px,transparent 2px calc(100% / var(--n)))}
@@ -486,83 +491,84 @@ background:repeating-linear-gradient(to right,var(--tick) 0 2px,transparent 2px 
 font-variant-numeric:tabular-nums}.scale span{position:absolute;transform:translateX(-50%);white-space:nowrap}
 .scale span.first{transform:none}.scale span.last{transform:translateX(-100%)}
 .track.thin{position:relative;flex:1;height:4px;display:flex;justify-content:flex-end}
-.tfill{height:100%;border-radius:999px;background:var(--accent);opacity:.6}
+.tfill{height:100%;border-radius:4px;background:var(--accent);opacity:.6}
 .clock{width:13px;height:13px;margin-right:5px;vertical-align:-2px;fill:none;stroke:currentColor;
 stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .left{grid-column:3/5;text-align:left;white-space:nowrap;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
-.fill{height:100%;border-radius:999px;background:hsl(var(--h) 80% var(--fl))}
+.fill{height:100%;border-radius:4px;background:hsl(var(--h) 80% var(--fl))}
 .pct{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:hsl(var(--h) 85% var(--tl))}
 .reset{white-space:nowrap;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}.rel{opacity:.8}
 .note{color:var(--muted);font-style:normal;font-size:13px;margin:6px 0}
 .reset-credits{min-width:0;margin:14px 0 0;padding:4px 12px 8px;border:1px solid var(--line);
-border-radius:8px;color:var(--muted);overflow-wrap:anywhere}
+border-radius:4px;color:var(--muted);overflow-wrap:anywhere}
 .reset-credits legend{padding:0 6px}
 .reset-credits .note{font-size:inherit}
 .note[data-expiring]{color:hsl(var(--reset-hue) 85% var(--tl))}
 .note[data-urgent]{font-weight:700;border:1px solid currentColor;border-radius:4px;
 padding:4px 8px;width:fit-content;max-width:100%}
 .login{font:inherit;font-size:14px;min-height:32px;padding:6px 10px;margin:8px 0;
-border:1px solid var(--accent);border-radius:6px;background:transparent;color:var(--accent);cursor:pointer}
+border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);cursor:pointer}
 .login:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .login:disabled{opacity:.65;cursor:wait}
 .skel-body{display:grid;gap:14px;margin:14px 0 6px}
-.skel{height:10px;border-radius:999px;background:linear-gradient(90deg,var(--track) 30%,var(--card) 50%,var(--track) 70%);
+.skel{height:10px;border-radius:4px;background:linear-gradient(90deg,var(--track) 30%,var(--card) 50%,var(--track) 70%);
 background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}}
 .now{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}
-h3{font-size:15px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:48px 0 10px}.std{color:var(--muted);font-size:14px;margin:0 0 14px;font-style:italic}.rule{color:var(--accent);font-size:18px;font-weight:700;border-left:4px solid var(--accent);padding:6px 14px;margin:0 0 12px}
-.tablewrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
-table{border-collapse:collapse;width:100%;font-size:15px}th,td{padding:10px 16px;text-align:left;
-border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.panel{margin-top:20px}.grid+.panel{margin-top:40px}.panel h2{margin:0 0 6px}
+.std{color:var(--muted);font-size:14px;margin:0 0 16px;max-width:76ch}
+.lead{font-size:15px;margin:0;max-width:76ch}.lead+.foot{max-width:none;border-top:1px dashed var(--line);padding-top:14px;margin-top:18px}
+.tablewrap{overflow-x:auto;margin:0 calc(-1 * var(--pad));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px 14px;text-align:left;
+border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+th:first-child,td:first-child{padding-left:var(--pad)}th:last-child,td:last-child{padding-right:var(--pad)}
+th.anth,th.oai,th.gemini{box-shadow:inset 0 -2px rgb(var(--brand))}td b{font-weight:600}
 tr:last-child td{border-bottom:0}.num{text-align:right;font-variant-numeric:tabular-nums}.score{color:var(--muted)}
-.foot{color:var(--muted);font-size:14px;margin:10px 4px 0}.muted{color:var(--muted)}
-.links{margin:32px 0 0}a{color:var(--accent)}
+.foot{color:var(--muted);font-size:13px;margin:14px 0 0;max-width:76ch}.defs{white-space:pre-line}.muted{color:var(--muted)}
+main>.muted,.links{font-size:14px;margin:24px 0 0}.links{color:var(--muted)}a{color:var(--accent)}
 :root:not([data-lang=zh]) .l-zh,:root[data-lang=zh] .l-en{display:none}
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.lang{font:inherit;font-size:14px;min-height:32px;padding:4px 14px;border:1px solid var(--accent);border-radius:999px;background:transparent;color:var(--accent);cursor:pointer}
+.lang{font:inherit;font-size:14px;min-height:32px;padding:4px 14px;border:1px solid var(--accent);border-radius:4px;background:transparent;color:var(--accent);cursor:pointer}
 .lang:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-tr.anth td,tr.oai td,tr.gemini td,td.anth,td.oai,td.gemini{background:rgba(var(--brand),.07)}
-tr.anth td:first-child,tr.oai td:first-child,tr.gemini td:first-child{border-left:4px solid rgb(var(--brand))}
-.usage-guide td{white-space:normal;min-width:140px}
+tr[class] td,td.anth,td.oai,td.gemini{background:rgba(var(--brand),var(--tint))}
+tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:calc(var(--pad) - 4px)}
+.usage-guide td{white-space:normal;min-width:150px}.usage-guide td:first-child{min-width:260px}
 @media (max-width:480px){.row{grid-template-columns:44px 1fr 40px}.reset{grid-column:2/4}.left{grid-column:2/4}
-.row.time{row-gap:24px;margin-bottom:18px}h3{margin-top:40px}th,td{padding:9px 12px}}
+.row.time{row-gap:24px;margin-bottom:18px}.grid+.panel{margin-top:32px}th,td{padding:9px 12px}
+.usage-guide td:first-child{min-width:220px}}
 </style></head><body><main>
 <div class="top"><h1>AI Usage</h1><button type="button" class="lang" id="lang">中文</button></div><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
-<h3><span class="l-en">My usage</span><span class="l-zh">我的用法</span></h3>
-<p class="rule"><span class="l-en">Feels dumb or not proactive? Don't second-guess it: move up a step right away.</span><span class="l-zh">覺得它很笨、不主動？不要懷疑，馬上升級。</span></p>
-<p class="std"><span class="l-en">Claude Code (checked 2026-11-12): Opus 5.5 / high for everything; only downgrades are written down. <strong>No Fable: $8/$40 per million input/output tokens (Opus 5.5: $4/$20).</strong> API prices do not establish subscription quota consumption.</span><span class="l-zh">Claude Code（2026-11-12 核對）：一律 Opus 5.5 / high，只有降級才另外寫。<strong>不用 Fable：每百萬輸入／輸出 token $8/$40（Opus 5.5：$4/$20）。</strong>API 價格不代表訂閱額度消耗。</span></p>
-<p class="foot"><span class="l-en">Sources: <a href="https://www.anthropic.com/claude-fable-and-mythos-5-2" target="_blank" rel="noopener">Anthropic model selection</a> · <a href="https://platform.claude.com/docs/en/about-claude/pricing" target="_blank" rel="noopener">Claude API pricing</a> · <a href="https://developers.openai.com/api/docs/models/gpt-6.1-sol" target="_blank" rel="noopener">OpenAI GPT-6.1-Sol</a> · <a href="https://ai.google.dev/gemini-api/docs/latest-model" target="_blank" rel="noopener">Google Gemini 4 Argon</a>.</span><span class="l-zh">依據：<a href="https://www.anthropic.com/claude-fable-and-mythos-5-2" target="_blank" rel="noopener">Anthropic 模型選擇</a> · <a href="https://platform.claude.com/docs/en/about-claude/pricing" target="_blank" rel="noopener">Claude API 定價</a> · <a href="https://developers.openai.com/api/docs/models/gpt-6.1-sol" target="_blank" rel="noopener">OpenAI GPT-6.1-Sol</a> · <a href="https://ai.google.dev/gemini-api/docs/latest-model" target="_blank" rel="noopener">Google Gemini 4 Argon</a>。</span></p>
-<p class="std"><span class="l-en">Codex: GPT-6.1-Sol / medium &rarr; high (OpenAI&rsquo;s default is medium); GPT-6.1-Terra for visual understanding and app operation. Gemini: Gemini 4 Argon / medium (Google&rsquo;s recommended default); Gemini 4 Carbon is not publicly available, so it is left out.</span><span class="l-zh">Codex：GPT-6.1-Sol / medium &rarr; high（OpenAI 預設 medium）；GPT-6.1-Terra 用於視覺理解與操作 app。Gemini：Gemini 4 Argon / medium（Google 建議的預設）；Gemini 4 Carbon 未公開提供，不列入。</span></p>
-<div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Platform</span><span class="l-zh">平台</span></th><th><span class="l-en">Daily default</span><span class="l-zh">平日預設</span></th><th><span class="l-en">Harder tasks</span><span class="l-zh">進階任務</span></th><th><span class="l-en">Special use</span><span class="l-zh">特殊用途</span></th></tr></thead><tbody>
-<tr class="anth"><td>Claude Code</td><td>Opus 5.5 / high</td><td>Opus 5.5 / high</td><td><span class="l-en">Downgrade: Sonnet 5.5 or Haiku 5.5 for simple tasks</span><span class="l-zh">降級：簡單任務用 Sonnet 5.5 或 Haiku 5.5</span></td></tr>
-<tr class="oai"><td>Codex</td><td>GPT-6.1-Sol / medium &rarr; GPT-6.1-Sol / high</td><td>GPT-6.1-Sol / high &rarr; GPT-6.1-Sol / max</td><td><span class="l-en">GPT-6.1-Terra: visual understanding and app operation</span><span class="l-zh">GPT-6.1-Terra：視覺理解與操作 app</span></td></tr>
-<tr class="gemini"><td>Gemini</td><td>Gemini 4 Argon / medium</td><td>Gemini 4 Argon / high</td><td>&mdash;</td></tr>
-</tbody></table></div>
+<section class="panel"><h2><span class="l-en">My usage</span><span class="l-zh">我的用法</span></h2>
+<p class="lead"><span class="l-en">My own choices (checked 2026-11-12): Claude Code mainly Opus 5.5 / high; Codex GPT-6.1-Sol / high. Official guidance, what effort changes and API prices are on <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>.</span><span class="l-zh">我自己的選擇（2026-11-12 核對）：Claude Code 主要用 Opus 5.5 / high；Codex 用 GPT-6.1-Sol / high。官方說法、effort 的影響與 API 價格放在 <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>。</span></p>
 <p class="foot"><span class="l-en">Model availability depends on the account and current model list. These preferences do not change CLI settings.</span><span class="l-zh">模型能不能用，取決於帳號與目前的模型清單。這些偏好不會更改 CLI 設定。</span></p>
-<h3><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h3>
-<p class="std"><span class="l-en">s-agent role configuration snapshot, checked on 2026-11-12. Select roles for the task and start with one subagent; the full team is not launched every time.</span><span class="l-zh">s-agent 角色設定快照，2026-11-12 核對。依任務挑角色，先派一個子 agent；不會每次都跑完整團隊。</span></p>
-<div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Role / responsibility</span><span class="l-zh">角色／職責</span></th><th>Claude Code</th><th>Codex</th><th>Gemini</th></tr></thead><tbody>
-<tr><td><span class="l-en">PM: requirements and planning</span><span class="l-zh">PM：需求與規劃</span></td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
-<tr><td><span class="l-en">Designer: UI, interaction and accessibility</span><span class="l-zh">Designer：UI、互動與無障礙</span></td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Terra / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
-<tr><td><span class="l-en">Developer: implementation and bug fixes</span><span class="l-zh">Developer：實作與修 bug</span></td><td class="anth">Opus 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Argon / medium</td></tr>
-<tr><td><span class="l-en">QA: reproduction and acceptance checks</span><span class="l-zh">QA：重現問題與驗收</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
-<tr><td><span class="l-en">Reviewer: independent review</span><span class="l-zh">Reviewer：獨立審查</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
-<tr><td><span class="l-en">DevOps: environments and operations</span><span class="l-zh">DevOps：環境與維運</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+</section>
+<section class="panel"><h2><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h2>
+<p class="std"><span class="l-en">s-agent role configuration snapshot, checked on 2026-11-12. The primary agent is the developer and the dispatcher (Claude: Opus 5.5 / high). Select roles for the task and start with one subagent; the full team is not launched every time.</span><span class="l-zh">s-agent 角色設定快照，2026-11-12 核對。主 agent 兼任 developer 與派工（Claude：Opus 5.5 / high）。依任務挑角色，先派一個子 agent；不會每次都跑完整團隊。</span></p>
+<div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Role / responsibility</span><span class="l-zh">角色／職責</span></th><th class="anth">Claude Code</th><th class="oai">Codex</th><th class="gemini">Gemini</th></tr></thead><tbody>
+<tr><td><span class="l-en"><b>Planner</b>: executable plan with scope, acceptance criteria and steps</span><span class="l-zh"><b>Planner</b>：可執行的 plan（範圍、驗收條件與步驟）</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td><span class="l-en"><b>Designer</b>: UI, interaction and accessibility</span><span class="l-zh"><b>Designer</b>：UI、互動與無障礙</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Terra / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td><span class="l-en"><b>Executor</b>: implements an approved plan step by step</span><span class="l-zh"><b>Executor</b>：照已核准的 plan 逐步實作</span></td><td class="anth">Sonnet 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 3.8 Flash / medium</td></tr>
+<tr><td><span class="l-en"><b>Reviewer</b>: independent review and testing</span><span class="l-zh"><b>Reviewer</b>：獨立審查與測試</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td><span class="l-en"><b>DevOps</b>: environments and operations</span><span class="l-zh"><b>DevOps</b>：環境與維運</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
+<tr><td><span class="l-en"><b>Security</b>: scans code, dependencies and configuration</span><span class="l-zh"><b>Security</b>：程式碼、相依套件與設定的安全掃描</span></td><td class="anth">Opus 5.5 / max</td><td class="oai">GPT-6 Astra / max</td><td class="gemini">Gemini 4 Carbon / high</td></tr>
 </tbody></table></div>
+<p class="foot"><span class="l-en">Carbon access in Antigravity: individual subscribers need Google AI Ultra; Free, Google AI Plus and Google AI Pro do not include it. Enterprise access and the research program have separate eligibility requirements. A paid Gemini API is a separate access route. This account's Carbon access is unverified. <a href="https://antigravity.google/blog/gemini-4-carbon-in-google-antigravity/" target="_blank" rel="noopener">Google's access announcement</a>.</span><span class="l-zh">Antigravity 的 Carbon 使用資格：個人訂閱需 Google AI Ultra；Free、Google AI Plus、Google AI Pro 不包含。企業與研究方案另有資格條件；付費 Gemini API 是另一個使用管道。目前未確認此帳號能否使用 Carbon。<a href="https://antigravity.google/blog/gemini-4-carbon-in-google-antigravity/" target="_blank" rel="noopener">Google 官方資格說明</a>。</span></p>
 <p class="foot"><span class="l-en">Source: <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</span><span class="l-zh">來源：<a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent 角色設定</a>。這是靜態快照，不是即時讀取或同步 Notion，也不代表帳號能用這些模型。實際派工時會另外檢查設定、工具與帳號權限。</span></p>
-<h3><span class="l-en">Qualified (Artificial Analysis)</span><span class="l-zh">合格（Artificial Analysis）</span></h3>
-<p class="std"><span class="l-en">Standard: among eligible models, Artificial Analysis Intelligence Index ≥ 50 → highest CP; none reach 50 → highest score. Claude never picks Fable.</span><span class="l-zh">標準：符合規則的模型中，Artificial Analysis 指數達 50 → 取 CP 最高者；都未達 50 → 取最高分。Claude 一律不選 Fable。</span></p>
+</section>
+<section class="panel"><h2><span class="l-en">Score 50+ (Artificial Analysis)</span><span class="l-zh">分數 50 以上（Artificial Analysis）</span></h2>
+<p class="std"><span class="l-en">Third-party benchmark for reference, not official guidance. Rule: Artificial Analysis Intelligence Index ≥ 50 → highest CP; none reach 50 → highest score. Claude never picks Fable.</span><span class="l-zh">第三方 benchmark，僅供參考，不是官方建議。規則：Artificial Analysis 指數達 50 → 取 CP 最高者；都未達 50 → 取最高分。Claude 一律不選 Fable。</span></p>
 <div class="tablewrap"><table><thead><tr><th><span class="l-en">Provider</span><span class="l-zh">供應商</span></th><th><span class="l-en">Now</span><span class="l-zh">目前</span></th><th class="num"><span class="l-en">Now $</span><span class="l-zh">目前 $</span></th>
-<th class="num"><span class="l-en">Now CP</span><span class="l-zh">目前 CP</span></th><th><span class="l-en">Qualified</span><span class="l-zh">合格</span></th><th class="num"><span class="l-en">Qualified $</span><span class="l-zh">合格 $</span></th><th class="num"><span class="l-en">Qualified CP</span><span class="l-zh">合格 CP</span></th></tr></thead>
+<th class="num"><span class="l-en">Now CP</span><span class="l-zh">目前 CP</span></th><th><span class="l-en">Score 50+</span><span class="l-zh">分數 50 以上</span></th><th class="num"><span class="l-en">Score 50+ $</span><span class="l-zh">分數 50 以上 $</span></th><th class="num"><span class="l-en">Score 50+ CP</span><span class="l-zh">分數 50 以上 CP</span></th></tr></thead>
 <tbody id="bench">@@bench@@</tbody></table></div>
-<p class="foot"><span class="l-en">$ = Artificial Analysis's cost per index task at API prices, not subscription quota.
+<p class="foot defs"><span class="l-en">$ = Artificial Analysis's cost per index task at API prices, not subscription quota.
 CP = index points per US dollar; higher is better. * nothing from this provider reaches 50: its highest.</span><span class="l-zh">$ = Artificial Analysis 每個指數任務的成本（API 價格），不是訂閱額度。
 CP = 每 1 美元換到的指數分數，越高越好。* 這家沒有任何選項達 50：列出它的最高分。</span></p>
+</section>
 @@skipped@@
-<p class="links"><span class="l-en">Compare models: </span><span class="l-zh">比較模型：</span><a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
+<p class="links"><span class="l-en">Model selection guide: </span><span class="l-zh">選型參考：</span><a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 </main><script>@@lang_script@@
 @@expiry_script@@</script></body></html>
 """

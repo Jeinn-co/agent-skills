@@ -14,12 +14,12 @@ import tomllib
 import uuid
 
 ROLES = {
-    'pm': 'Clarify user needs, scope, priorities and acceptance criteria.',
+    'planner': 'Turn a request into an executable plan: scope, acceptance criteria, steps and checks.',
     'designer': 'Design usable flows, accessible interactions, layouts and states.',
-    'developer': 'Investigate code and implement scoped features and fixes.',
-    'qa': 'Reproduce failures and verify acceptance criteria with meaningful tests.',
-    'reviewer': 'Independently review correctness, security, regressions and test gaps.',
+    'executor': 'Implement an approved plan step by step and verify each step.',
+    'reviewer': 'Independently review and test changes: correctness, security, regressions and acceptance.',
     'devops': 'Investigate CI/CD, environments, deployment configuration and reliability.',
+    'security': 'Scan code, dependencies and configuration for vulnerabilities and leaked secrets.',
 }
 PLATFORMS = {'codex', 'claude'}
 
@@ -40,9 +40,9 @@ def validate(policy, catalog=None):
     if type(policy['schema_version']) is not int or policy['schema_version'] != 1:
         raise ValueError('schema_version must be 1')
     exact_keys(policy['roles'], ROLES, 'roles')
-    platforms = set(policy['roles']['pm']) if isinstance(policy['roles']['pm'], dict) else set()
+    platforms = set(policy['roles']['planner']) if isinstance(policy['roles']['planner'], dict) else set()
     if platforms not in (PLATFORMS, PLATFORMS | {'gemini'}):
-        raise ValueError('roles require codex and claude, with optional gemini on all six roles')
+        raise ValueError('roles require codex and claude, with optional gemini on all roles')
     if catalog is not None:
         exact_keys(catalog, platforms, 'catalog')
         for platform, models in catalog.items():
@@ -406,7 +406,7 @@ def main(argv=None):
             return 0
         root = args.root.absolute()
         changes = plan(root, policy, args.source_url)
-        print('Validated 6 roles.' + (' Catalog verified.' if catalog else ' Catalog not supplied; apply is unavailable.'))
+        print('Validated %d roles.' % len(ROLES) + (' Catalog verified.' if catalog else ' Catalog not supplied; apply is unavailable.'))
         # Display only changed settings, never unrelated prompt or permission content.
         for path, before, after in changes:
             print(('Update: ' if before is not None else 'Create: ') + str(path))

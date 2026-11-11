@@ -180,13 +180,16 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    例如 `2h32m left`。用量條跑在時間條前面，就代表用得比時間過得快。
 3. **Now** —— 該 CLI 最新一個本機 session 的 model 與 effort，以及這家自己的用量頁連結
    （Claude、ChatGPT、Grok）。
-4. **我的用法** —— 以官方建議為主、再加上我的習慣來選模型與 effort（Claude 一律用 Opus 5.5 / high，只有降級才另外寫，
-   不用 Fable（每百萬輸入／輸出 token $8/$40）；Codex 用 GPT-6.1-Sol / medium 或 high），以及經 Notion 核對、
+4. **我的用法** —— 我自己的模型與 effort 選擇（Claude：主要用 Opus 5.5 / high；Codex：GPT-6.1-Sol /
+   high），官方說法、effort 的影響與 API 價格則連到 AI Model Compare，以及經 Notion 核對、
    附日期的六個 s-agent 角色安排快照；報表不會修改 CLI 設定，也不會即時讀取或同步 Notion。
-5. **合格（Artificial Analysis）** —— 每個 CLI 一列。「目前」是你最後用的 model + effort；
-   「合格」是挑選規則選出的 model + effort。兩邊各有 AA 智力指數、`$`（AA 每題成本，依 API
+   Security 使用 Opus 5.5 / max、GPT-6 Astra / max、Gemini 4 Carbon / high。
+   Antigravity 的 Carbon 個人訂閱需 Google AI Ultra；Free、Plus、Pro 不包含。
+   企業與研究方案另有資格條件，付費 Gemini API 也是另一個管道；報表不會驗證帳號使用資格。
+5. **分數 50 以上（Artificial Analysis）** —— 第三方 benchmark，僅供參考，不是官方建議。每個 CLI 一列。「目前」是你最後用的 model + effort；
+   「分數 50 以上」是挑選規則在 50 分以上的選項中選出的 model + effort。兩邊各有 AA 智力指數、`$`（AA 每題成本，依 API
    價格）與 CP（指數 ÷ `$`）。`*` 表示這家沒有任何一檔到 50，改列它的最高分。
-6. **Compare models** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
+6. **選型參考** —— 連到 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)。
 
 對話框裡只顯示推薦 —— **→** 現在該用哪一個（看最緊的視窗誰剩最多額度，免費或沒有方案名稱（如 Gemini 的 `?`）不算，差距 10 點內才比跑分）、附一句理由；週視窗超過 80% 時前面多一行
 **Warning** —— 以及報表連結。這幾行由 launcher 自己算好（`### ADVICE`），agent 只照抄，載入的 `SKILL.md` 也很短；直接在終端機跑 `./run.sh` 一樣看得到，不耗 token。報表一律是 HTML 網頁；右上角的 **EN / 中文** 按鈕可切換英文與繁體中文，並記住選擇，下次開報表沿用；還沒選過時跟著瀏覽器語言。
@@ -227,13 +230,13 @@ CLI 沒安裝的 provider 會回報 `not installed`，其他照跑。刻意不�
 model 與 effort，讀的是 CLI 自己寫下的 session 檔（`session_info.py`；不連網、不啟動
 任何程式）。反映的是最後送出的那一輪，所以之後才切換的 model 要等下一則訊息才會出現。
 
-**合格（Artificial Analysis）。** 各 provider 下方有一張表，每個你在用的 CLI 一列：該 CLI
+**分數 50 以上（Artificial Analysis）。** 各 provider 下方有一張表，每個你在用的 CLI 一列：該 CLI
 最後一次用的 model + effort 在 [Artificial Analysis](https://artificialanalysis.ai) 的智力指數、
 每題成本、speed、verbosity、latency（AA 模型頁那五個量值），以及 CP（指數 ÷ 每題成本，依 API
-價格每 1 美元換到的分數，越高越划算）。每家再列一個「合格」組合：在該家 AA 上所有模型與強度中，
+價格每 1 美元換到的分數，越高越划算）。每家再列一個「分數 50 以上」組合：在該家 AA 上所有模型與強度中，
 指數 ≥ 50 且符合選用規則者裡 CP 最高的一檔（Claude 的挑選一律不選 Fable，不管分數多少，
 但保留其目前模型實測數據）；整家都達不到 50 時，取該家最高分。尚未公開提供的模型（`cursorbench.py`
-的 `UNAVAILABLE`，目前是 Gemini 4 Carbon）不會被選。AA 沒收錄的 model 顯示 `not listed`，絕不借用
+的 `UNAVAILABLE`，目前沒有）不會被選。AA 沒收錄的 model 顯示 `not listed`，絕不借用
 相鄰那列的數字。不再使用 CursorBench：它由 Cursor 自己測，自家的 Composer 也在榜上。
 `cursorbench.py`（檔名沿用）自己不爬 AA，而是讀 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
 發布的 `data/aa.json`；那個網站每 6 小時從 Artificial Analysis 更新一次，所以跑分數字最多晚 6 小時。加上更新檢查對 `raw.githubusercontent.com` 的一次請求，

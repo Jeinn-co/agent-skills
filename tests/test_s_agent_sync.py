@@ -70,9 +70,9 @@ class SyncTests(unittest.TestCase):
 
     def test_apply_bootstraps_and_accepts_future_catalog_models(self):
         self.assertEqual(self.run_cli(apply=True), 0)
-        self.assertEqual(len(list((self.root / '.codex/agents').glob('*.toml'))), 6)
-        self.assertEqual(len(list((self.root / '.claude/agents').glob('*.md'))), 6)
-        parsed = tomllib.loads((self.root / '.codex/agents/qa.toml').read_text())
+        self.assertEqual(len(list((self.root / '.codex/agents').glob('*.toml'))), len(sync.ROLES))
+        self.assertEqual(len(list((self.root / '.claude/agents').glob('*.md'))), len(sync.ROLES))
+        parsed = tomllib.loads((self.root / '.codex/agents/reviewer.toml').read_text())
         self.assertEqual(parsed['model'], 'codex-future-9')
         self.assertEqual(parsed['model_reasoning_effort'], 'ultra')
 
@@ -92,7 +92,7 @@ class SyncTests(unittest.TestCase):
             shared = tomllib.loads((self.root / f'.agents/roles/{role}.toml').read_text())
             self.assertEqual(shared['instructions'], 'Do my job')
             self.assertEqual(shared['codex'], self.policy['roles'][role]['codex'])
-        self.assertEqual(len(list((self.root / '.agents/s-agent-backups').glob('*/.codex/agents/qa.toml'))), 1)
+        self.assertEqual(len(list((self.root / '.agents/s-agent-backups').glob('*/.codex/agents/reviewer.toml'))), 1)
 
     def test_repeated_apply_does_not_rewrite_or_backup(self):
         self.assertEqual(self.run_cli(apply=True), 0)
@@ -105,10 +105,10 @@ class SyncTests(unittest.TestCase):
         baseline = self.snapshot()
         original = copy.deepcopy(self.policy)
         for mutate in (
-            lambda p: p['roles']['qa']['codex'].update(model='unknown'),
-            lambda p: p['roles']['qa']['codex'].update(effort='unknown'),
-            lambda p: p['roles'].update(intruder=p['roles']['qa']),
-            lambda p: p['roles']['qa']['codex'].update(instructions='execute'),
+            lambda p: p['roles']['reviewer']['codex'].update(model='unknown'),
+            lambda p: p['roles']['reviewer']['codex'].update(effort='unknown'),
+            lambda p: p['roles'].update(intruder=p['roles']['reviewer']),
+            lambda p: p['roles']['reviewer']['codex'].update(instructions='execute'),
             lambda p: p.update(tools=['shell']),
             lambda p: p.update(schema_version=True),
         ):
@@ -139,7 +139,7 @@ class SyncTests(unittest.TestCase):
 
     def test_existing_modes_and_unrelated_roles_are_preserved(self):
         self.seed()
-        target = self.root / '.codex/agents/qa.toml'
+        target = self.root / '.codex/agents/reviewer.toml'
         target.chmod(0o600)
         unrelated = self.root / '.codex/agents/custom.toml'
         unrelated.write_text('model = "custom"\n')
@@ -169,9 +169,9 @@ class SyncTests(unittest.TestCase):
     def test_gemini_creates_shared_exact_settings_and_native_inherited_profile(self):
         self.configure_gemini()
         self.assertEqual(self.run_cli(apply=True), 0)
-        shared = tomllib.loads((self.root / '.agents/roles/developer.toml').read_text())
-        self.assertEqual(shared['gemini'], self.policy['roles']['developer']['gemini'])
-        native = (self.root / '.gemini/config/agents/developer.md').read_text()
+        shared = tomllib.loads((self.root / '.agents/roles/executor.toml').read_text())
+        self.assertEqual(shared['gemini'], self.policy['roles']['executor']['gemini'])
+        native = (self.root / '.gemini/config/agents/executor.md').read_text()
         self.assertIn('model: "inherit"\n', native)
         self.assertNotIn('effort:', native)
         self.assertNotIn('gemini-4-argon', native)
@@ -182,24 +182,24 @@ class SyncTests(unittest.TestCase):
     def test_gemini_extends_shared_source_and_preserves_native_prompt_and_permissions(self):
         self.seed()
         self.configure_gemini()
-        target = self.root / '.gemini/config/agents/qa.md'
+        target = self.root / '.gemini/config/agents/reviewer.md'
         target.parent.mkdir(parents=True)
-        target.write_text('---\nname: qa\nmodel: flash\ntools: [view_file]\n'
+        target.write_text('---\nname: reviewer\nmodel: flash\ntools: [view_file]\n'
                           'commandExecutionPolicy: off\n---\n\nKeep this prompt.\n')
         self.assertEqual(self.run_cli(apply=True), 0)
         native = target.read_text()
         self.assertIn('tools: [view_file]\ncommandExecutionPolicy: off\n', native)
         self.assertTrue(native.endswith('Keep this prompt.\n'))
-        shared = tomllib.loads((self.root / '.agents/roles/qa.toml').read_text())
+        shared = tomllib.loads((self.root / '.agents/roles/reviewer.toml').read_text())
         self.assertEqual(shared['instructions'], 'Do my job')
-        self.assertEqual(shared['gemini'], self.policy['roles']['qa']['gemini'])
+        self.assertEqual(shared['gemini'], self.policy['roles']['reviewer']['gemini'])
 
     def test_partial_or_unsupported_gemini_policy_does_not_write(self):
         self.configure_gemini()
-        del self.policy['roles']['qa']['gemini']
+        del self.policy['roles']['reviewer']['gemini']
         self.assertEqual(self.run_cli(apply=True), 1)
         self.assertFalse(self.root.exists())
-        self.policy['roles']['qa']['gemini'] = {'model': 'gemini-4-argon', 'effort': 'max'}
+        self.policy['roles']['reviewer']['gemini'] = {'model': 'gemini-4-argon', 'effort': 'max'}
         self.assertEqual(self.run_cli(apply=True), 1)
         self.assertFalse(self.root.exists())
 
@@ -212,9 +212,9 @@ class SyncTests(unittest.TestCase):
 
     def test_indented_delimiter_in_block_description_is_preserved(self):
         self.seed()
-        target = self.root / '.claude/agents/qa.md'
+        target = self.root / '.claude/agents/reviewer.md'
         description = 'description: |\n  instructions\n  ---\n  other\n'
-        target.write_text('---\nname: qa\nmodel: old\n' + description +
+        target.write_text('---\nname: reviewer\nmodel: old\n' + description +
                           'tools: [Read, Grep]\n---\n\nPreserve body.\n')
         self.assertEqual(self.run_cli(apply=True), 0)
         after = target.read_text()

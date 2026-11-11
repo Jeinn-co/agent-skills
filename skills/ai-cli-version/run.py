@@ -487,42 +487,30 @@ PAGE = os.path.join(tempfile.gettempdir(), "ai-cli-version", "report.html")
 # /ping answer: version and location, so a server left from an older or moved copy of
 # this skill is not mistaken for this one (its Refresh would run that other run.py).
 PING = ("ai-cli-version %s %s" % (VERSION, HERE)).encode("utf-8")
-# Placeholder pages in the iframe. `data-theme` on <html> forces light or dark.
-NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a}"
-              "@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--b:#1e293b;--t:#f1f5f9}}"
-              ":root[data-theme=dark]{--b:#1e293b;--t:#f1f5f9}"
-              "body{margin:0;height:100vh;display:grid;place-items:center;"
-              "font:15px system-ui,sans-serif;background:var(--b);color:var(--t)}")
-EMPTY_PAGE = ('<!doctype html><html><head><meta charset="utf-8"><style>%s</style></head>'
-              "<body>No report yet. Press Refresh.</body></html>" % NOTICE_CSS)
-# `/`: the last report in an iframe, a Refresh button and a theme switch. Refresh shows
-# skeleton rows and checks each tool with its own request, so every row fills in as soon
-# as its tool answers.
-SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>CLI Versions</title>
-<style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0;--ring:#2563eb}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569;--ring:#93c5fd}}
-:root[data-theme=dark]{color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569;--ring:#93c5fd}
-html,body{margin:0;height:100%}body{box-sizing:border-box;padding:24px clamp(12px,3vw,32px);display:flex;flex-direction:column;gap:20px;background:var(--page)}
-body>*{width:100%;max-width:1120px;align-self:center}
-iframe{flex:1;min-height:0;box-sizing:border-box;border:1px solid var(--edge);border-radius:16px;background:var(--frame)}
-#bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;align-items:center;padding:0 4px;box-sizing:border-box;font:13px/1.4 system-ui,sans-serif;color:CanvasText}
-#bar h1{font-size:22px;font-weight:600;line-height:1.2;margin:0 0 4px}#meta{opacity:.75}
-#updated:not(:empty)::after{content:" · "}#tools{display:flex;flex-wrap:wrap;gap:8px}
-button,select{padding:0 14px;border:0;border-radius:999px;font:inherit;background:var(--btn);color:inherit;cursor:pointer}button:disabled{opacity:.6;cursor:default}
-#tools button,.sel{display:inline-flex;align-items:center;gap:6px;height:34px;box-sizing:border-box}
+# `/` is the last report itself, with Theme, Update all and Refresh added to its own header
+# next to the language switch (no iframe). Refresh shows skeleton rows under the header and
+# checks each tool with its own request, so every row fills in as soon as its tool answers.
+GLOBE_ICON = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg>'
+SERVE_TOOLS = ('<div class="tools"><button type="button" class="lang" id="lang"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg><span>中文</span></button>'
+               '<label class="sel"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><select id="theme" aria-label="Theme"><option value="auto">Auto</option>'
+               '<option value="light">Light</option><option value="dark">Dark</option></select>'
+               '<svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75l3 3 3-3"/></svg></label>'
+               '<button type="button" class="lang" id="all" hidden></button>'
+               '<button type="button" class="lang" id="refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg><span>Refresh</span></button></div>')
+SERVE_CSS = """.title-row{align-items:center;position:sticky;top:0;z-index:10;background:var(--card);margin:-40px calc(50% - 50vw) 16px;padding:14px calc(50vw - 50%);border-bottom:1px solid var(--line)}body{overflow-x:clip}.tools{display:flex;flex-wrap:wrap;gap:8px}
+.sel{position:relative;display:inline-flex;font-size:14px;border:1px solid var(--accent);border-radius:4px;color:var(--accent)}
+.sel select{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;background:transparent;border:0;
+min-height:30px;padding:0 28px 0 34px;border-radius:4px;cursor:pointer}.sel select:focus{outline:0}
+:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+.sel option{background:var(--card);color:var(--text)}
+.sel .chev{position:absolute;right:11px;top:50%;width:10px;height:10px;margin-top:-5px;pointer-events:none;
+fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#all[hidden]{display:none}
+.tools .lang{display:inline-flex;align-items:center;gap:6px}
 .ico{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.sel{position:relative;padding:0;border-radius:999px}.sel select{appearance:none;-webkit-appearance:none;height:100%;padding:0 26px 0 34px}
-.sel .ico{position:absolute;left:14px;pointer-events:none}.sel .chev{left:auto;right:10px;width:10px;height:10px}
-#theme option{background:var(--page);color:CanvasText}
-#tools button:focus-visible,:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--ring);outline-offset:2px}
-#tools :focus:not(:focus-visible),.sel select:focus{outline:0}
-#all[hidden]{display:none}#all{background:#2563eb;color:#fff}@media (prefers-color-scheme:dark){:root:not([data-theme=light]) #all{background:#93c5fd;color:#0f172a}}:root[data-theme=dark] #all{background:#93c5fd;color:#0f172a}</style>
-</head><body><header id="bar"><div><h1>CLI Versions</h1><div id="meta"><span id="updated"></span><span>ai-cli-version __VERSION__</span></div></div>
-<div id="tools"><button id="lang" type="button"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg><span>中文</span></button><label class="sel"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><select id="theme" aria-label="Theme"><option value="auto">Auto</option>
-<option value="light">Light</option><option value="dark">Dark</option></select><svg class="ico chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75l3 3 3-3"/></svg></label>
-<button id="all" hidden></button><button id="refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg><span>Refresh</span></button></div></header>
-<iframe id="report"></iframe><script>
-const frame = document.getElementById("report"), button = document.getElementById("refresh");
+.sel>.ico{position:absolute;left:14px;top:50%;margin-top:-7px;pointer-events:none}#all{background:var(--accent);color:var(--card)}
+.tools button:disabled{opacity:.6;cursor:default}"""
+SHELL = """const button = document.getElementById("refresh");
 const allButton = document.getElementById("all");
 const picker = document.getElementById("theme");
 addEventListener("pointerdown", () => document.documentElement.classList.add("mouse"), true);
@@ -541,8 +529,7 @@ const applyLang = doc => {
 const refreshLabel = () => { button.querySelector("span").textContent = refreshState === "busy" ? t("Refreshing…", "重新整理中…") : refreshState === "retry" ? t("Retry", "重試") : t("Refresh", "重新整理"); };
 const labels = () => {
   applyLang(document);
-  if (frame.contentDocument) applyLang(frame.contentDocument);
-  langButton.querySelector("span").textContent = t("中文", "EN");
+  langButton.innerHTML = __GLOBE__ + "<span>" + t("中文", "EN") + "</span>";
   langButton.setAttribute("aria-label", t("切換成中文", "Switch to English"));
   picker.setAttribute("aria-label", t("Theme", "主題"));
   [picker.options[0].textContent, picker.options[1].textContent, picker.options[2].textContent] =
@@ -553,7 +540,7 @@ langButton.onclick = () => {
   lang = lang === "zh" ? "en" : "zh";
   try { localStorage.setItem("ai-cli-version-lang", lang); } catch (e) {}
   labels(); stamp(updatedAt); syncButtons();
-  frame.contentDocument?.querySelectorAll(".acv-err").forEach(el => { el.textContent = t("Update failed: ", "更新失敗：") + failures[el.dataset.tool]; });
+  document.querySelectorAll(".acv-err").forEach(el => { el.textContent = t("Update failed: ", "更新失敗：") + failures[el.dataset.tool]; });
 };
 labels();
 const SKELETON = __SKELETON__;
@@ -566,25 +553,28 @@ const applyTheme = doc => {
   if (theme === "auto") delete doc.documentElement.dataset.theme;
   else doc.documentElement.dataset.theme = theme;
 };
-// Puts the theme on the page before it renders, so it never flashes in the other one.
-// Resolves with the frame's document once the page has loaded.
-const show = html => new Promise(done => {
-  frame.addEventListener("load", () => done(frame.contentDocument), {once: true});
-  frame.srcdoc = theme === "auto" ? html :
-    html.replace(/<html\\b/i, '<html data-theme="' + theme + '"');
-});
+// Puts a freshly fetched page's content under this header, keeping the header itself.
+const show = html => {
+  const fresh = new DOMParser().parseFromString(html, "text/html").querySelector("main");
+  fresh?.querySelector(".title-row")?.remove();
+  const main = document.querySelector("main");
+  [...main.children].filter(el => !el.matches(".title-row")).forEach(el => el.remove());
+  if (fresh) main.append(...fresh.children);
+  decorate(document);
+  return Promise.resolve(document);
+};
 applyTheme(document);
 picker.onchange = () => {
   theme = THEMES.includes(picker.value) ? picker.value : "auto";
   try { localStorage.setItem("ai-cli-version-theme", theme); } catch (e) {}
   applyTheme(document);
-  if (frame.contentDocument) applyTheme(frame.contentDocument);
 };
 const stamp = ms => {  // when the shown report was written, in local time
   updatedAt = ms;
   const d = new Date(ms), p = n => String(n).padStart(2, "0");
-  document.getElementById("updated").textContent = ms ? t("Updated ", "更新於 ") + p(d.getMonth() + 1) + "-" +
-    p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) : "";
+  const line = document.querySelector("main > p.top");
+  if (line) line.textContent = (ms ? t("Updated ", "更新於 ") + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " +
+    p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) + " · " : "") + "ai-cli-version __VERSION__";
 };
 stamp(__UPDATED__);
 // Last update error per tool, shown on its row again after the re-check.
@@ -596,14 +586,14 @@ let busy = false, updating = false, current = "";
 // always finishes, since stopping an installer halfway could leave a broken install.
 const syncButtons = () => {
   button.disabled = busy || updating;
-  const rows = [...(frame.contentDocument?.querySelectorAll("tr[data-tool]") || [])];
+  const rows = [...document.querySelectorAll("tr[data-tool]")];
   allButton.hidden = rows.length < 2 && !queue.length;
   allButton.disabled = busy || (updating && !queue.length);
   allButton.textContent = !updating ? t("Update all (", "全部更新（") + rows.length + t(")", "）") :
     queue.length ? t("Cancel queued (", "取消佇列（") + queue.length + t(")", "）") : t("Finishing…", "即將完成…");
   // While updates run, only a queued row's button works, and it cancels just that tool;
   // the running row and rows outside the queue stay disabled until the queue ends.
-  frame.contentDocument?.querySelectorAll("button.acv-up").forEach(b => {
+  document.querySelectorAll("button.acv-up").forEach(b => {
     const tool = b.dataset.tool, queued = pending.has(tool) && tool !== current;
     b.disabled = busy || (updating && !queued);
     if (queued) b.textContent = t("Queued · Cancel", "佇列中 · 取消");
@@ -612,7 +602,7 @@ const syncButtons = () => {
   });
 };
 const setBusy = on => { busy = on; syncButtons(); };
-const ROW_CSS = ".acv-up{margin-left:8px;padding:2px 12px;border:0;border-radius:999px;" +
+const ROW_CSS = ".acv-up{margin-left:8px;padding:2px 12px;border:0;border-radius:4px;" +
   "font:inherit;font-size:13px;font-weight:500;background:var(--accent);color:var(--card);" +
   "cursor:pointer}.acv-up:disabled{opacity:.6;cursor:default}" +
   ".acv-err{color:var(--bad);font-size:13px;margin-top:4px}" +
@@ -623,12 +613,6 @@ const ROW_CSS = ".acv-up{margin-left:8px;padding:2px 12px;border:0;border-radius
 // updater itself. Runs again after a row is swapped in.
 const decorate = doc => {
   if (!doc.getElementById("acv-style")) {
-    const main = doc.querySelector("main");
-    if (main) {  // the shell already shows the title and version
-      main.querySelector(".title-row")?.remove();
-      main.querySelector(".top")?.remove();
-      doc.body.style.paddingTop = "20px";
-    }
     const style = doc.createElement("style");
     style.id = "acv-style";
     style.textContent = ROW_CSS;
@@ -659,7 +643,6 @@ const decorate = doc => {
   }
   syncButtons();
 };
-frame.onload = () => { applyLang(frame.contentDocument); decorate(frame.contentDocument); };
 // Puts the summary above the table and the notes below it from a freshly saved page.
 const swapSummary = (doc, fresh) => {
   for (const sel of [".summary", "#foot"]) {
@@ -669,7 +652,7 @@ const swapSummary = (doc, fresh) => {
 };
 // Puts one re-checked row, and the summary above the table, in place without reloading.
 const swapRow = (tool, html) => {
-  const doc = frame.contentDocument, fresh = new DOMParser().parseFromString(html, "text/html");
+  const doc = document, fresh = new DOMParser().parseFromString(html, "text/html");
   const pick = d => d.querySelector('tr[data-row="' + CSS.escape(tool) + '"]');
   const oldRow = pick(doc), newRow = pick(fresh);
   if (!oldRow || !newRow) return null;
@@ -680,7 +663,7 @@ const swapRow = (tool, html) => {
   return row;
 };
 // Replaces the report after a failure, so old versions never look current.
-const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style>' + text;
+const notice = text => '<main><p class="note">' + text.replace(/&/g, "&amp;").replace(/</g, "&lt;") + '</p></main>';
 const ok = r => r.ok ? r : Promise.reject(r.status + " " + r.statusText);
 const get = path => fetch(path + "?" + Date.now()).then(ok).then(r => r.text());
 const post = (path, body) => fetch(path, {method: "POST", body: JSON.stringify(body || {}),
@@ -709,8 +692,12 @@ const check = (doc, tools) => {
     stamp(Number(r.written));
   });
 };
-get("/last")
-  .then(show, e => show(notice(t("Could not load the report (", "無法載入報表（") + e + t(").", "）。"))))
+// Runs after this script, so refresh() below is defined; with no report on disk yet it
+// checks every tool at once.
+Promise.resolve().then(() => {
+  decorate(document);
+  return document.documentElement.dataset.empty ? refresh().then(() => document) : document;
+})
   .then(doc => {
     // A row whose check ran out of the chat report's 20 s is checked again here, with
     // the page's longer budget.
@@ -756,7 +743,7 @@ const cancelQueued = (tools = [...queue]) => {
 };
 allButton.onclick = () => {
   if (updating) cancelQueued();
-  else enqueueTools([...frame.contentDocument.querySelectorAll("tr[data-tool]")]
+  else enqueueTools([...document.querySelectorAll("tr[data-tool]")]
     .map(row => row.dataset.tool));
 };
 const updateTools = async () => {
@@ -767,7 +754,7 @@ const updateTools = async () => {
     const tool = queue.shift();
     current = tool;
     syncButtons();  // the running row's button off, the queue count without it
-    const doc = frame.contentDocument;
+    const doc = document;
     const row = doc.querySelector('tr[data-tool="' + CSS.escape(tool) + '"]');
     if (!row) {
       pending.delete(tool);
@@ -820,7 +807,7 @@ const updateTools = async () => {
     syncButtons();
   }
   updating = false;
-  decorate(frame.contentDocument);
+  decorate(document);
   if (reloadAll) await refresh();
   else setBusy(false);
 };
@@ -838,7 +825,17 @@ const refresh = () => {
     .finally(() => { setBusy(false); });
 };
 button.onclick = () => refresh();
-</script></body></html>"""
+"""
+
+
+def serve_page(page, empty=False):
+    """The report page with the served tools in its header and the refresh script."""
+    import html_report
+    page = page.replace('<button type="button" class="lang" id="lang">中文</button>', SERVE_TOOLS, 1)
+    page = page.replace("</head>", "<style>%s</style></head>" % SERVE_CSS, 1)
+    script = SHELL.replace("__GLOBE__", json.dumps(GLOBE_ICON)).replace("__SKELETON__", json.dumps(html_report.SKELETON)).replace("__VERSION__", VERSION)
+    page = page.replace("</body>", "<script>%s</script></body>" % script, 1)
+    return page.replace("<html", '<html data-empty="1"', 1) if empty else page
 
 
 UPDATE_TIMEOUT = 300
@@ -1011,6 +1008,13 @@ def write_page(html, lines):
     write_atomic(PAGE, html)
 
 
+def skeleton():
+    """The report with a loading row for every selected tool."""
+    import html_report
+    tools = selected_tools()
+    return html_report.render(head_lines(tools) + ["%s\tchecking" % name for name in tools], loading=True)
+
+
 def written_ms():
     """When the report on disk was written (ms since epoch), "0" if there is none."""
     try:
@@ -1097,23 +1101,15 @@ def serve():
             if path == "/ping":
                 self.reply(PING, "text/plain; charset=utf-8")
             elif path == "/":
-                page = (SHELL.replace("__UPDATED__", written_ms())
-                        .replace("__VERSION__", VERSION)
-                        .replace("__SKELETON__", json.dumps(html_report.SKELETON))
-                        .replace("__NOTICE_CSS__", NOTICE_CSS))
+                try:
+                    with open(PAGE, encoding="utf-8") as fh:
+                        page, empty = fh.read(), False
+                except OSError:
+                    page, empty = skeleton(), True
+                page = serve_page(page, empty).replace("__UPDATED__", written_ms())
                 self.reply(page.encode("utf-8"), "text/html; charset=utf-8")
             elif path == "/skeleton":
-                tools = selected_tools()
-                lines = head_lines(tools) + ["%s\tchecking" % name for name in tools]
-                self.reply(html_report.render(lines, loading=True).encode("utf-8"),
-                           "text/html; charset=utf-8")
-            elif path == "/last":
-                try:
-                    with open(PAGE, "rb") as fh:
-                        body = fh.read()
-                except OSError:
-                    body = EMPTY_PAGE.encode("utf-8")
-                self.reply(body, "text/html; charset=utf-8")
+                self.reply(skeleton().encode("utf-8"), "text/html; charset=utf-8")
             elif path == "/progress":
                 tool, line = progress["active"]
                 self.reply(json.dumps({"tool": tool, "line": line}).encode("utf-8"),

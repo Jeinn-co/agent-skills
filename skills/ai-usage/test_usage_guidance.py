@@ -1,6 +1,4 @@
 """Regression for the model choices users see in the rendered daily-use guide."""
-import html
-import re
 import unittest
 
 import html_report
@@ -8,15 +6,11 @@ import cursorbench
 
 
 class UsageGuidanceTests(unittest.TestCase):
-    def test_claude_daily_and_hard_tasks_use_distinct_models(self):
+    def test_my_usage_paragraph_lists_my_choices(self):
         page = html_report.render("")
-        row = re.search(r'<tr class="anth"><td>Claude Code</td>(.*?)</tr>', page).group(1)
-        daily, harder, special = [html.unescape(re.sub(r'<[^>]+>', '', cell))
-                                  for cell in re.findall(r'<td>(.*?)</td>', row)]
-        self.assertIn('Opus 5.5 / high', daily)
-        self.assertNotIn('Fable', daily)
-        self.assertNotIn('Fable', harder)
-        self.assertIn('Opus 5.5 / high', harder)
+        self.assertIn('Claude Code mainly Opus 5.5 / high', page)
+        self.assertIn('Codex GPT-6.1-Sol / high', page)
+        self.assertIn('Claude Code 主要用 Opus 5.5 / high', page)
 
     def test_qualified_claude_pick_never_uses_fable(self):
         rows = [

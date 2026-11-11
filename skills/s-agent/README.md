@@ -87,12 +87,12 @@ The coordinator verifies the returned work.
 
 | Role | Responsibility |
 |---|---|
-| `pm` / PO | Needs, scope, priorities and acceptance criteria |
+| `planner` | Executable plan: scope, acceptance criteria, steps and checks |
 | `designer` | UI/UX, flows and accessibility |
-| `developer` | Investigation, implementation and fixes |
-| `qa` | Reproduction, regression tests and acceptance |
-| `reviewer` | Independent correctness/security review |
+| `executor` | Implements an approved plan step by step |
+| `reviewer` | Independent review and testing |
 | `devops` | CI/CD, environments, logs and reliability |
+| `security` | Security scans of code, dependencies and configuration |
 
 Start with one subagent; use up to three only for independent work and within the
 host limit. Keep ownership clear, sequence dependent work and reuse agents for

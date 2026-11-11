@@ -224,17 +224,21 @@ Read top to bottom:
    faster than it runs out.
 3. **Now** — the model and effort of that CLI's newest local session, plus a link to the
    provider's own usage page (Claude, ChatGPT, Grok).
-4. **My usage** — model and effort choices based on official guidance first, then my habits
-   (Claude: Opus 5.5 / high for all work, only downgrades written out, and no Fable
-   ($8/$40 per million input/output tokens); Codex: GPT-6.1-Sol /
-   medium or high), plus a dated
+4. **My usage** — my own model and effort choices (Claude: mainly Opus 5.5 / high; Codex:
+   GPT-6.1-Sol / high) with a link to AI Model Compare for official guidance,
+   what effort changes and API prices, plus a dated
    snapshot of the six s-agent role assignments checked against Notion. This section
    does not change CLI settings or fetch/sync Notion during report generation.
-5. **Qualified (Artificial Analysis)** — one row per CLI. *Now* is the model + effort you
-   ran last; *Qualified* is the model + effort the pick rule chooses. Each side shows its AA
+   Security uses Opus 5.5 / max, GPT-6 Astra / max and Gemini 4 Carbon / high.
+   Carbon in Antigravity requires Google AI Ultra for individual subscriptions;
+   Free, Plus and Pro do not include it. Enterprise and research eligibility are separate,
+   as is paid Gemini API access. The report does not verify account access.
+5. **Score 50+ (Artificial Analysis)** — a third-party benchmark for reference, not official
+   guidance. One row per CLI. *Now* is the model + effort you
+   ran last; *Score 50+* is the model + effort the pick rule chooses among scores of 50 or more. Each side shows its AA
    Intelligence Index, `$` (AA's cost per index task at API prices) and CP (index ÷ `$`).
    `*` marks a provider with nothing at 50, so its highest score is shown.
-6. **Compare models** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
+6. **Model selection guide** — a link to [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
 In chat the agent shows only the recommendation — **→** which tool to use right now (the
 one with the most usage left in its tightest window, free or unnamed plans such as Gemini's `?` skipped; AA score breaks a near tie) and why, after a **Warning** line when a weekly window is over 80% — and a link to the page.
@@ -288,16 +292,16 @@ of that CLI's newest local session, read from the session files the CLI already
 writes (`session_info.py`; no network, nothing launched). It reflects the last turn
 that was sent, so a model switched since then appears after the next message.
 
-**Qualified (Artificial Analysis).** Below the providers, one table row per CLI you use:
+**Score 50+ (Artificial Analysis).** Below the providers, one table row per CLI you use:
 the [Artificial Analysis](https://artificialanalysis.ai) Intelligence Index, cost per
 index task, speed, verbosity and latency (the five figures on AA's model page) of the
 exact model + effort that CLI ran last, plus CP (index ÷ cost per task, points per dollar
-at API prices — higher is better). One qualified row per provider: across every model and
+at API prices — higher is better). One score-50+ pick per provider: across every model and
 eligible effort AA lists for that provider, the best CP at an index of 50 or more
 (Claude picks never use Fable, whatever its score, while retaining
 their current-model measurements); when nothing from
 that provider reaches 50, its highest score. Models that are not publicly available
-(`UNAVAILABLE` in `cursorbench.py`, currently Gemini 4 Carbon) are never picked. A model
+(`UNAVAILABLE` in `cursorbench.py`, currently empty) are never picked. A model
 AA does not list shows `not listed`, never a neighbouring row. CursorBench is no longer
 used: Cursor runs it and its own Composer is on it.
 `cursorbench.py` (the file keeps its old name) does not scrape AA itself: it reads the

@@ -157,113 +157,64 @@ PAGE_TIMEOUT = 90
 # /ping answer: version and location, so a server left from an older or moved copy of
 # this skill is not mistaken for this one (its Refresh would run that other run.py).
 PING = ("ai-usage %s %s" % (portable.VERSION, HERE)).encode("utf-8")
-# `/` is this shell: the last report in an iframe plus a Refresh button. Reload only
-# re-reads the last report; the button shows skeleton cards and fetches each provider
-# with its own request, so every card fills in as soon as its CLI answers.
-SHELL = """<!doctype html><html><head><meta charset="utf-8"><title>AI Usage</title>
-<style>:root{color-scheme:light;--page:#f8fafc;--edge:#e2e8f0;--frame:#f1f5f9;--btn:#e2e8f0;
---ring:#2563eb}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;
---page:#0f172a;--edge:#475569;--frame:#1e293b;--btn:#475569;--ring:#93c5fd}}
-:root[data-theme=dark]{color-scheme:dark;--page:#0f172a;--edge:#475569;--frame:#1e293b;
---btn:#475569;--ring:#93c5fd}
-html,body{margin:0;height:100%}body{box-sizing:border-box;padding:24px clamp(12px,3vw,32px);
-display:flex;flex-direction:column;gap:20px;background:var(--page)}
-/* bar and frame share one centred column, as wide as the report's content plus its padding */
-body>*{width:100%;max-width:1120px;align-self:center}
-iframe{flex:1;min-height:0;box-sizing:border-box;border:1px solid var(--edge);
-border-radius:16px;background:var(--frame)}
-#bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;align-items:center;
-padding:0 4px;box-sizing:border-box;font:13px/1.4 system-ui,sans-serif;color:CanvasText}
-#bar h1{font-size:22px;font-weight:600;line-height:1.2;margin:0 0 4px}#meta{opacity:.75}
-#updated:not(:empty)::after{content:" · "}#tools{display:flex;flex-wrap:wrap;gap:8px}
-button,select{padding:0 14px;border:0;border-radius:999px;font:inherit;background:var(--btn);
-color:inherit;cursor:pointer}
-#tools button,.sel{display:inline-flex;align-items:center;gap:6px;height:34px;box-sizing:border-box}
+# `/` is the last report itself, with Theme and Refresh added to its own header next to the
+# language switch (no iframe). Reload only re-reads the last report; Refresh swaps in
+# skeleton cards under the header and fetches each provider with its own request, so
+# every card fills in as soon as its CLI answers.
+GLOBE_ICON = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg>'
+SERVE_TOOLS = ('<div class="tools"><button type="button" class="lang" id="lang"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg><span>中文</span></button>'
+               '<label class="sel"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><select id="theme" aria-label="Theme"><option value="auto">Auto</option>'
+               '<option value="light">Light</option><option value="dark">Dark</option></select>'
+               '<svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75l3 3 3-3"/></svg></label>'
+               '<button type="button" class="lang" id="refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg><span>Refresh</span></button></div>')
+SERVE_CSS = """.top{flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:10;background:var(--card);margin:-40px calc(50% - 50vw) 16px;padding:14px calc(50vw - 50%);border-bottom:1px solid var(--line)}body{overflow-x:clip}.tools{display:flex;flex-wrap:wrap;gap:8px}
+.sel{position:relative;display:inline-flex;font-size:14px;border:1px solid var(--accent);border-radius:4px;color:var(--accent)}
+.sel select{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;background:transparent;border:0;
+min-height:30px;padding:0 28px 0 34px;border-radius:4px;cursor:pointer}.sel select:focus{outline:0}
+:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+.sel option{background:var(--card);color:var(--text)}
+.sel .chev{position:absolute;right:11px;top:50%;width:10px;height:10px;margin-top:-5px;pointer-events:none;
+fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#refresh:disabled{opacity:.6;cursor:progress}
+.tools .lang{display:inline-flex;align-items:center;gap:6px}
 .ico{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-/* the select fills the whole pill so its native list opens aligned to the pill and at least as wide */
-.sel{position:relative;padding:0}
-.sel select{appearance:none;-webkit-appearance:none;height:100%;padding:0 26px 0 34px}
-.sel .ico{position:absolute;left:14px;pointer-events:none}.sel .chev{left:auto;right:10px;width:10px;height:10px}
-#theme option{background:var(--page);color:CanvasText}
-.sel{border-radius:999px}
-#tools button:focus-visible,:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--ring);outline-offset:2px}
-#tools :focus:not(:focus-visible),.sel select:focus{outline:0}</style>
-</head><body><header id="bar"><div><h1>AI Usage</h1><div id="meta"><span id="updated"></span><span>ai-usage __VERSION__</span></div></div>
-<div id="tools"><button id="lang" type="button"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg><span>中文</span></button><label class="sel"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><select id="theme" aria-label="Theme"><option value="auto">Auto</option>
-<option value="light">Light</option><option value="dark">Dark</option></select><svg class="ico chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75l3 3 3-3"/></svg></label>
-<button id="refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg><span>Refresh</span></button></div></header><iframe id="report"></iframe><script>
-const frame = document.getElementById("report"), button = document.getElementById("refresh");
-const picker = document.getElementById("theme");
-// Chrome treats a mouse-focused <select> as :focus-visible, so the ring is keyed to the last input.
-addEventListener("pointerdown", () => document.documentElement.classList.add("mouse"), true);
-addEventListener("keydown", () => document.documentElement.classList.remove("mouse"), true);
+.sel>.ico{position:absolute;left:14px;top:50%;margin-top:-7px;pointer-events:none}"""
+SHELL = """const SKELETON = __SKELETON__;
+const root = document.documentElement;
+const button = document.getElementById("refresh"), picker = document.getElementById("theme");
+const WORDS = {refresh: ["Refresh", "重新整理"], busy: ["Refreshing\\u2026", "更新中\\u2026"],
+  retry: ["Retry", "重試"], auto: ["Auto", "自動"], light: ["Light", "淺色"], dark: ["Dark", "深色"]};
+let state = "refresh";
+const word = key => WORDS[key][root.dataset.lang === "zh" ? 1 : 0];
+const GLOBE = __GLOBE__;
+// The report's own switch rewrites the language button as plain text, so its icon is put back here.
+const relabel = () => {
+  const lang = document.getElementById("lang");
+  lang.innerHTML = GLOBE + "<span>" + (root.dataset.lang === "zh" ? "EN" : "中文") + "</span>";
+  button.querySelector("span").textContent = word(state);
+  for (const option of picker.options) option.textContent = word(option.value);
+};
+// The report's own script switches the language first; this then renames the tools.
+document.getElementById("lang").addEventListener("click", relabel);
 const THEMES = ["auto", "light", "dark"];
-const SKELETON = __SKELETON__;
 let theme = "auto";  // Auto follows the OS; the choice is kept per browser
 try { theme = localStorage.getItem("aiu-theme") || "auto"; } catch (e) {}
-// The value is spliced into the report's HTML, so only a known name may pass.
 if (!THEMES.includes(theme)) theme = "auto";
 picker.value = theme;
-const applyTheme = doc => {
-  if (theme === "auto") delete doc.documentElement.dataset.theme;
-  else doc.documentElement.dataset.theme = theme;
+const applyTheme = () => {
+  if (theme === "auto") delete root.dataset.theme;
+  else root.dataset.theme = theme;
 };
-// Puts the theme on the page before it renders, so it never flashes in the other one.
-// Resolves with the frame's document once the page has loaded.
-const show = html => new Promise(done => {
-  frame.addEventListener("load", () => done(frame.contentDocument), {once: true});
-  frame.srcdoc = theme === "auto" ? html :
-    html.replace(/<html\\b/i, '<html data-theme="' + theme + '"');
-});
-applyTheme(document);
+applyTheme();
+relabel();
 picker.onchange = () => {
   theme = THEMES.includes(picker.value) ? picker.value : "auto";
   try { localStorage.setItem("aiu-theme", theme); } catch (e) {}
-  applyTheme(document);
-  if (frame.contentDocument) applyTheme(frame.contentDocument);
+  applyTheme();
 };
-// Same key as the report's own switch, so the srcdoc report opens in this language too.
-const langButton = document.getElementById("lang");
-let lang;
-try { lang = localStorage.getItem("ai-usage-lang"); } catch (e) {}
-if (lang !== "zh" && lang !== "en") lang = /^zh/i.test(navigator.language || "") ? "zh" : "en";
-const applyLang = doc => {
-  doc.documentElement.dataset.lang = lang;
-  doc.documentElement.lang = lang === "zh" ? "zh-Hant" : "en";
-};
-const labelLang = () => {
-  langButton.querySelector("span").textContent = lang === "zh" ? "EN" : "中文";
-  langButton.setAttribute("aria-label", lang === "zh" ? "Switch to English" : "切換成中文");
-};
-labelLang();
-langButton.onclick = () => {
-  lang = lang === "zh" ? "en" : "zh";
-  try { localStorage.setItem("ai-usage-lang", lang); } catch (e) {}
-  labelLang();
-  if (frame.contentDocument) {
-    applyLang(frame.contentDocument);
-    frame.contentWindow.updateResetExpiry?.();
-  }
-};
-const stamp = ms => {  // when the shown report was produced, in local time
-  const d = new Date(ms), p = n => String(n).padStart(2, "0");
-  document.getElementById("updated").textContent = ms ? "Updated " + p(d.getMonth() + 1) + "-" +
-    p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) : "";
-};
-stamp(__UPDATED__);
-frame.onload = () => {
-  const main = frame.contentDocument.querySelector("main");
-  if (main) {
-    // The bar above has the title and the language switch, so drop the report's own.
-    (main.querySelector(".top") || main.querySelector("h1"))?.remove();
-    main.querySelector(".sub")?.remove();
-    frame.contentDocument.body.style.paddingTop = "20px";
-  }
-  bindProviderLogin(frame.contentDocument);
-};
-// Replaces the report after a failure, so old numbers never look current.
-const notice = text => '<html><meta charset="utf-8"><style>__NOTICE_CSS__</style>' + text;
+// Chrome treats a mouse-focused <select> as :focus-visible, so the ring is keyed to the last input.
+addEventListener("pointerdown", () => root.classList.add("mouse"), true);
+addEventListener("keydown", () => root.classList.remove("mouse"), true);
 const ok = r => r.ok ? r : Promise.reject(r.status + " " + r.statusText);
 const get = path => fetch(path + "?" + Date.now()).then(ok).then(r => r.text());
 const post = (path, body) => fetch(path, {method: "POST", body: JSON.stringify(body || {}),
@@ -292,71 +243,89 @@ function bindProviderLogin(doc) {
     };
   });
 }
+// Everything in <main> under the header.
+const below = () => [...document.querySelector("main").children].filter(el => !el.matches(".top"));
+// Puts a freshly fetched page's content under this header, keeping the header itself.
+const swap = html => {
+  const fresh = new DOMParser().parseFromString(html, "text/html").querySelector("main");
+  fresh.querySelector(".top")?.remove();
+  below().forEach(el => el.remove());
+  document.querySelector("main").append(...fresh.children);
+};
+// Replaces the report after a failure, so old numbers never look current.
+const notice = text => {
+  below().forEach(el => el.remove());
+  const note = document.createElement("p");
+  note.className = "note";
+  note.textContent = text;
+  document.querySelector("main").append(note);
+};
 // One request per provider (and one for the benchmark), none waiting for another. A
 // failed card says so in place; once all have answered the merged report is saved.
-const update = (doc, ids, bench) => {
+const update = (ids, bench) => {
   const sections = [];
   const jobs = ids.map(id => post("/card", {id}).then(r => {
     sections.push(r.raw);
-    doc.querySelector('.card[data-id="' + id + '"]').outerHTML = r.html;
-    doc.defaultView.updateResetExpiry?.();
-    bindProviderLogin(doc);
+    document.querySelector('.card[data-id="' + id + '"]').outerHTML = r.html;
+    window.updateResetExpiry?.();
+    bindProviderLogin(document);
   }, e => {
     sections.push("### " + id + "\\nusage call failed (" + e + ")\\n");
-    const note = doc.createElement("div");
+    const note = document.createElement("div");
     note.className = "note";
     note.textContent = "Fetch failed (" + e + "). Press Refresh.";
-    doc.querySelector('.card[data-id="' + id + '"] .skel-body')?.replaceWith(note);
+    document.querySelector('.card[data-id="' + id + '"] .skel-body')?.replaceWith(note);
   }));
   if (bench) jobs.push(post("/bench").then(r => {
     sections.push(r.raw);
-    doc.getElementById("bench").innerHTML = r.html;
+    document.getElementById("bench").innerHTML = r.html;
   }, e => {
     sections.push("### CURSORBENCH\\nbench failed (" + e + ")\\n");
-    doc.getElementById("bench").innerHTML = "";
+    document.getElementById("bench").innerHTML = "";
   }));
-  return Promise.all(jobs).then(() => post("/finish", {sections})).then(r => r.written);
+  return Promise.all(jobs).then(() => post("/finish", {sections}));
 };
 const busy = work => {
   button.disabled = true;
-  button.querySelector("span").textContent = "Refreshing\\u2026";
-  stamp(0);
+  state = "busy";
+  relabel();
   return work()
-    .then(written => {
-      stamp(Number(written));
-      button.querySelector("span").textContent = "Refresh";
-    })
+    .then(() => { state = "refresh"; })
     .catch(e => {
-      show(notice("Fetch failed (" + e + "). Press Retry."));
-      button.querySelector("span").textContent = "Retry";
+      notice("Fetch failed (" + e + "). Press Retry.");
+      state = "retry";
     })
-    .finally(() => { button.disabled = false; });
+    .finally(() => { button.disabled = false; relabel(); });
 };
-get("/last")
-  .then(show, e => show(notice("Could not load the report (" + e + ").")))
-  .then(doc => {
-    // A card whose lookup ran out of the chat report's 20 s is fetched again here,
-    // with the page's longer budget.
-    const late = [...doc.querySelectorAll(".card[data-timeout]")];
-    if (!late.length) return;
+bindProviderLogin(document);
+button.onclick = () => busy(() => get("/skeleton").then(html => {
+  swap(html);
+  return update([...document.querySelectorAll(".card[data-id]")].map(card => card.dataset.id), true);
+}));
+if (root.dataset.empty) {
+  button.click();  // no report on disk yet
+} else {
+  // A card whose lookup ran out of the chat report's 20 s is fetched again here,
+  // with the page's longer budget.
+  const late = [...document.querySelectorAll(".card[data-timeout]")];
+  if (late.length) {
     late.forEach(card => {
       card.querySelectorAll(".row, .note").forEach(el => el.remove());
       card.querySelector(".now").insertAdjacentHTML("beforebegin", SKELETON);
     });
-    busy(() => update(doc, late.map(card => card.dataset.id), false));
-  });
-button.onclick = () => busy(() => get("/skeleton").then(show).then(doc =>
-  update(doc, [...doc.querySelectorAll(".card[data-id]")].map(card => card.dataset.id), true)));
-</script></body></html>"""
-# Placeholder pages in the iframe (fetching, failed, no report yet). `data-theme` on
-# <html> forces light or dark; without it the OS setting decides.
-NOTICE_CSS = (":root{--b:#f1f5f9;--t:#0f172a}"
-              "@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--b:#1e293b;--t:#f1f5f9}}"
-              ":root[data-theme=dark]{--b:#1e293b;--t:#f1f5f9}"
-              "body{margin:0;height:100vh;display:grid;place-items:center;"
-              "font:15px system-ui,sans-serif;background:var(--b);color:var(--t)}")
-EMPTY_PAGE = ('<!doctype html><html><head><meta charset="utf-8"><style>%s</style></head>'
-              "<body>No report yet. Press Refresh.</body></html>" % NOTICE_CSS)
+    busy(() => update(late.map(card => card.dataset.id), false));
+  }
+}"""
+
+
+def serve_page(page, empty=False):
+    """The report page with the served tools in its header and the refresh script."""
+    import html_report
+    page = page.replace('<button type="button" class="lang" id="lang">中文</button>', SERVE_TOOLS, 1)
+    page = page.replace("</head>", "<style>%s</style></head>" % SERVE_CSS, 1)
+    script = SHELL.replace("__GLOBE__", json.dumps(GLOBE_ICON)).replace("__SKELETON__", json.dumps(html_report.SKELETON))
+    page = page.replace("</body>", "<script>%s</script></body>" % script, 1)
+    return page.replace("<html", '<html data-empty="1"', 1) if empty else page
 
 
 def ping():
@@ -580,6 +549,11 @@ if "--serve" in sys.argv:
     # saves of finished refreshes from interleaving.
     save_lock = threading.Lock()
 
+    def skeleton():
+        """The report with every active provider's card and the bench table loading."""
+        raw = head() + "".join("### %s\n" % header for header, _, _ in active())
+        return html_report.render(raw, loading=True)
+
     def written_ms():
         """When the report on disk was written (ms since epoch), "0" if there is none."""
         try:
@@ -603,21 +577,13 @@ if "--serve" in sys.argv:
             if path == "/ping":
                 self.reply(PING, "text/plain; charset=utf-8")
             elif path == "/":
-                self.reply(SHELL.replace("__UPDATED__", written_ms())
-                           .replace("__VERSION__", portable.VERSION)
-                           .replace("__SKELETON__", json.dumps(html_report.SKELETON))
-                           .replace("__NOTICE_CSS__", NOTICE_CSS).encode("utf-8"),
-                           "text/html; charset=utf-8")
-            elif path == "/skeleton":
-                raw = head() + "".join("### %s\n" % header for header, _, _ in active())
-                self.reply(html_report.render(raw, loading=True).encode("utf-8"),
-                           "text/html; charset=utf-8")
-            elif path == "/last":
                 try:
-                    body = PAGE.read_bytes()
+                    page, empty = PAGE.read_text(encoding="utf-8"), False
                 except OSError:
-                    body = EMPTY_PAGE.encode("utf-8")
-                self.reply(body, "text/html; charset=utf-8")
+                    page, empty = skeleton(), True
+                self.reply(serve_page(page, empty).encode("utf-8"), "text/html; charset=utf-8")
+            elif path == "/skeleton":
+                self.reply(skeleton().encode("utf-8"), "text/html; charset=utf-8")
             else:
                 self.send_error(404)
 
