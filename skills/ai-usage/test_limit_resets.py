@@ -87,6 +87,33 @@ class ResetTests(unittest.TestCase):
         self.assertEqual(len(rows), 2)
         self.assertIn("1 day left", rows[1])
 
+    @patch.dict("os.environ", {"AI_USAGE_METADATA": "1"})
+    def test_claude_fable_only_label_survives_html_and_expiry_metadata(self):
+        lines = resets.claude_lines({"eligible": True, "grants": [
+            {"resets_left": 1,
+             "label": "New model launch: one Fable reset for Pro and Team Standard, launch week only",
+             "clears": ["five_hour", "seven_day_overage_included"],
+             "ends_at": "2026-11-17T07:59:00Z"},
+            {"resets_left": 1, "label": "One full limit reset (November 2026)",
+             "clears": ["five_hour", "seven_day", "seven_day_overage_included"],
+             "ends_at": "2026-12-10T22:00:00Z"}]}, NOW)
+        self.assertEqual(lines[0], "Limit resets: 2 available")
+        self.assertTrue(lines[1].startswith("Reset (1 left; Fable only): expires 2026-11-17 15:59"))
+        self.assertTrue(lines[3].startswith("Reset (1 left): expires 2026-12-11 06:00"))
+        page = html_report.render("### CLAUDE\n" + "\n".join(lines))
+        self.assertIn("Reset (1 left; Fable only): expires 2026-11-17 15:59", page)
+        self.assertEqual(page.count('data-reset-expires='), 2)
+
+    def test_claude_fable_scope_and_paused_status(self):
+        grant = {"resets_left": 1, "label": "FABLE reset", "paused": True,
+                 "clears": ["five_hour", "seven_day_overage_included"]}
+        lines = resets.claude_lines({"eligible": True, "grants": [grant]}, NOW)
+        self.assertIn("Reset (1 left; Fable only; paused): expiry not provided", lines)
+        for changes in ({"clears": ["five_hour", "seven_day"]},
+                        {"label": None}, {"label": "Full reset"}):
+            lines = resets.claude_lines({"eligible": True, "grants": [grant | changes]}, NOW)
+            self.assertNotIn("Fable only", "\n".join(lines))
+
     def test_auth_request_is_get_to_vendor_only(self):
         response = MagicMock()
         response.__enter__.return_value = io.StringIO(json.dumps({
@@ -165,6 +192,46 @@ class ResetTests(unittest.TestCase):
             page = html_report.render("### CLAUDE\n" + "\n".join(resets.claude_lines(data, NOW)))
             self.assertIn('<fieldset class="reset-credits">', page)
 
+    @patch.object(resets, "SHOW_MODEL_CAPS", True)
+    def test_quota_rows_adds_model_scoped_weekly_cap(self):
+        data = {"five_hour": {"utilization": 4.0, "resets_at": None},
+                "limits": [{"kind": "weekly_all", "percent": 91},
+                           {"kind": "weekly_scoped", "percent": 28, "resets_at": "2026-11-16T09:00:00+00:00",
+                            "scope": {"model": {"display_name": "Fable"}}}]}
+        rows = resets.quota_rows(data)
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(rows[1].startswith("fable   28.0% used  window weekly  resets "))
+        self.assertEqual(len(resets.quota_rows({"five_hour": {"utilization": 4.0}, "limits": None})), 1)
+        report = html_report.parse("### CLAUDE\nplan: pro\n" + "\n".join(rows))
+        self.assertEqual(report["providers"][0]["windows"][1]["duration"], html_report.WEEK_MINUTES)
+
+    def test_model_caps_hidden_by_default(self):
+        data = {"five_hour": {"utilization": 4.0},
+                "limits": [{"kind": "weekly_scoped", "percent": 28,
+                            "scope": {"model": {"display_name": "Fable"}}}]}
+        self.assertEqual(len(resets.quota_rows(data)), 1)
+
+    def test_claude_resets_sit_under_the_bar_they_clear(self):
+        raw = ("### CLAUDE\nplan: pro\n"
+               "week    91.0% used  resets Nov 16 at 05:00PM  bar x\n"
+               "fable   28.0% used  window weekly  resets Nov 16 at 05:00PM  bar x\n"
+               "Limit resets: 2 available\n"
+               "Reset (1 left; Fable only): expires 2026-11-17 15:59\n"
+               "Reset (1 left): expires 2026-12-11 06:00")
+        page = html_report.render(raw)
+        boxes = page.split('<fieldset class="reset-credits">')[1:]
+        self.assertEqual(len(boxes), 2)
+        self.assertNotIn("Limit resets: 2 available", page)
+        for box in boxes:
+            self.assertIn("<legend>Limit resets: 1 available</legend>", box)
+        self.assertNotIn("Fable only", boxes[0].split("</fieldset>")[0])
+        self.assertIn("Fable only", boxes[1].split("</fieldset>")[0])
+        self.assertLess(page.index(">fable<"), page.index("Fable only"))
+        self.assertLess(page.index("2026-12-11"), page.index("<hr>"))
+        self.assertLess(page.index("<hr>"), page.index(">fable<"))
+        self.assertLess(page.index("2026-12-11"), page.index(">fable<"))
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -24,8 +24,11 @@ windows. The probe uses this text only when the OAuth request fails (no login, e
 token, HTTP error, invalid data), and the reset row then shows that request's failure.
 
 The request sends Bearer auth and `anthropic-beta: oauth-2025-04-20`, and never follows
-redirects. The plan comes from `claudeAiOauth.subscriptionType`. Only `five_hour` and
-`seven_day` are reported, from `utilization` and `resets_at`; reset times are converted
+redirects. The plan comes from `claudeAiOauth.subscriptionType`. `five_hour` and
+`seven_day` are reported, from `utilization` and `resets_at`, plus one row per
+`limits[]` entry of kind `weekly_scoped` (a per-model weekly cap such as `fable`, from
+`percent`; absent when the plan has none, and left out of the "use right now" ranking;
+currently hidden by `SHOW_MODEL_CAPS = False` in `limit_resets.py`); reset times are converted
 to local time. Out-of-range, non-numeric or missing percentages are rejected (never 0%).
 
 Claude Code does **not** persist rate-limit state anywhere on disk — checked:
@@ -245,6 +248,8 @@ field in `account/rateLimits/read` ([schema](https://learn.chatgpt.com/docs/app-
 Claude uses the undocumented read-only endpoint
 `GET https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1`.
 The `cedar_ember` grants contain `resets_left`, `starts_at`, `ends_at` and `paused`.
+Grants whose label names Fable and whose `clears` includes
+`seven_day_overage_included` but excludes `seven_day` show `Fable only` beside the count.
 Only currently active grants count; missing or malformed data is unavailable.
 Existing CLI auth comes from `CLAUDE_CODE_OAUTH_TOKEN`, the default macOS Keychain
 entry, or `.credentials.json` under `CLAUDE_CONFIG_DIR` / the default CLI directory.

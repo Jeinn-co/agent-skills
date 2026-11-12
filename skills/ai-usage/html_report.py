@@ -235,7 +235,9 @@ def advice(raw, now=None):
                     p["name"], w["label"], w["shown"], "; resets in " + left if left else ""))
         # Gemini's cl+gpt pool serves other vendors' models, so only its gemini pool counts.
         pcts = [0 if w["shown"] == "<1%" else w["pct"] for w in p["windows"]
-                if p["name"] != "Gemini" or w["label"] == "gemini"]
+                if (p["name"] != "Gemini" or w["label"] == "gemini")
+                # A Claude per-model cap (fable) does not block the other models.
+                and (p["name"] != "Claude" or w["label"] in ("5h", "week"))]
         # A free plan shows nearly 100% left because it is not really used; never pick it.
         # `?` counts as free: Gemini's /usage names no plan, and there it means free.
         if pcts and p["plan"].lower() not in ("free", "?"):
@@ -277,9 +279,24 @@ TIMED_OUT = "usage call timed out"
 def card(p, now, loading=False):
     """One provider's <section>; `loading` draws the skeleton instead of its numbers."""
     rows = []
+    # Claude with a Fable cap: each reset credit sits under the bar it clears.
+    under, moved = {}, set()
+    labels = set() if loading else {w["label"] for w in p["windows"]}
+    if p["id"] == "CLAUDE" and {"week", "fable"} <= labels:
+        for index, note in enumerate(p["notes"]):
+            found = re.match(r"Reset \((\d+) left([^)]*)\)", note)
+            if found:
+                group = under.setdefault("fable" if "Fable only" in found.group(2) else "week", [0, []])
+                group[0] += int(found.group(1))
+                group[1].append(note_html(note, p.get("reset_expiries", {}).get(index)))
+                moved.add(index)
+        if moved:
+            moved.update(i for i, note in enumerate(p["notes"]) if note.startswith("Limit resets:"))
     for w in [] if loading else p["windows"]:
         when = w["reset"]
         shown = clock(when, now) if when else ""
+        if p["id"] == "CLAUDE" and w["label"] == "fable":
+            rows.append('<hr>')
         rows.append(
             '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
             '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
@@ -307,8 +324,14 @@ def card(p, now, loading=False):
                 '<div class="scale">%s</div></div>'
                 '<div class="left">%s%s</div></div>'
                 % (n, share, scale, CLOCK, bi(esc(left_text(left)), esc("剩 " + left_text(left)[:-5]))))
+        if w["label"] in under:
+            count, notes = under.pop(w["label"])
+            rows.append('<fieldset class="reset-credits"><legend>Limit resets: %d available</legend>%s</fieldset>'
+                        % (count, "".join(notes)))
     reset_group = False
     for index, note in enumerate([] if loading else p["notes"]):
+        if index in moved:
+            continue
         if reset_group and not re.match(r"Reset(?: \d+:| \(| details:)", note):
             rows.append('</fieldset>')
             reset_group = False
@@ -515,6 +538,7 @@ border:1px solid var(--accent);border-radius:4px;background:transparent;color:va
 background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}}
+.card hr{border:0;border-top:1px dashed var(--line);margin:18px 0 14px}
 .now{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}
 .panel{margin-top:20px}.grid+.panel{margin-top:40px}.panel h2{margin:0 0 6px}

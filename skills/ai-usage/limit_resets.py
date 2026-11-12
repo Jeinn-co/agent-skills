@@ -105,8 +105,13 @@ def claude_lines(data, now=None):
     lines = ["Limit resets: %d available" % sum(r["resets_left"] for r in rows)]
     for row in rows:
         if row["resets_left"]:
-            lines.extend(reset_note("Reset (%d left%s): " %
-                         (row["resets_left"], "; paused" if row.get("paused") else ""),
+            label, clears = row.get("label"), row.get("clears")
+            fable_only = (isinstance(label, str) and re.search(r"\bfable\b", label, re.I)
+                          and isinstance(clears, list) and "seven_day_overage_included" in clears
+                          and "seven_day" not in clears)
+            lines.extend(reset_note("Reset (%d left%s%s): " %
+                         (row["resets_left"], "; Fable only" if fable_only else "",
+                          "; paused" if row.get("paused") else ""),
                          row.get("ends_at"), now))
     return lines
 
@@ -157,12 +162,24 @@ def fetch_claude(version, deadline=None):
     return oauth, data
 
 
+# Hidden for now: the user does not track per-model caps; True brings back the row and its reset box.
+SHOW_MODEL_CAPS = False
+
+
 def quota_rows(data):
-    """`five_hour` / `seven_day` as probe lines; raises ValueError rather than guess 0%."""
+    """`five_hour` / `seven_day` / per-model weekly caps as probe lines; raises ValueError rather than guess 0%."""
     rows = []
     try:
-        for key, label in (("five_hour", "5h"), ("seven_day", "week")):
-            window = data.get(key)
+        windows = [(label, data.get(key), "") for key, label in (("five_hour", "5h"), ("seven_day", "week"))]
+        # Per-model weekly caps (e.g. Fable) only exist in `limits`; absent on plans without one.
+        for limit in data.get("limits") or [] if SHOW_MODEL_CAPS else []:
+            if limit.get("kind") == "weekly_scoped":
+                name = ((limit.get("scope") or {}).get("model") or {}).get("display_name")
+                if name:
+                    windows.append(("".join(name.split()).lower(),
+                                    {"utilization": limit["percent"], "resets_at": limit.get("resets_at")},
+                                    "  window weekly"))
+        for label, window, period in windows:
             if window is None:
                 continue
             percent = window["utilization"]
@@ -178,8 +195,8 @@ def quota_rows(data):
                     raise ValueError("reset timezone missing")
                 local = when.astimezone(portable.report_timezone())
                 reset_text = "  resets " + local.strftime("%b %d at %I:%M%p")
-            rows.append("%-6s %5.1f%% used%s  %s" % (
-                label, percent, reset_text, portable.format_bar(percent)))
+            rows.append("%-6s %5.1f%% used%s%s  %s" % (
+                label, percent, period, reset_text, portable.format_bar(percent)))
     except (AttributeError, KeyError, TypeError, OverflowError) as error:
         raise ValueError("invalid quota response") from error
     if not rows:
