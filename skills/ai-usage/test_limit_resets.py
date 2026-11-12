@@ -88,6 +88,7 @@ class ResetTests(unittest.TestCase):
         self.assertIn("1 day left", rows[1])
 
     @patch.dict("os.environ", {"AI_USAGE_METADATA": "1"})
+    @patch.object(resets, "SHOW_MODEL_CAPS", True)
     def test_claude_fable_only_label_survives_html_and_expiry_metadata(self):
         lines = resets.claude_lines({"eligible": True, "grants": [
             {"resets_left": 1,
@@ -104,6 +105,7 @@ class ResetTests(unittest.TestCase):
         self.assertIn("Reset (1 left; Fable only): expires 2026-11-17 15:59", page)
         self.assertEqual(page.count('data-reset-expires='), 2)
 
+    @patch.object(resets, "SHOW_MODEL_CAPS", True)
     def test_claude_fable_scope_and_paused_status(self):
         grant = {"resets_left": 1, "label": "FABLE reset", "paused": True,
                  "clears": ["five_hour", "seven_day_overage_included"]}
@@ -210,6 +212,11 @@ class ResetTests(unittest.TestCase):
                 "limits": [{"kind": "weekly_scoped", "percent": 28,
                             "scope": {"model": {"display_name": "Fable"}}}]}
         self.assertEqual(len(resets.quota_rows(data)), 1)
+        lines = resets.claude_lines({"eligible": True, "grants": [
+            {"resets_left": 1, "label": "Fable reset", "clears": ["five_hour", "seven_day_overage_included"]},
+            {"resets_left": 1, "label": "Full reset", "clears": ["five_hour", "seven_day"]}]}, NOW)
+        self.assertEqual(lines[0], "Limit resets: 1 available")
+        self.assertNotIn("Fable only", "\n".join(lines))
 
     def test_claude_resets_sit_under_the_bar_they_clear(self):
         raw = ("### CLAUDE\nplan: pro\n"

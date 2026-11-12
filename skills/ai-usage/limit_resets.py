@@ -101,16 +101,18 @@ def claude_lines(data, now=None):
                 active.append(row)
         except (ValueError, TypeError, AttributeError):
             return ["Limit resets: unavailable (invalid grant dates)"]
-    rows = active
+    def fable_only(row):
+        label, clears = row.get("label"), row.get("clears")
+        return bool(isinstance(label, str) and re.search(r"\bfable\b", label, re.I)
+                    and isinstance(clears, list) and "seven_day_overage_included" in clears
+                    and "seven_day" not in clears)
+    # A Fable-only grant belongs to the hidden per-model cap, so it is hidden and not counted.
+    rows = [r for r in active if SHOW_MODEL_CAPS or not fable_only(r)]
     lines = ["Limit resets: %d available" % sum(r["resets_left"] for r in rows)]
     for row in rows:
         if row["resets_left"]:
-            label, clears = row.get("label"), row.get("clears")
-            fable_only = (isinstance(label, str) and re.search(r"\bfable\b", label, re.I)
-                          and isinstance(clears, list) and "seven_day_overage_included" in clears
-                          and "seven_day" not in clears)
             lines.extend(reset_note("Reset (%d left%s%s): " %
-                         (row["resets_left"], "; Fable only" if fable_only else "",
+                         (row["resets_left"], "; Fable only" if fable_only(row) else "",
                           "; paused" if row.get("paused") else ""),
                          row.get("ends_at"), now))
     return lines
