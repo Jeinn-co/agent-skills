@@ -25,6 +25,21 @@ npx skills add Jeinn-co/agent-skills@s-agent
 以及驗證／同步使用的 **Python 3.11+**。不包含 API key 或個人路徑。
 尚未測試 Windows／Linux。
 
+## Skill 新版檢查
+
+每次 `/s-agent`（含 `-h`）先向 GitHub 查詢已發布的 skill 版本。
+有新版時，選 `y` 更新或 `n` 跳過，再繼續原本請求。不會自動安裝更新；
+查詢失敗仍可使用已安裝的 skill，但不宣稱已是最新版。
+
+檢查程式只用 Python 標準函式庫，發送一次公開 HTTPS 請求，10 秒逾時，
+不讀取憑證。也可直接執行：
+
+```bash
+python3.11 scripts/check_update.py
+```
+
+Skill 新版檢查與 Notion 的 model／effort 自動同步是兩件事。
+
 ## Notion 就是設定
 
 [開啟共用 Notion 設定](https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63)。

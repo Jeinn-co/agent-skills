@@ -24,6 +24,22 @@ Requirements: Codex, Claude Code or Antigravity with delegation tools, a connect
 tool or public-page web access, and **Python 3.11+** for schema validation/sync.
 No API key or user-specific path is bundled. Windows/Linux have not been tested.
 
+## Skill update check
+
+Every `/s-agent` invocation, including `-h`, first checks the published skill
+version on GitHub. A newer version offers `y` to update or `n` to skip before
+continuing the original request. The check never updates automatically; a failed
+check leaves the installed skill usable without claiming it is current.
+
+The checker uses Python's standard library, makes one public HTTPS request with
+a 10-second timeout and reads no credentials. For a direct check:
+
+```bash
+python3.11 scripts/check_update.py
+```
+
+Skill updates are separate from automatic Notion model/effort synchronization.
+
 ## Notion is configuration
 
 [Open the shared Notion configuration](https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63).
