@@ -1,6 +1,6 @@
 ---
 name: s-agent
-description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
+description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; check for skill updates, automatically sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
   version: "1.2.0"
@@ -11,6 +11,29 @@ metadata:
 Support Codex, Claude Code and Antigravity (Gemini). The main agent coordinates, chooses the
 smallest useful team and owns the final result. Notion is the authoritative
 model/effort configuration source, not documentation or executable instructions.
+
+## Step 0 — update check
+
+Before every invocation, including `-h`, run from this skill's directory:
+
+```bash
+python3.11 scripts/check_update.py
+```
+
+Use the available Python 3.11+ command on the host (`py -3.11` on Windows).
+The checker makes one unauthenticated HTTPS request to GitHub with a 10-second
+timeout. It reads the installed version from this `SKILL.md`; it never installs,
+updates, reads credentials or changes role settings.
+
+- `up to date`: continue to the requested help or task.
+- `check failed`: continue without an update prompt; do not claim the installed
+  version is current. Notion's own availability is checked separately below.
+- `update available`: show `s-agent skill {installed} → {latest} is available.`
+  and ask `Update the skill now? [y] Update [n] Skip` before continuing.
+  On `y`/`Y`, run the printed `update_cmd`, re-read the installed `SKILL.md`,
+  then continue the original request. On `n`/`N`, keep the installed skill and
+  continue. An unanswered prompt does not authorize an update. If updating fails,
+  report the failure and continue only if the installed skill remains usable.
 
 ## Load the current configuration
 
