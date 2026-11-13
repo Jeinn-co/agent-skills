@@ -60,7 +60,9 @@ DAILY_GEMINI_CHOICE = ("gemini-4-hydrogen", "high ~ xhigh")
 # Personal selection policy; the source's benchmark data and account support stay intact.
 EXCLUDED_GEMINI_PICKS = {"gemini-4-argon"}
 ROLE_POLICY_NOTE = (
-    "Security uses Carbon / high, with safety and correctness "
+    "Routine work starts with Hydrogen / high; use xhigh when high is insufficient "
+    "for complex reasoning. Security uses Carbon / high, with safety and correctness "
     "first. Argon is excluded because of cost.",
+    "日常工作以 Hydrogen / high 開始；複雜推理在 high 不足時升 xhigh。"
     "安全工作使用 Carbon / high，以安全性與正確性優先。Argon 因成本不納入選型。",
 )

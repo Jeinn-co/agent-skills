@@ -587,11 +587,11 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <div class="grid">@@cards@@</div>
 <section class="panel"><h2><span class="l-en">My usage</span><span class="l-zh">我的用法</span></h2>
 <p class="lead"><span class="l-en">Claude Code mainly Opus 5.5 / high.<br>Codex GPT-6.1-Sol / high.<br>Gemini uses @@daily_gemini@@.</span><span class="l-zh">Claude Code 主要用 Opus 5.5 / high。<br>Codex 用 GPT-6.1-Sol / high。<br>Gemini 用 @@daily_gemini@@。</span></p>
-<p class="foot">@@role_policy@@</p>
 <p class="links"><span class="l-en">Official model guidance, thinking levels and API prices: </span><span class="l-zh">官方定位、思考等級與 API 價格：</span><a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 
 </section>
 <section class="panel"><h2><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h2>
+<p class="std"><span class="l-en">Gemini selection</span><span class="l-zh">Gemini 選型</span><br>@@role_policy@@</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Role / responsibility</span><span class="l-zh">角色／職責</span></th><th class="anth">Claude Code</th><th class="oai">Codex</th><th class="gemini">Gemini</th></tr></thead><tbody>
 @@roles@@
 </tbody></table></div>
