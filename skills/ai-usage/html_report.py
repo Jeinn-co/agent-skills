@@ -599,7 +599,7 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 
 </section>
 <section class="panel"><h2><span class="l-en">Score 50+ (Artificial Analysis)</span><span class="l-zh">分數 50 以上（Artificial Analysis）</span></h2>
-<p class="std"><span class="l-en">Third-party benchmark for reference, not official guidance. Rule: Artificial Analysis Intelligence Index ≥ 50 → highest CP; none reach 50 → highest score.</span><span class="l-zh">第三方 benchmark，僅供參考，不是官方建議。規則：Artificial Analysis 指數達 50 → 取 CP 最高者；都未達 50 → 取最高分。</span></p>
+<p class="std"><span class="l-en">Prioritize CP among qualifying models.</span><span class="l-zh">CP 值達標為優先考量。</span></p>
 <div class="tablewrap"><table><thead><tr><th><span class="l-en">Provider</span><span class="l-zh">供應商</span></th><th><span class="l-en">Now</span><span class="l-zh">目前</span></th><th class="num"><span class="l-en">Now $</span><span class="l-zh">目前 $</span></th>
 <th class="num"><span class="l-en">Now CP</span><span class="l-zh">目前 CP</span></th><th><span class="l-en">Score 50+</span><span class="l-zh">分數 50 以上</span></th><th class="num"><span class="l-en">Score 50+ $</span><span class="l-zh">分數 50 以上 $</span></th><th class="num"><span class="l-en">Score 50+ CP</span><span class="l-zh">分數 50 以上 CP</span></th></tr></thead>
 <tbody id="bench">@@bench@@</tbody></table></div>
