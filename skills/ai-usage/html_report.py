@@ -435,7 +435,9 @@ def role_rows():
         cells = []
         for brand in ("anth", "oai", "gemini"):
             model, effort = role["models"][brand]
-            cells.append('<td class="%s">%s / %s</td>' % (brand, esc(model), esc(effort)))
+            note = role.get("gemini_note") if brand == "gemini" else None
+            detail = '<br>' + bi(*map(esc, note)) if note else ''
+            cells.append('<td class="%s">%s / %s%s</td>' % (brand, esc(model), esc(effort), detail))
         label = '<b>%s</b>' % esc(role["role"])
         rows.append('<tr><td>%s</td>%s</tr>' % (
             bi(label + ': ' + esc(role["description"][0]),

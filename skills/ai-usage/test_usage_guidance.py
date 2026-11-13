@@ -67,12 +67,14 @@ class UsageGuidanceTests(unittest.TestCase):
         roles = copy.deepcopy(html_report.ROLE_ASSIGNMENTS)
         executor = next(role for role in roles if role['role'] == 'Executor')
         executor['models']['gemini'] = ('Gemini Fixture <script>', 'xhigh')
+        executor['gemini_note'] = ('Condition <script>', '條件 <script>')
         fixture = {'name': 'Gemini Fixture', 'efforts': ('high', 'xhigh'),
                    'default_effort': 'high', 'use_cases': ('Fixture task', '測試任務')}
         with patch.object(html_report, 'ROLE_ASSIGNMENTS', roles), \
                 patch.dict(html_report.GEMINI_MODELS, {'gemini-fixture': fixture}):
             page = html_report.render('')
         self.assertIn('Gemini Fixture &lt;script&gt; / xhigh', page)
+        self.assertIn('Condition &lt;script&gt;', page)
         self.assertIn('Gemini Fixture: Fixture task', page)
         self.assertIn('high (official default) / xhigh', page)
         self.assertNotIn('@@roles@@', page)
@@ -85,10 +87,12 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIsNone(cursorbench.pick([argon], 'agy'))
         for role in html_report.ROLE_ASSIGNMENTS:
             expected = 'Gemini 4 Carbon' if role['role'] == 'Security' else 'Gemini 4 Hydrogen'
-            effort = 'xhigh' if role['role'] in ('Planner', 'Reviewer') else 'high'
+            effort = 'high'
             self.assertEqual(role['models']['gemini'], (expected, effort))
         page = html_report.render('')
         self.assertIn('尚未同步 Notion', page)
+        self.assertIn('high 仍無法釐清跨模組限制或相依關係時，升 xhigh', page)
+        self.assertIn('安全及權限風險交由 Carbon / high', page)
 
     def test_only_fable_has_no_qualified_pick(self):
         rows = [{'model': 'Fable 5.2', 'effort': 'High', 'score': 60, 'cost': 4}]

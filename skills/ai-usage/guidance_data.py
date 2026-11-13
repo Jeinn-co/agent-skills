@@ -24,11 +24,12 @@ GEMINI_MODELS = {'gemini-4-hydrogen': {'name': 'Gemini 4 Hydrogen',
                                     '上一代日常模型；Google 建議升級至 Hydrogen。')}}
 
 ROLE_ASSIGNMENTS = ({'role': 'Planner',
+  'gemini_note': ('Upgrade to xhigh when high cannot resolve cross-module constraints or dependencies.', 'high 仍無法釐清跨模組限制或相依關係時，升 xhigh。'),
   'description': ('executable plan with scope, acceptance criteria and steps',
                   '可執行的 plan（範圍、驗收條件與步驟）'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Sol', 'high'),
-             'gemini': ('Gemini 4 Hydrogen', 'xhigh')}},
+             'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'Designer',
   'description': ('UI, interaction and accessibility', 'UI、互動與無障礙'),
   'models': {'anth': ('Opus 5.5', 'high'),
@@ -40,11 +41,13 @@ ROLE_ASSIGNMENTS = ({'role': 'Planner',
              'oai': ('GPT-6.1-Sol', 'medium'),
              'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'Reviewer',
+  'gemini_note': ('Upgrade to xhigh for unresolved cross-module logic or edge cases after a high review. Route security and permission risks to Carbon / high.', 'high 審查後仍有跨模組邏輯或邊界疑點時，升 xhigh；安全及權限風險交由 Carbon / high。'),
   'description': ('independent review and testing', '獨立審查與測試'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Sol', 'high'),
-             'gemini': ('Gemini 4 Hydrogen', 'xhigh')}},
+             'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'DevOps',
+  'gemini_note': ('Upgrade to xhigh when high cannot isolate a multi-service incident or conflicting evidence.', 'high 仍無法定位跨服務故障或矛盾證據時，升 xhigh。'),
   'description': ('environments and operations', '環境與維運'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Sol', 'high'),
@@ -59,10 +62,10 @@ ROLE_ASSIGNMENTS = ({'role': 'Planner',
 EXCLUDED_GEMINI_PICKS = {"gemini-4-argon"}
 ROLE_POLICY_NOTE = (
     "Local selection draft based on Notion v2.2: Argon is excluded because of cost. "
-    "Planner and Reviewer use Hydrogen / xhigh; Designer, Executor and DevOps use Hydrogen / high; Security "
+    "The five general roles start at Hydrogen / high; use xhigh only when high is insufficient for the complex task described in the table. Security "
     "keeps Carbon / high with safety and correctness first. Not synced to Notion.",
-    "以 Notion v2.2 為基準的本機選型草案：因成本排除 Argon。Planner、Reviewer 使用 Hydrogen / xhigh；"
-    "Designer、Executor、DevOps 使用 Hydrogen / high；Security 保留 Carbon / high，安全性與正確性優先。尚未同步 Notion。",
+    "以 Notion v2.2 為基準的本機選型草案：因成本排除 Argon。五個一般角色以 Hydrogen / high 開始；依表內條件，只有 high 不足以處理複雜任務時才升 xhigh。"
+    "Security 保留 Carbon / high，安全性與正確性優先。尚未同步 Notion。",
 )
 ROLE_SOURCE_NOTE = (
     "Source: Notion v2.2 plus the user's local selection changes. The table is a local "

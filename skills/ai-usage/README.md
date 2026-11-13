@@ -408,4 +408,4 @@ renders the existing role table and model guidance from the same records.
 Adding a model does not require editing the HTML template. Role assignments are
 separate data and are not automatically changed when a new model is added.
 
-Local review override: Argon is excluded from personal Gemini recommendations because of cost. Planner and Reviewer use Hydrogen / xhigh; Designer, Executor and DevOps use Hydrogen / high; Security keeps Carbon / high. This draft has not been synced to Notion.
+Local review override: Argon is excluded from personal Gemini recommendations because of cost. All five general roles start with Hydrogen / high. Escalate to xhigh only when high cannot resolve complex planning, review or incident-analysis tasks; Security keeps Carbon / high. This draft has not been synced to Notion.
