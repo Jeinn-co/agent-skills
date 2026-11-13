@@ -40,7 +40,8 @@ Schema (the numbers and time below are examples, not current usage):
     "5h": {"usedPercent": 0, "resetsAt": null},
     "week": {"usedPercent": 78, "resetsAt": "2026-11-09T17:00:00+08:00"}
   },
-  "resetCredits": {"availableCount": 0, "credits": []}
+  "resetCredits": {"availableCount": 1, "credits": [
+    {"status": "available", "expiresAt": "2026-12-11T06:00:00+08:00", "label": "Full reset"}]}
 }
 ```
 
@@ -51,7 +52,9 @@ a visible reset clock. `browserName` is optional; omitted or unsupported names s
 
 For a visible "No resets right now", use `availableCount: 0` and `credits: []`.
 For available resets, record the observed count with `credits` entries containing
-`status: "available"` and an aware `expiresAt` timestamp (or null if not shown).
+`status: "available"`, an aware `expiresAt` timestamp (or null if not shown) and the
+visible reset name as `label` (for example `"Full reset"` or `"Fable reset"`). Keep the
+page's count; the report hides Fable resets and lowers the count, like the CLI path.
 Use `credits: null` when only the count is visible. If the reset section is not
 visible, omit `resetCredits` or set it to null; report unavailable, never assume zero.
 
