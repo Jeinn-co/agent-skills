@@ -85,7 +85,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIsNone(cursorbench.pick([argon], 'agy'))
         for role in html_report.ROLE_ASSIGNMENTS:
             expected = 'Gemini 4 Carbon' if role['role'] == 'Security' else 'Gemini 4 Hydrogen'
-            self.assertEqual(role['models']['gemini'], (expected, 'high'))
+            effort = 'xhigh' if role['role'] in ('Planner', 'Reviewer') else 'high'
+            self.assertEqual(role['models']['gemini'], (expected, effort))
         page = html_report.render('')
         self.assertIn('尚未同步 Notion', page)
 
