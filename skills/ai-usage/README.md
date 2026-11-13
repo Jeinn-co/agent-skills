@@ -230,9 +230,10 @@ Read top to bottom:
    snapshot of the six s-agent role assignments checked against Notion. This section
    does not change CLI settings or fetch/sync Notion during report generation.
    Security uses Opus 5.5 / max, GPT-6 Astra / max and Gemini 4 Carbon / high.
-   Carbon in Antigravity requires Google AI Ultra for individual subscriptions;
-   Free, Plus and Pro do not include it. Enterprise and research eligibility are separate,
-   as is paid Gemini API access. The report does not verify account access.
+   Executor uses Gemini 4 Hydrogen / high (Notion snapshot, 2026-11-13).
+   Hydrogen requires paid Google AI Pro or Ultra in Antigravity.
+   Carbon requires Ultra or Enterprise; Argon supports paid Pro (†), Ultra or Enterprise.
+   Paid Gemini API access is separate. The report does not verify account access.
 5. **Score 50+ (Artificial Analysis)** — a third-party benchmark for reference, not official
    guidance. One row per CLI. *Now* is the model + effort you
    ran last; *Score 50+* is the model + effort the pick rule chooses among scores of 50 or more. Each side shows its AA

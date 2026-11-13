@@ -184,8 +184,9 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    high），官方說法、effort 的影響與 API 價格則連到 AI Model Compare，以及經 Notion 核對、
    附日期的六個 s-agent 角色安排快照；報表不會修改 CLI 設定，也不會即時讀取或同步 Notion。
    Security 使用 Opus 5.5 / max、GPT-6 Astra / max、Gemini 4 Carbon / high。
-   Antigravity 的 Carbon 個人訂閱需 Google AI Ultra；Free、Plus、Pro 不包含。
-   企業與研究方案另有資格條件，付費 Gemini API 也是另一個管道；報表不會驗證帳號使用資格。
+   Executor 使用 Gemini 4 Hydrogen / high（Notion 快照，2026-11-13）。
+   Antigravity 的 Hydrogen 限付費 Google AI Pro 或 Ultra；Carbon 限 Ultra 或 Enterprise；Argon 為付費 Pro（†）、Ultra、Enterprise。
+   API 使用資格另計，付費 Gemini API 也是另一個管道；報表不會驗證帳號使用資格。
 5. **分數 50 以上（Artificial Analysis）** —— 第三方 benchmark，僅供參考，不是官方建議。每個 CLI 一列。「目前」是你最後用的 model + effort；
    「分數 50 以上」是挑選規則在 50 分以上的選項中選出的 model + effort。兩邊各有 AA 智力指數、`$`（AA 每題成本，依 API
    價格）與 CP（指數 ÷ `$`）。`*` 表示這家沒有任何一檔到 50，改列它的最高分。

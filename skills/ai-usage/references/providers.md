@@ -153,6 +153,25 @@ Dead ends (checked 2026-10-02):
 3. **`--output-format json`** on a real turn — carries token counts, not the model id.
 4. **IDE conversation files** under `~/.gemini/antigravity/conversations/*.pb` — encrypted.
 
+### Gemini models (2026-11-13 supplied snapshot)
+
+`cursorbench.py` maps `gemini-4-hydrogen` to `Gemini 4 Hydrogen` in AI Model
+Compare's `data/aa.json`. Hydrogen accepts low, medium, high (default), xhigh;
+minimal is rejected. Carbon and Argon accept low, medium (default), high;
+3.8 Flash accepts low, medium, high. Missing model/effort scores display `not listed`,
+never another model's score. `data/gemini-models.json` publishes the known model
+metadata independently of measured rows, and `aa.json` carries that catalog too.
+No score, cost per benchmark task or CP is inferred from token prices alone.
+
+Antigravity access: Hydrogen requires paid Google AI Pro or Ultra (not yet on the
+models page in this snapshot); Carbon requires Ultra or Enterprise; Argon permits
+paid Pro (†), Ultra, Enterprise. These are plan qualifications, not verification of
+this account. Source: https://antigravity.google/docs/models and
+https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/.
+Claude Sonnet 4.6, Claude Opus 4.6 and GPT-OSS-120b will be removed from Antigravity
+on 2026-11-18. Historical local sessions may still name them; this report retains
+that observed history instead of claiming it establishes current availability.
+
 ## Requirements (moved from SKILL.md)
 
 Do not install anything and do not ask the user to log in. Just run the script and

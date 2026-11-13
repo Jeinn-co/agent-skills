@@ -230,7 +230,9 @@ def agy_model_id(label):
     parenthesised suffix; the rest is the model id the CLI lists in `agy models`."""
     m = re.fullmatch(r"(.+?)\s*\(([^)]+)\)", label.strip())
     name, effort = (m.group(1), m.group(2)) if m else (label.strip(), None)
-    return re.sub(r"\s+", "-", name.strip().lower()), effort and effort.strip().lower()
+    effort = effort and effort.strip().lower()
+    effort = {"extra high": "xhigh", "extra-high": "xhigh"}.get(effort, effort)
+    return re.sub(r"\s+", "-", name.strip().lower()), effort
 
 
 def agy():

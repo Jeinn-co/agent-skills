@@ -1,5 +1,12 @@
 """Regression for the model choices users see in the rendered daily-use guide."""
 import unittest
+import contextlib
+import io
+from unittest.mock import patch
+
+import runpy
+import tempfile
+from pathlib import Path
 
 import html_report
 import cursorbench
@@ -22,6 +29,38 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertEqual(cursorbench.pick(rows, 'claude')[0], 'Opus 5.5 Low')
         rows[-1]['score'] = 51
         self.assertEqual(cursorbench.pick(rows, 'claude')[0], 'Opus 5.5 Low')
+
+    def test_hydrogen_all_levels_and_missing_benchmarks(self):
+        self.assertEqual(cursorbench.GEMINI_EFFORTS['gemini-4-hydrogen'],
+                         ('low', 'medium', 'high', 'xhigh'))
+        self.assertEqual(cursorbench.name('agy', 'gemini/gemini-4-hydrogen'), 'Gemini 4 Hydrogen')
+        # Empty and null-score source rows must never invent an AA score or a pick.
+        for rows in ([], [{'model': 'Gemini 4 Hydrogen', 'effort': 'High', 'score': None, 'cost': None}]):
+            with patch.object(cursorbench, 'published', return_value=rows):
+                self.assertEqual(cursorbench.aa_rows('Gemini 4 Hydrogen'), {})
+                self.assertIsNone(cursorbench.pick(rows, 'agy'))
+                for effort in cursorbench.GEMINI_EFFORTS['gemini-4-hydrogen']:
+                    output = io.StringIO()
+                    with patch('sys.argv', ['cursorbench.py', f'agy=gemini-4-hydrogen:{effort}']), contextlib.redirect_stdout(output):
+                        self.assertEqual(cursorbench.main(), 0)
+                    self.assertIn(f'Gemini 4 Hydrogen  {effort}  not listed', output.getvalue())
+                    page = html_report.render('### GEMINI\nmodel   gemini-4-hydrogen\neffort  ' + effort + '\n' + output.getvalue())
+                    self.assertIn('gemini-4-hydrogen', page)
+
+    def test_hydrogen_effort_labels_and_known_gemini_constraints(self):
+        with tempfile.TemporaryDirectory() as folder, patch('pathlib.Path.home', return_value=Path(folder)), \
+                patch('sys.argv', ['session_info.py', 'agy']), contextlib.redirect_stdout(io.StringIO()):
+            parse_model = runpy.run_path(str(Path(__file__).with_name('session_info.py')))['agy_model_id']
+        for effort, label in (('low', 'Low'), ('medium', 'Medium'), ('high', 'High'), ('xhigh', 'Extra High')):
+            self.assertEqual(parse_model(f'Gemini 4 Hydrogen ({label})'),
+                             ('gemini-4-hydrogen', effort))
+        row = {'model': 'Gemini 4 Carbon', 'effort': 'Extra High', 'score': 1, 'cost': 1}
+        with patch.object(cursorbench, 'published', return_value=[row]):
+            self.assertEqual(cursorbench.aa_rows('Gemini 4 Carbon'), {})
+            self.assertIsNone(cursorbench.pick([row], 'agy'))
+        page = html_report.render('')
+        self.assertIn('Gemini 4 Hydrogen / high', page)
+        self.assertIn('2026-11-18', page)
 
     def test_only_fable_has_no_qualified_pick(self):
         rows = [{'model': 'Fable 5.2', 'effort': 'High', 'score': 60, 'cost': 4}]

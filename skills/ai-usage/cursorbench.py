@@ -47,6 +47,13 @@ FAMILY = {"claude": r"(Opus|Sonnet|Fable|Haiku) ", "codex": r"GPT-", "grok": r"G
 # shortcut: kept by hand; add a model only when its vendor's own page says it is not open.
 # Empty since Google opened Gemini 4 Carbon to paying API developers (2026-11-10).
 UNAVAILABLE = set()
+# Documented thinking levels, independent of whether AA has measured a variant.
+GEMINI_EFFORTS = {
+    "gemini-4-hydrogen": ("low", "medium", "high", "xhigh"),
+    "gemini-4-carbon": ("low", "medium", "high"),
+    "gemini-4-argon": ("low", "medium", "high"),
+    "gemini-3.8-flash": ("low", "medium", "high"),
+}
 
 
 def pick(rows, cli):
@@ -56,6 +63,9 @@ def pick(rows, cli):
     found = []
     for r in rows:
         model, effort = r.get("model") or "", SUFFIX.get(r.get("effort"))
+        allowed = GEMINI_EFFORTS.get(model.lower().replace(" ", "-")) if cli == "agy" else None
+        if allowed is not None and effort not in allowed:
+            continue
         # No Fable for Claude picks: twice Opus's token rates, whatever the score.
         if cli == "claude" and model.startswith("Fable "):
             continue
@@ -122,6 +132,9 @@ def aa_rows(model):
     out = {}
     for r in rows:
         effort = SUFFIX.get(r.get("effort"))
+        allowed = GEMINI_EFFORTS.get((model or "").lower().replace(" ", "-"))
+        if allowed is not None and effort not in allowed:
+            continue
         if r.get("model") == model and effort and r.get("score") is not None and (r.get("cost") or 0) > 0:
             out.setdefault(effort, (float(r["score"]), float(r["cost"]), 0.0, float(r.get("speed") or 0),
                                     float(r.get("verbosity") or 0), float(r.get("latency") or 0)))
