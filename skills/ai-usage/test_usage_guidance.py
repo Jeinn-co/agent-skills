@@ -86,7 +86,7 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIsNone(cursorbench.pick([argon], 'agy'))
         for role in html_report.ROLE_ASSIGNMENTS:
             expected = 'Gemini 4 Carbon' if role['role'] == 'Security' else 'Gemini 4 Hydrogen'
-            effort = 'high'
+            effort = 'high' if role['role'] in ('Executor', 'Security') else 'high ~ xhigh'
             self.assertEqual(role['models']['gemini'], (expected, effort))
         page = html_report.render('')
         self.assertNotIn('本機選型草案', page)
@@ -96,6 +96,9 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertNotIn('安全工作使用 Carbon / high', roles)
         self.assertNotIn('複雜推理在 high 不足時升 xhigh', page)
         self.assertNotIn('Upgrade to xhigh', roles)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / high ~ xhigh</td>'), 4)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / high</td>'), 1)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Carbon / high</td>'), 1)
 
     def test_only_fable_has_no_qualified_pick(self):
         rows = [{'model': 'Fable 5.2', 'effort': 'High', 'score': 60, 'cost': 4}]
