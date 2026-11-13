@@ -2,11 +2,13 @@
 import datetime as dt
 import json
 import os
+import re
 from pathlib import Path
 import sys
 import tempfile
 
 import portable
+import limit_resets
 from limit_resets import codex_lines, integer
 
 SNAPSHOT = Path.home() / ".cache/ai-usage/claude-browser.json"
@@ -67,6 +69,13 @@ def report(data, now=None):
                 if isinstance(value, bool) or not isinstance(value, (str, float, int)):
                     raise ValueError("invalid browser reset expiry")
                 timestamp(value) if isinstance(value, str) else dt.datetime.fromtimestamp(value, dt.timezone.utc)
+            if row.get("label") is not None and not isinstance(row["label"], str):
+                raise ValueError("invalid browser reset label")
+        fable = [r for r in details or [] if re.search(r"\bfable\b", r.get("label") or "", re.I)]
+        if fable and not limit_resets.SHOW_MODEL_CAPS:
+            # Same as the CLI path: a Fable-only reset belongs to the hidden per-model cap.
+            resets = {"availableCount": max(0, resets["availableCount"] - len(fable)),
+                      "credits": [r for r in details if r not in fable]}
         lines.extend(line.replace("Usage limit resets:", "Limit resets:")
                      for line in codex_lines(resets, now))
     name = data.get("browserName", "Browser")
@@ -102,7 +111,8 @@ def save(data):
         cleaned["resetCredits"] = None if resets is None else {
             "availableCount": resets["availableCount"],
             "credits": None if resets.get("credits") is None else [
-                {"status": row.get("status"), "expiresAt": row.get("expiresAt")}
+                {"status": row.get("status"), "expiresAt": row.get("expiresAt"),
+                 "label": row["label"][:60] if isinstance(row.get("label"), str) else None}
                 for row in resets["credits"]]}
         json.dump(cleaned, stream)
     try:

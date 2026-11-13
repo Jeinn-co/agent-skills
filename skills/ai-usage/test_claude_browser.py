@@ -25,6 +25,17 @@ class ClaudeBrowserTests(unittest.TestCase):
                             "week": {"usedPercent": 78, "resetsAt": "2026-11-09T17:00:00+08:00"}},
                 "resetCredits": {"availableCount": 0, "credits": []}}
 
+    def test_browser_fable_reset_is_hidden_like_cli(self):
+        data = self.data()
+        data["resetCredits"] = {"availableCount": 2, "credits": [
+            {"status": "available", "expiresAt": "2026-12-11T06:00:00+08:00", "label": "Full reset"},
+            {"status": "available", "expiresAt": "2026-11-17T15:59:00+08:00", "label": "Fable reset"}]}
+        text = "\n".join(claude_browser.report(data))
+        self.assertIn("Limit resets: 1 available", text)
+        self.assertIn("2026-12-11", text)
+        self.assertNotIn("2026-11-17", text)
+        self.assertNotIn("Reset 2", text)
+
     def test_browser_usage_keeps_explicit_source(self):
         text = "\n".join(claude_browser.report(self.data()))
         self.assertIn("plan: pro", text)
