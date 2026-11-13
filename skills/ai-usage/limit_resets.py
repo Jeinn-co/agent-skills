@@ -123,6 +123,15 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None  # Never forward the CLI bearer to a redirect destination.
 
 
+class TokenExpired(ValueError):
+    """The CLI's stored access token is past expiresAt; only the CLI may renew it."""
+
+
+def auth_expired(error):
+    return isinstance(error, TokenExpired) or (
+        isinstance(error, urllib.error.HTTPError) and error.code == 401)
+
+
 def fetch_claude(version, deadline=None):
     """One GET with existing CLI auth: quota windows plus banked resets.
 
@@ -152,6 +161,10 @@ def fetch_claude(version, deadline=None):
         token = oauth.get("accessToken")
     if not isinstance(token, str) or not token:
         raise ValueError("existing CLI OAuth token unavailable")
+    expires = oauth.get("expiresAt")
+    # Skip a request that would be refused; the caller lets the CLI renew the token first.
+    if isinstance(expires, (int, float)) and expires / 1000 < time.time() + 60:
+        raise TokenExpired()
     request = urllib.request.Request(
         "https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1",
         headers={"Authorization": "Bearer " + token, "anthropic-beta": "oauth-2025-04-20",
@@ -206,13 +219,19 @@ def quota_rows(data):
     return rows
 
 
-def failure(error):
-    """A non-sensitive reason line; exception text can contain auth data."""
+def reason(error):
+    """A non-sensitive reason; exception text can contain auth data."""
+    if isinstance(error, TokenExpired):
+        return "CLI token expired"
     if isinstance(error, (TimeoutError, subprocess.TimeoutExpired)):
-        return "Limit resets: unavailable (timed out)"
+        return "timed out"
     if isinstance(error, urllib.error.HTTPError):
-        return "Limit resets: unavailable (HTTP %d)" % error.code
-    return "Limit resets: unavailable (CLI auth or read-only API failed)"
+        return "HTTP %d" % error.code
+    return "CLI auth or read-only API failed"
+
+
+def failure(error):
+    return "Limit resets: unavailable (%s)" % reason(error)
 
 
 def read_claude(version, deadline=None):

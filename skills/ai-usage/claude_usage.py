@@ -39,16 +39,19 @@ def run(*args, deadline=deadline):
 
 version = run("--version").strip().split()
 version = version[0] if version else None
-try:
+def oauth_report():
+    """Print the OAuth report and exit 0; raises when the read fails."""
     oauth, data = limit_resets.fetch_claude(version, deadline=deadline)
     rows = limit_resets.quota_rows(data)
-except Exception as error:
-    reset_failure = limit_resets.failure(error)
-else:
     print("plan: %s" % (oauth.get("subscriptionType") or "unknown"))
     print("\n".join(rows))
     print("\n".join(limit_resets.claude_lines(data.get("cedar_ember"))))
     sys.exit(0)
+
+try:
+    oauth_report()
+except Exception as error:
+    oauth_error = error
 
 # plan name comes from a properly structured command
 plan = None
@@ -60,6 +63,13 @@ except Exception:
     auth = {}
 # --strict-mcp-config: /usage needs no MCP server, and starting them took ~2.5s of ~4.4s.
 raw = run("-p", "--output-format", "json", "--strict-mcp-config", "/usage")
+# Running the CLI renews an expired token, so the full OAuth report may work now.
+if limit_resets.auth_expired(oauth_error):
+    try:
+        oauth_report()
+    except Exception as error:
+        oauth_error = error
+reset_failure = limit_resets.failure(oauth_error)
 env = {}
 try:
     env = json.loads(raw)
@@ -67,7 +77,8 @@ try:
 except Exception:
     text = raw
 if not text:
-    print("usage call failed")
+    print("usage call failed (OAuth: %s; CLI /usage returned nothing in time)" % limit_resets.reason(oauth_error))
+    print("Press Refresh or rerun /uu. If it repeats, run claude once in a terminal so it renews its login.")
     sys.exit(1)
 
 # "Current session: 25% used · resets Sep 12 at 3:40am (Asia/Taipei)"
