@@ -401,3 +401,9 @@ are account-wide.
 ## License
 
 MIT
+
+Model facts and personal role assignments are stored in `guidance_data.py`;
+`cursorbench.py` reads the supported Gemini efforts there, and `html_report.py`
+renders the existing role table and model guidance from the same records.
+Adding a model does not require editing the HTML template. Role assignments are
+separate data and are not automatically changed when a new model is added.

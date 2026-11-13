@@ -2,6 +2,7 @@
 import unittest
 import contextlib
 import io
+import copy
 from unittest.mock import patch
 
 import runpy
@@ -61,6 +62,20 @@ class UsageGuidanceTests(unittest.TestCase):
         page = html_report.render('')
         self.assertIn('Gemini 4 Hydrogen / high', page)
         self.assertIn('2026-11-18', page)
+
+    def test_role_and_model_data_changes_render_without_template_edits(self):
+        roles = copy.deepcopy(html_report.ROLE_ASSIGNMENTS)
+        executor = next(role for role in roles if role['role'] == 'Executor')
+        executor['models']['gemini'] = ('Gemini Fixture <script>', 'xhigh')
+        fixture = {'name': 'Gemini Fixture', 'efforts': ('high', 'xhigh'),
+                   'default_effort': 'high', 'use_cases': ('Fixture task', '測試任務')}
+        with patch.object(html_report, 'ROLE_ASSIGNMENTS', roles), \
+                patch.dict(html_report.GEMINI_MODELS, {'gemini-fixture': fixture}):
+            page = html_report.render('')
+        self.assertIn('Gemini Fixture &lt;script&gt; / xhigh', page)
+        self.assertIn('Gemini Fixture: Fixture task', page)
+        self.assertIn('high (official default) / xhigh', page)
+        self.assertNotIn('@@roles@@', page)
 
     def test_only_fable_has_no_qualified_pick(self):
         rows = [{'model': 'Fable 5.2', 'effort': 'High', 'score': 60, 'cost': 4}]

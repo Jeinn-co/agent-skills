@@ -32,6 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
+from guidance_data import GEMINI_MODELS
 
 portable.stdout_utf8()
 
@@ -48,12 +49,7 @@ FAMILY = {"claude": r"(Opus|Sonnet|Fable|Haiku) ", "codex": r"GPT-", "grok": r"G
 # Empty since Google opened Gemini 4 Carbon to paying API developers (2026-11-10).
 UNAVAILABLE = set()
 # Documented thinking levels, independent of whether AA has measured a variant.
-GEMINI_EFFORTS = {
-    "gemini-4-hydrogen": ("low", "medium", "high", "xhigh"),
-    "gemini-4-carbon": ("low", "medium", "high"),
-    "gemini-4-argon": ("low", "medium", "high"),
-    "gemini-3.8-flash": ("low", "medium", "high"),
-}
+GEMINI_EFFORTS = {model: values["efforts"] for model, values in GEMINI_MODELS.items()}
 
 
 def pick(rows, cli):

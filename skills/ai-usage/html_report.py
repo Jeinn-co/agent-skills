@@ -8,6 +8,8 @@ import html
 import json
 import re
 
+from guidance_data import GEMINI_MODELS, ROLE_ASSIGNMENTS
+
 NAMES = {"CLAUDE": "Claude", "CHATGPT": "ChatGPT", "GROK": "Grok", "MUSE": "Muse",
          "GEMINI": "Gemini"}
 CLI_NAMES = {"claude": "Claude", "codex": "ChatGPT", "grok": "Grok", "muse": "Muse",
@@ -406,6 +408,41 @@ def bench_html(raw):
     return bench_rows(parse(raw))
 
 
+def gemini_guidance():
+    english = ' '.join('%s: %s' % (model['name'], model['use_cases'][0])
+                       for model in GEMINI_MODELS.values())
+    chinese = ' '.join('%s：%s' % (model['name'], model['use_cases'][1])
+                       for model in GEMINI_MODELS.values())
+    return bi(esc(english), esc(chinese))
+
+
+def gemini_efforts():
+    english, chinese = [], []
+    for model in GEMINI_MODELS.values():
+        levels = [level + (' (official default)' if level == model['default_effort'] else '')
+                  for level in model['efforts']]
+        zh_levels = [level + ('（官方預設）' if level == model['default_effort'] else '')
+                     for level in model['efforts']]
+        english.append(model['name'] + ': ' + ' / '.join(levels) + '.')
+        chinese.append(model['name'] + '：' + ' / '.join(zh_levels) + '。')
+    return bi(esc(' '.join(english)), esc(' '.join(chinese)))
+
+
+def role_rows():
+    """Render the existing role table from its data records."""
+    rows = []
+    for role in ROLE_ASSIGNMENTS:
+        cells = []
+        for brand in ("anth", "oai", "gemini"):
+            model, effort = role["models"][brand]
+            cells.append('<td class="%s">%s / %s</td>' % (brand, esc(model), esc(effort)))
+        label = '<b>%s</b>' % esc(role["role"])
+        rows.append('<tr><td>%s</td>%s</tr>' % (
+            bi(label + ': ' + esc(role["description"][0]),
+               label + '：' + esc(role["description"][1])), ''.join(cells)))
+    return ''.join(rows)
+
+
 def render(raw, now=None, loading=False):
     """The whole page; `loading` shows every card and the bench table as skeletons."""
     now = now or datetime.datetime.now()
@@ -416,7 +453,8 @@ def render(raw, now=None, loading=False):
                if data["skipped"] else "")
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
-                       ("cards", cards), ("bench", bench_rows(data, loading)),
+                       ("cards", cards), ("bench", bench_rows(data, loading)), ("roles", role_rows()),
+                       ("gemini_guidance", gemini_guidance()), ("gemini_efforts", gemini_efforts()),
                        ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK),
                        ("expiry_script", EXPIRY_SCRIPT), ("lang_head", LANG_HEAD),
                        ("lang_script", LANG_SCRIPT)):
@@ -568,20 +606,15 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <section class="panel"><h2><span class="l-en">My usage</span><span class="l-zh">我的用法</span></h2>
 <p class="lead"><span class="l-en">My own choices (checked 2026-11-12): Claude Code mainly Opus 5.5 / high; Codex GPT-6.1-Sol / high. Gemini executor: Hydrogen / high (Notion configuration, 2026-11-13); Hydrogen is the recommended upgrade from 3.8 Flash. Official guidance, what effort changes and API prices are on <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>.</span><span class="l-zh">我自己的選擇（2026-11-12 核對）：Claude Code 主要用 Opus 5.5 / high；Codex 用 GPT-6.1-Sol / high。Gemini 的 executor 使用 Hydrogen / high（2026-11-13 Notion 設定）；Hydrogen 是 3.8 Flash 的建議升級版。官方說法、effort 的影響與 API 價格放在 <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>。</span></p>
 <p class="foot"><span class="l-en">Model availability depends on the account and current model list. These preferences do not change CLI settings.</span><span class="l-zh">模型能不能用，取決於帳號與目前的模型清單。這些偏好不會更改 CLI 設定。</span></p>
-<p class="foot"><span class="l-en">Google's current guidance: Antigravity recommends Orchestrator for day-to-day feature work, debugging and refactoring. Carbon or Argon plans and reviews; Hydrogen implements. Standalone Hydrogen handles everyday coding and agent execution; Carbon covers architecture, difficult debugging and security audits; Argon covers advanced long-horizon tasks. These are vendor use cases; the role table below is my own configuration. <a href="https://aistudio.google.com/docs/whats-new-gemini-4-hydrogen#choosing-between-models" target="_blank" rel="noopener">Google's model guide</a> · <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Antigravity guide</a>.</span><span class="l-zh">Google 目前的官方說法：Antigravity 建議日常功能開發、除錯與重構使用 Orchestrator，由 Carbon 或 Argon 規劃及審查、Hydrogen 實作。獨立 Hydrogen 用於日常程式與 agent 實作；Carbon 用於架構、疑難除錯與安全稽核；Argon 用於進階長時程任務。以上是官方使用情境，下方角色表是我的設定。<a href="https://aistudio.google.com/docs/whats-new-gemini-4-hydrogen#choosing-between-models" target="_blank" rel="noopener">Google 模型指南</a> · <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Antigravity 指南</a>。</span></p>
+<p class="foot"><span class="l-en">Google's current guidance: Antigravity recommends Orchestrator for day-to-day development: Carbon or Argon plans and reviews; Hydrogen implements. </span><span class="l-zh">Google 目前的官方說法：Antigravity 建議日常開發使用 Orchestrator，由 Carbon 或 Argon 規劃及審查、Hydrogen 實作。</span>@@gemini_guidance@@ <a href="https://aistudio.google.com/docs/whats-new-gemini-4-hydrogen#choosing-between-models" target="_blank" rel="noopener">Google 模型指南</a> · <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Antigravity</a></p>
 </section>
 <section class="panel"><h2><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h2>
 <p class="std"><span class="l-en">s-agent role configuration snapshot, checked on 2026-11-13. The primary agent is the developer and the dispatcher (Claude: Opus 5.5 / high). Select roles for the task and start with one subagent; the full team is not launched every time.</span><span class="l-zh">s-agent 角色設定快照，2026-11-13 核對。主 agent 兼任 developer 與派工（Claude：Opus 5.5 / high）。依任務挑角色，先派一個子 agent；不會每次都跑完整團隊。</span></p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Role / responsibility</span><span class="l-zh">角色／職責</span></th><th class="anth">Claude Code</th><th class="oai">Codex</th><th class="gemini">Gemini</th></tr></thead><tbody>
-<tr><td><span class="l-en"><b>Planner</b>: executable plan with scope, acceptance criteria and steps</span><span class="l-zh"><b>Planner</b>：可執行的 plan（範圍、驗收條件與步驟）</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
-<tr><td><span class="l-en"><b>Designer</b>: UI, interaction and accessibility</span><span class="l-zh"><b>Designer</b>：UI、互動與無障礙</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Terra / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
-<tr><td><span class="l-en"><b>Executor</b>: implements an approved plan step by step</span><span class="l-zh"><b>Executor</b>：照已核准的 plan 逐步實作</span></td><td class="anth">Sonnet 5.5 / medium</td><td class="oai">GPT-6.1-Sol / medium</td><td class="gemini">Gemini 4 Hydrogen / high</td></tr>
-<tr><td><span class="l-en"><b>Reviewer</b>: independent review and testing</span><span class="l-zh"><b>Reviewer</b>：獨立審查與測試</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
-<tr><td><span class="l-en"><b>DevOps</b>: environments and operations</span><span class="l-zh"><b>DevOps</b>：環境與維運</span></td><td class="anth">Opus 5.5 / high</td><td class="oai">GPT-6.1-Sol / high</td><td class="gemini">Gemini 4 Argon / high</td></tr>
-<tr><td><span class="l-en"><b>Security</b>: scans code, dependencies and configuration</span><span class="l-zh"><b>Security</b>：程式碼、相依套件與設定的安全掃描</span></td><td class="anth">Opus 5.5 / max</td><td class="oai">GPT-6 Astra / max</td><td class="gemini">Gemini 4 Carbon / high</td></tr>
+@@roles@@
 </tbody></table></div>
 <p class="foot"><span class="l-en">My selection policy for security work: safety and correctness come first. Choose the model and effort best suited to the risk; cost is not a reason to reduce necessary security rigor.</span><span class="l-zh">我的安全工作選型原則：安全性與正確性優先，依風險選最適合的模型與 effort；成本不作為降低必要安全強度的理由。</span></p>
-<p class="foot"><span class="l-en">Hydrogen: low / medium / high (official default) / xhigh. Carbon and Argon: low / medium (official default) / high; choosing high for these roles is this configuration's policy. 3.8 Flash supports low / medium / high. Hydrogen rejects minimal.</span><span class="l-zh">Hydrogen：low / medium / high（官方預設）/ xhigh。Carbon、Argon：low / medium（官方預設）/ high；角色配置選 high 是這份設定的選擇。3.8 Flash 支援 low / medium / high。Hydrogen 不接受 minimal。</span></p>
+<p class="foot">@@gemini_efforts@@</p>
 <p class="foot"><span class="l-en">Antigravity access (official table rechecked 2026-11-13): Hydrogen is listed for Free, Plus, Pro, Ultra and Enterprise; Carbon requires Ultra or Enterprise; Argon supports Pro (†), Ultra or Enterprise. † Paid Pro or trials with eligible premium devices. Account access is unverified; paid API access does not establish subscription access. <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Model eligibility</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen announcement</a>.</span><span class="l-zh">Antigravity 資格（2026-11-13 重新核對官方表）：Hydrogen 已列 Free、Plus、Pro、Ultra、Enterprise；Carbon 限 Ultra 或 Enterprise；Argon 為 Pro（†）、Ultra、Enterprise。† 指付費 Pro 或符合資格裝置的試用方案。尚未驗證帳號使用權；付費 API 與訂閱資格分開看。<a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">模型資格表</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen 公告</a>。</span></p>
 <p class="foot"><span class="l-en">Antigravity will remove Claude Sonnet 4.6, Claude Opus 4.6 and GPT-OSS-120b on 2026-11-18. Historical session labels do not establish current model availability.</span><span class="l-zh">Antigravity 將於 2026-11-18 移除 Claude Sonnet 4.6、Claude Opus 4.6、GPT-OSS-120b。歷史 session 的模型名稱不代表目前仍可使用。</span></p>
 <p class="foot"><span class="l-en">Source (2026-11-13): <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</span><span class="l-zh">來源（2026-11-13）：<a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent 角色設定</a>。這是靜態快照，不是即時讀取或同步 Notion，也不代表帳號能用這些模型。實際派工時會另外檢查設定、工具與帳號權限。</span></p>
