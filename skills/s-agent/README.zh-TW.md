@@ -87,6 +87,12 @@ CLI 派工明確加上 `--mode plan`，交接需附禁止編輯與專案測試�
 不會自動繼承主 agent 的權限與 sandbox；派工前必須確認並套用同等限制，做不到就
 留在原本已授權的 host。實際使用仍需登入與對應方案，主 agent 負責驗證結果。
 
+Hydrogen 角色設定 `"effort": "high"` 時，預設使用 high。
+單次需要 xhigh，可說 `/s-agent 這次用 Gemini reviewer / xhigh 審查這個修改`。
+S-Agent 先驗證支援，再回報實際強度並傳入 `--effort xhigh`；不修改 Notion 或
+已儲存的角色預設，後續派工回到設定值。`-h` 會列出預設 high 與可選 xhigh，
+尚未確認執行支援時會明確標示。沒有自動升級。
+
 ## 角色與協調
 
 | 角色 | 責任 |
