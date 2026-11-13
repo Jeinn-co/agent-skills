@@ -8,7 +8,7 @@ import html
 import json
 import re
 
-from guidance_data import GEMINI_MODELS, ROLE_ASSIGNMENTS, ROLE_POLICY_NOTE, ROLE_SOURCE_NOTE
+from guidance_data import GEMINI_MODELS, ROLE_ASSIGNMENTS, ROLE_POLICY_NOTE
 
 NAMES = {"CLAUDE": "Claude", "CHATGPT": "ChatGPT", "GROK": "Grok", "MUSE": "Muse",
          "GEMINI": "Gemini"}
@@ -408,14 +408,6 @@ def bench_html(raw):
     return bench_rows(parse(raw))
 
 
-def gemini_guidance():
-    english = ' '.join('%s: %s' % (model['name'], model['use_cases'][0])
-                       for model in GEMINI_MODELS.values())
-    chinese = ' '.join('%s：%s' % (model['name'], model['use_cases'][1])
-                       for model in GEMINI_MODELS.values())
-    return bi(esc(english), esc(chinese))
-
-
 def gemini_efforts():
     english, chinese = [], []
     for model in GEMINI_MODELS.values():
@@ -457,8 +449,7 @@ def render(raw, now=None, loading=False):
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", cards), ("bench", bench_rows(data, loading)), ("roles", role_rows()),
                        ("role_policy", bi(*map(esc, ROLE_POLICY_NOTE))),
-                       ("role_source", bi(*map(esc, ROLE_SOURCE_NOTE))),
-                       ("gemini_guidance", gemini_guidance()), ("gemini_efforts", gemini_efforts()),
+                       ("gemini_efforts", gemini_efforts()),
                        ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK),
                        ("expiry_script", EXPIRY_SCRIPT), ("lang_head", LANG_HEAD),
                        ("lang_script", LANG_SCRIPT)):
@@ -608,23 +599,22 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <div class="top"><h1>AI Usage</h1><button type="button" class="lang" id="lang">中文</button></div><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
 <section class="panel"><h2><span class="l-en">My usage</span><span class="l-zh">我的用法</span></h2>
-<p class="lead"><span class="l-en">My own choices (checked 2026-11-12): Claude Code mainly Opus 5.5 / high; Codex GPT-6.1-Sol / high. Gemini executor: Hydrogen / high (Notion configuration, 2026-11-13); Hydrogen is the recommended upgrade from 3.8 Flash. Official guidance, what effort changes and API prices are on <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>.</span><span class="l-zh">我自己的選擇（2026-11-12 核對）：Claude Code 主要用 Opus 5.5 / high；Codex 用 GPT-6.1-Sol / high。Gemini 的 executor 使用 Hydrogen / high（2026-11-13 Notion 設定）；Hydrogen 是 3.8 Flash 的建議升級版。官方說法、effort 的影響與 API 價格放在 <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>。</span></p>
-<p class="foot"><span class="l-en">Model availability depends on the account and current model list. These preferences do not change CLI settings.</span><span class="l-zh">模型能不能用，取決於帳號與目前的模型清單。這些偏好不會更改 CLI 設定。</span></p>
-<p class="foot"><span class="l-en">Google's current guidance: Antigravity recommends Orchestrator for day-to-day development: Carbon or Argon plans and reviews; Hydrogen implements. </span><span class="l-zh">Google 目前的官方說法：Antigravity 建議日常開發使用 Orchestrator，由 Carbon 或 Argon 規劃及審查、Hydrogen 實作。</span>@@gemini_guidance@@ <a href="https://aistudio.google.com/docs/whats-new-gemini-4-hydrogen#choosing-between-models" target="_blank" rel="noopener">Google 模型指南</a> · <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Antigravity</a></p>
+<p class="lead"><span class="l-en">My own choices: Claude Code mainly Opus 5.5 / high; Codex GPT-6.1-Sol / high. Gemini: Hydrogen / high for routine work, Carbon / high for security. Official guidance, what effort changes and API prices are on <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>.</span><span class="l-zh">我自己的用法：Claude Code 主要用 Opus 5.5 / high；Codex 用 GPT-6.1-Sol / high。Gemini 日常工作用 Hydrogen / high，安全工作用 Carbon / high。官方說法、effort 的影響與 API 價格放在 <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>。</span></p>
+
 </section>
 <section class="panel"><h2><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h2>
 <p class="std">@@role_policy@@</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Role / responsibility</span><span class="l-zh">角色／職責</span></th><th class="anth">Claude Code</th><th class="oai">Codex</th><th class="gemini">Gemini</th></tr></thead><tbody>
 @@roles@@
 </tbody></table></div>
-<p class="foot"><span class="l-en">My selection policy for security work: safety and correctness come first. Choose the model and effort best suited to the risk; cost is not a reason to reduce necessary security rigor.</span><span class="l-zh">我的安全工作選型原則：安全性與正確性優先，依風險選最適合的模型與 effort；成本不作為降低必要安全強度的理由。</span></p>
+
 <p class="foot">@@gemini_efforts@@</p>
-<p class="foot"><span class="l-en">Antigravity access (official table rechecked 2026-11-13): Hydrogen is listed for Free, Plus, Pro, Ultra and Enterprise; Carbon requires Ultra or Enterprise; Argon supports Pro (†), Ultra or Enterprise. † Paid Pro or trials with eligible premium devices. Account access is unverified; paid API access does not establish subscription access. <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Model eligibility</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen announcement</a>.</span><span class="l-zh">Antigravity 資格（2026-11-13 重新核對官方表）：Hydrogen 已列 Free、Plus、Pro、Ultra、Enterprise；Carbon 限 Ultra 或 Enterprise；Argon 為 Pro（†）、Ultra、Enterprise。† 指付費 Pro 或符合資格裝置的試用方案。尚未驗證帳號使用權；付費 API 與訂閱資格分開看。<a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">模型資格表</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen 公告</a>。</span></p>
-<p class="foot"><span class="l-en">Antigravity will remove Claude Sonnet 4.6, Claude Opus 4.6 and GPT-OSS-120b on 2026-11-18. Historical session labels do not establish current model availability.</span><span class="l-zh">Antigravity 將於 2026-11-18 移除 Claude Sonnet 4.6、Claude Opus 4.6、GPT-OSS-120b。歷史 session 的模型名稱不代表目前仍可使用。</span></p>
-<p class="foot">@@role_source@@ <a href="https://app.notion.com/p/4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion v2.2</a></p>
+<p class="foot"><span class="l-en">Antigravity access: Hydrogen is listed for Free, Plus, Pro, Ultra and Enterprise; Carbon requires Ultra or Enterprise; Argon supports Pro (†), Ultra or Enterprise. † Paid Pro or trials with eligible premium devices. API and subscription access are separate. <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Model eligibility</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen announcement</a>.</span><span class="l-zh">Antigravity 使用資格：Hydrogen 已列 Free、Plus、Pro、Ultra、Enterprise；Carbon 限 Ultra 或 Enterprise；Argon 為 Pro（†）、Ultra、Enterprise。† 指付費 Pro 或符合資格裝置的試用方案。API 與訂閱資格分開看。<a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">模型資格表</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen 公告</a>。</span></p>
+<p class="foot"><span class="l-en">Antigravity will remove Claude Sonnet 4.6, Claude Opus 4.6 and GPT-OSS-120b on 2026-11-18.</span><span class="l-zh">Antigravity 將於 2026-11-18 移除 Claude Sonnet 4.6、Claude Opus 4.6、GPT-OSS-120b。</span></p>
+
 </section>
 <section class="panel"><h2><span class="l-en">Score 50+ (Artificial Analysis)</span><span class="l-zh">分數 50 以上（Artificial Analysis）</span></h2>
-<p class="std"><span class="l-en">Third-party benchmark for reference, not official guidance. Rule: Artificial Analysis Intelligence Index ≥ 50 → highest CP; none reach 50 → highest score. Claude never picks Fable.</span><span class="l-zh">第三方 benchmark，僅供參考，不是官方建議。規則：Artificial Analysis 指數達 50 → 取 CP 最高者；都未達 50 → 取最高分。Claude 一律不選 Fable。</span></p>
+<p class="std"><span class="l-en">Third-party benchmark for reference, not official guidance. Rule: Artificial Analysis Intelligence Index ≥ 50 → highest CP; none reach 50 → highest score. Claude excludes Fable; Gemini excludes Argon.</span><span class="l-zh">第三方 benchmark，僅供參考，不是官方建議。規則：Artificial Analysis 指數達 50 → 取 CP 最高者；都未達 50 → 取最高分。Claude 不選 Fable；Gemini 不選 Argon。</span></p>
 <div class="tablewrap"><table><thead><tr><th><span class="l-en">Provider</span><span class="l-zh">供應商</span></th><th><span class="l-en">Now</span><span class="l-zh">目前</span></th><th class="num"><span class="l-en">Now $</span><span class="l-zh">目前 $</span></th>
 <th class="num"><span class="l-en">Now CP</span><span class="l-zh">目前 CP</span></th><th><span class="l-en">Score 50+</span><span class="l-zh">分數 50 以上</span></th><th class="num"><span class="l-en">Score 50+ $</span><span class="l-zh">分數 50 以上 $</span></th><th class="num"><span class="l-en">Score 50+ CP</span><span class="l-zh">分數 50 以上 CP</span></th></tr></thead>
 <tbody id="bench">@@bench@@</tbody></table></div>

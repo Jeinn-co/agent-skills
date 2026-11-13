@@ -75,7 +75,7 @@ class UsageGuidanceTests(unittest.TestCase):
             page = html_report.render('')
         self.assertIn('Gemini Fixture &lt;script&gt; / xhigh', page)
         self.assertIn('Condition &lt;script&gt;', page)
-        self.assertIn('Gemini Fixture: Fixture task', page)
+        self.assertIn('Gemini Fixture: high (official default) / xhigh', page)
         self.assertIn('high (official default) / xhigh', page)
         self.assertNotIn('@@roles@@', page)
 
@@ -90,7 +90,8 @@ class UsageGuidanceTests(unittest.TestCase):
             effort = 'high'
             self.assertEqual(role['models']['gemini'], (expected, effort))
         page = html_report.render('')
-        self.assertIn('尚未同步 Notion', page)
+        self.assertNotIn('本機選型草案', page)
+        self.assertNotIn('尚未同步 Notion', page)
         self.assertIn('high 仍無法釐清跨模組限制或相依關係時，升 xhigh', page)
         self.assertIn('安全及權限風險交由 Carbon / high', page)
 

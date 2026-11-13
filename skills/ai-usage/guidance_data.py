@@ -61,14 +61,9 @@ ROLE_ASSIGNMENTS = ({'role': 'Planner',
 # Personal selection policy; the source's benchmark data and account support stay intact.
 EXCLUDED_GEMINI_PICKS = {"gemini-4-argon"}
 ROLE_POLICY_NOTE = (
-    "Local selection draft based on Notion v2.2: Argon is excluded because of cost. "
-    "The five general roles start at Hydrogen / high; use xhigh only when high is insufficient for the complex task described in the table. Security "
-    "keeps Carbon / high with safety and correctness first. Not synced to Notion.",
-    "以 Notion v2.2 為基準的本機選型草案：因成本排除 Argon。五個一般角色以 Hydrogen / high 開始；依表內條件，只有 high 不足以處理複雜任務時才升 xhigh。"
-    "Security 保留 Carbon / high，安全性與正確性優先。尚未同步 Notion。",
-)
-ROLE_SOURCE_NOTE = (
-    "Source: Notion v2.2 plus the user's local selection changes. The table is a local "
-    "draft, not the current Notion JSON or a live sync. No active agent settings were changed.",
-    "來源：Notion v2.2 加上本次使用者的本機選型調整。此表是本機草案，不代表目前 Notion JSON 或即時同步結果；未變更正在使用的 agent 設定。",
+    "Routine work starts with Hydrogen / high; use xhigh when high is insufficient "
+    "for complex reasoning. Security uses Carbon / high, with safety and correctness "
+    "first. Argon is excluded because of cost.",
+    "日常工作以 Hydrogen / high 開始；複雜推理在 high 不足時升 xhigh。"
+    "安全工作使用 Carbon / high，以安全性與正確性優先。Argon 因成本不納入選型。",
 )
