@@ -88,7 +88,7 @@ class ClaudeAuthTests(unittest.TestCase):
                                    oauth_error=urllib.error.HTTPError("u", 401, "x", {}, None))
         self.assertEqual(code, 1)
         self.assertIn("usage call failed (OAuth: HTTP 401; CLI /usage returned nothing in time)", text)
-        self.assertIn("rerun /uu", text)
+        self.assertIn("rerun the ai-usage skill", text)
 
 
 class TokenExpiryTests(unittest.TestCase):
