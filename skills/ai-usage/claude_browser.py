@@ -81,7 +81,7 @@ def report(data, now=None):
     name = data.get("browserName", "Browser")
     if name not in ("Browser", "Chrome", "Chromium", "Edge", "Firefox", "Safari"):
         name = "Browser"
-    lines.append("Source: %s · checked %s · run /uu to update" %
+    lines.append("Source: %s · checked %s · rerun the ai-usage skill to update" %
                  (name, observed.astimezone(portable.report_timezone()).strftime("%Y-%m-%d %H:%M")))
     return lines
 

@@ -78,7 +78,7 @@ except Exception:
     text = raw
 if not text:
     print("usage call failed (OAuth: %s; CLI /usage returned nothing in time)" % limit_resets.reason(oauth_error))
-    print("Press Refresh or rerun /uu. If it repeats, run claude once in a terminal so it renews its login.")
+    print("Press Refresh or rerun the ai-usage skill. If it repeats, run claude once in a terminal so it renews its login.")
     sys.exit(1)
 
 # "Current session: 25% used · resets Sep 12 at 3:40am (Asia/Taipei)"
