@@ -231,8 +231,8 @@ Read top to bottom:
    does not change CLI settings or fetch/sync Notion during report generation.
    Security uses Opus 5.5 / max, GPT-6 Astra / max and Gemini 4 Carbon / high.
    Executor uses Gemini 4 Hydrogen / high (Notion snapshot, 2026-11-13).
-   Hydrogen requires paid Google AI Pro or Ultra in Antigravity.
-   Carbon requires Ultra or Enterprise; Argon supports paid Pro (†), Ultra or Enterprise.
+   The current Antigravity table lists Hydrogen for Free, Plus, Pro, Ultra and Enterprise (rechecked 2026-11-13).
+   Carbon requires Ultra or Enterprise; Argon supports Pro (†), Ultra or Enterprise; † includes paid Pro or trials with eligible premium devices.
    Paid Gemini API access is separate. The report does not verify account access.
 5. **Score 50+ (Artificial Analysis)** — a third-party benchmark for reference, not official
    guidance. One row per CLI. *Now* is the model + effort you
