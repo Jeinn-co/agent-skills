@@ -24,7 +24,6 @@ GEMINI_MODELS = {'gemini-4-hydrogen': {'name': 'Gemini 4 Hydrogen',
                                     '上一代日常模型；Google 建議升級至 Hydrogen。')}}
 
 ROLE_ASSIGNMENTS = ({'role': 'Planner',
-  'gemini_note': ('Upgrade to xhigh when high cannot resolve cross-module constraints or dependencies.', 'high 仍無法釐清跨模組限制或相依關係時，升 xhigh。'),
   'description': ('executable plan with scope, acceptance criteria and steps',
                   '可執行的 plan（範圍、驗收條件與步驟）'),
   'models': {'anth': ('Opus 5.5', 'high'),
@@ -41,13 +40,11 @@ ROLE_ASSIGNMENTS = ({'role': 'Planner',
              'oai': ('GPT-6.1-Sol', 'medium'),
              'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'Reviewer',
-  'gemini_note': ('Upgrade to xhigh for unresolved cross-module logic or edge cases after a high review. Route security and permission risks to Carbon / high.', 'high 審查後仍有跨模組邏輯或邊界疑點時，升 xhigh；安全及權限風險交由 Carbon / high。'),
   'description': ('independent review and testing', '獨立審查與測試'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Sol', 'high'),
              'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'DevOps',
-  'gemini_note': ('Upgrade to xhigh when high cannot isolate a multi-service incident or conflicting evidence.', 'high 仍無法定位跨服務故障或矛盾證據時，升 xhigh。'),
   'description': ('environments and operations', '環境與維運'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Sol', 'high'),
@@ -58,14 +55,12 @@ ROLE_ASSIGNMENTS = ({'role': 'Planner',
              'oai': ('GPT-6 Astra', 'max'),
              'gemini': ('Gemini 4 Carbon', 'high')}})
 
-DAILY_GEMINI_CHOICE = ("gemini-4-hydrogen", "high")
+DAILY_GEMINI_CHOICE = ("gemini-4-hydrogen", "high ~ xhigh")
 
 # Personal selection policy; the source's benchmark data and account support stay intact.
 EXCLUDED_GEMINI_PICKS = {"gemini-4-argon"}
 ROLE_POLICY_NOTE = (
-    "Routine work starts with Hydrogen / high; use xhigh when high is insufficient "
-    "for complex reasoning. Security uses Carbon / high, with safety and correctness "
+    "Security uses Carbon / high, with safety and correctness "
     "first. Argon is excluded because of cost.",
-    "日常工作以 Hydrogen / high 開始；複雜推理在 high 不足時升 xhigh。"
     "安全工作使用 Carbon / high，以安全性與正確性優先。Argon 因成本不納入選型。",
 )

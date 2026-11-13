@@ -19,8 +19,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIn('Claude Code mainly Opus 5.5 / high', page)
         self.assertIn('Codex GPT-6.1-Sol / high', page)
         self.assertIn('Claude Code 主要用 Opus 5.5 / high', page)
-        self.assertIn('Codex GPT-6.1-Sol / high; Gemini uses Gemini 4 Hydrogen / high.', page)
-        self.assertIn('Codex 用 GPT-6.1-Sol / high；Gemini 用 Gemini 4 Hydrogen / high。', page)
+        self.assertIn('Codex GPT-6.1-Sol / high.<br>Gemini uses Gemini 4 Hydrogen / high ~ xhigh.', page)
+        self.assertIn('Codex 用 GPT-6.1-Sol / high。<br>Gemini 用 Gemini 4 Hydrogen / high ~ xhigh。', page)
 
     def test_qualified_claude_pick_never_uses_fable(self):
         rows = [
@@ -63,22 +63,19 @@ class UsageGuidanceTests(unittest.TestCase):
             self.assertIsNone(cursorbench.pick([row], 'agy'))
         page = html_report.render('')
         self.assertIn('Gemini 4 Hydrogen / high', page)
-        self.assertIn('2026-11-18', page)
 
     def test_role_and_model_data_changes_render_without_template_edits(self):
         roles = copy.deepcopy(html_report.ROLE_ASSIGNMENTS)
         executor = next(role for role in roles if role['role'] == 'Executor')
         executor['models']['gemini'] = ('Gemini Fixture <script>', 'xhigh')
-        executor['gemini_note'] = ('Condition <script>', '條件 <script>')
         fixture = {'name': 'Gemini Fixture', 'efforts': ('high', 'xhigh'),
                    'default_effort': 'high', 'use_cases': ('Fixture task', '測試任務')}
         with patch.object(html_report, 'ROLE_ASSIGNMENTS', roles), \
-                patch.dict(html_report.GEMINI_MODELS, {'gemini-fixture': fixture}):
+                patch.dict(html_report.GEMINI_MODELS, {'gemini-fixture': fixture}), \
+                patch.object(html_report, 'DAILY_GEMINI_CHOICE', ('gemini-fixture', 'xhigh')):
             page = html_report.render('')
         self.assertIn('Gemini Fixture &lt;script&gt; / xhigh', page)
-        self.assertIn('Condition &lt;script&gt;', page)
-        self.assertIn('Gemini Fixture: high (official default) / xhigh', page)
-        self.assertIn('high (official default) / xhigh', page)
+        self.assertIn('Gemini uses Gemini Fixture / xhigh.', page)
         self.assertNotIn('@@roles@@', page)
 
     def test_personal_gemini_policy_excludes_argon_but_keeps_security_carbon(self):
@@ -94,8 +91,11 @@ class UsageGuidanceTests(unittest.TestCase):
         page = html_report.render('')
         self.assertNotIn('本機選型草案', page)
         self.assertNotIn('尚未同步 Notion', page)
-        self.assertIn('high 仍無法釐清跨模組限制或相依關係時，升 xhigh', page)
-        self.assertIn('安全及權限風險交由 Carbon / high', page)
+        choice, roles = page.split('<h2><span class="l-en">Delegated roles</span>', 1)
+        self.assertIn('安全工作使用 Carbon / high，以安全性與正確性優先。', choice)
+        self.assertNotIn('安全工作使用 Carbon / high', roles)
+        self.assertNotIn('複雜推理在 high 不足時升 xhigh', page)
+        self.assertNotIn('Upgrade to xhigh', roles)
 
     def test_only_fable_has_no_qualified_pick(self):
         rows = [{'model': 'Fable 5.2', 'effort': 'High', 'score': 60, 'cost': 4}]

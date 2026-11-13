@@ -408,18 +408,6 @@ def bench_html(raw):
     return bench_rows(parse(raw))
 
 
-def gemini_efforts():
-    english, chinese = [], []
-    for model in GEMINI_MODELS.values():
-        levels = [level + (' (official default)' if level == model['default_effort'] else '')
-                  for level in model['efforts']]
-        zh_levels = [level + ('（官方預設）' if level == model['default_effort'] else '')
-                     for level in model['efforts']]
-        english.append(model['name'] + ': ' + ' / '.join(levels) + '.')
-        chinese.append(model['name'] + '：' + ' / '.join(zh_levels) + '。')
-    return bi(esc(' '.join(english)), esc(' '.join(chinese)))
-
-
 def role_rows():
     """Render the existing role table from its data records."""
     rows = []
@@ -427,9 +415,7 @@ def role_rows():
         cells = []
         for brand in ("anth", "oai", "gemini"):
             model, effort = role["models"][brand]
-            note = role.get("gemini_note") if brand == "gemini" else None
-            detail = '<br>' + bi(*map(esc, note)) if note else ''
-            cells.append('<td class="%s">%s / %s%s</td>' % (brand, esc(model), esc(effort), detail))
+            cells.append('<td class="%s">%s / %s</td>' % (brand, esc(model), esc(effort)))
         label = '<b>%s</b>' % esc(role["role"])
         rows.append('<tr><td>%s</td>%s</tr>' % (
             bi(label + ': ' + esc(role["description"][0]),
@@ -451,7 +437,6 @@ def render(raw, now=None, loading=False):
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", cards), ("bench", bench_rows(data, loading)), ("roles", role_rows()),
                        ("role_policy", bi(*map(esc, ROLE_POLICY_NOTE))), ("daily_gemini", esc(daily_gemini)),
-                       ("gemini_efforts", gemini_efforts()),
                        ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK),
                        ("expiry_script", EXPIRY_SCRIPT), ("lang_head", LANG_HEAD),
                        ("lang_script", LANG_SCRIPT)):
@@ -601,18 +586,16 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <div class="top"><h1>AI Usage</h1><button type="button" class="lang" id="lang">中文</button></div><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
 <section class="panel"><h2><span class="l-en">My usage</span><span class="l-zh">我的用法</span></h2>
-<p class="lead"><span class="l-en">My own choices: Claude Code mainly Opus 5.5 / high; Codex GPT-6.1-Sol / high; Gemini uses @@daily_gemini@@. Official guidance, what effort changes and API prices are on <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>.</span><span class="l-zh">我自己的選擇：Claude Code 主要用 Opus 5.5 / high；Codex 用 GPT-6.1-Sol / high；Gemini 用 @@daily_gemini@@。官方說法、effort 的影響與 API 價格放在 <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>。</span></p>
+<p class="lead"><span class="l-en">Claude Code mainly Opus 5.5 / high.<br>Codex GPT-6.1-Sol / high.<br>Gemini uses @@daily_gemini@@.</span><span class="l-zh">Claude Code 主要用 Opus 5.5 / high。<br>Codex 用 GPT-6.1-Sol / high。<br>Gemini 用 @@daily_gemini@@。</span></p>
+<p class="foot">@@role_policy@@</p>
+<p class="links"><span class="l-en">Official model guidance, thinking levels and API prices: </span><span class="l-zh">官方定位、思考等級與 API 價格：</span><a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 
 </section>
 <section class="panel"><h2><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h2>
-<p class="std">@@role_policy@@</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Role / responsibility</span><span class="l-zh">角色／職責</span></th><th class="anth">Claude Code</th><th class="oai">Codex</th><th class="gemini">Gemini</th></tr></thead><tbody>
 @@roles@@
 </tbody></table></div>
 
-<p class="foot">@@gemini_efforts@@</p>
-<p class="foot"><span class="l-en">Antigravity access: Hydrogen is listed for Free, Plus, Pro, Ultra and Enterprise; Carbon requires Ultra or Enterprise; Argon supports Pro (†), Ultra or Enterprise. † Paid Pro or trials with eligible premium devices. API and subscription access are separate. <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Model eligibility</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen announcement</a>.</span><span class="l-zh">Antigravity 使用資格：Hydrogen 已列 Free、Plus、Pro、Ultra、Enterprise；Carbon 限 Ultra 或 Enterprise；Argon 為 Pro（†）、Ultra、Enterprise。† 指付費 Pro 或符合資格裝置的試用方案。API 與訂閱資格分開看。<a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">模型資格表</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen 公告</a>。</span></p>
-<p class="foot"><span class="l-en">Antigravity will remove Claude Sonnet 4.6, Claude Opus 4.6 and GPT-OSS-120b on 2026-11-18.</span><span class="l-zh">Antigravity 將於 2026-11-18 移除 Claude Sonnet 4.6、Claude Opus 4.6、GPT-OSS-120b。</span></p>
 
 </section>
 <section class="panel"><h2><span class="l-en">Score 50+ (Artificial Analysis)</span><span class="l-zh">分數 50 以上（Artificial Analysis）</span></h2>
