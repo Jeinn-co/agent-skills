@@ -8,7 +8,7 @@ import html
 import json
 import re
 
-from guidance_data import GEMINI_MODELS, ROLE_ASSIGNMENTS
+from guidance_data import GEMINI_MODELS, ROLE_ASSIGNMENTS, ROLE_POLICY_NOTE, ROLE_SOURCE_NOTE
 
 NAMES = {"CLAUDE": "Claude", "CHATGPT": "ChatGPT", "GROK": "Grok", "MUSE": "Muse",
          "GEMINI": "Gemini"}
@@ -454,6 +454,8 @@ def render(raw, now=None, loading=False):
     page = PAGE
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", cards), ("bench", bench_rows(data, loading)), ("roles", role_rows()),
+                       ("role_policy", bi(*map(esc, ROLE_POLICY_NOTE))),
+                       ("role_source", bi(*map(esc, ROLE_SOURCE_NOTE))),
                        ("gemini_guidance", gemini_guidance()), ("gemini_efforts", gemini_efforts()),
                        ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK),
                        ("expiry_script", EXPIRY_SCRIPT), ("lang_head", LANG_HEAD),
@@ -609,7 +611,7 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <p class="foot"><span class="l-en">Google's current guidance: Antigravity recommends Orchestrator for day-to-day development: Carbon or Argon plans and reviews; Hydrogen implements. </span><span class="l-zh">Google 目前的官方說法：Antigravity 建議日常開發使用 Orchestrator，由 Carbon 或 Argon 規劃及審查、Hydrogen 實作。</span>@@gemini_guidance@@ <a href="https://aistudio.google.com/docs/whats-new-gemini-4-hydrogen#choosing-between-models" target="_blank" rel="noopener">Google 模型指南</a> · <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Antigravity</a></p>
 </section>
 <section class="panel"><h2><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h2>
-<p class="std"><span class="l-en">s-agent role configuration snapshot, checked on 2026-11-13. The primary agent is the developer and the dispatcher (Claude: Opus 5.5 / high). Select roles for the task and start with one subagent; the full team is not launched every time.</span><span class="l-zh">s-agent 角色設定快照，2026-11-13 核對。主 agent 兼任 developer 與派工（Claude：Opus 5.5 / high）。依任務挑角色，先派一個子 agent；不會每次都跑完整團隊。</span></p>
+<p class="std">@@role_policy@@</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th><span class="l-en">Role / responsibility</span><span class="l-zh">角色／職責</span></th><th class="anth">Claude Code</th><th class="oai">Codex</th><th class="gemini">Gemini</th></tr></thead><tbody>
 @@roles@@
 </tbody></table></div>
@@ -617,7 +619,7 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <p class="foot">@@gemini_efforts@@</p>
 <p class="foot"><span class="l-en">Antigravity access (official table rechecked 2026-11-13): Hydrogen is listed for Free, Plus, Pro, Ultra and Enterprise; Carbon requires Ultra or Enterprise; Argon supports Pro (†), Ultra or Enterprise. † Paid Pro or trials with eligible premium devices. Account access is unverified; paid API access does not establish subscription access. <a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">Model eligibility</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen announcement</a>.</span><span class="l-zh">Antigravity 資格（2026-11-13 重新核對官方表）：Hydrogen 已列 Free、Plus、Pro、Ultra、Enterprise；Carbon 限 Ultra 或 Enterprise；Argon 為 Pro（†）、Ultra、Enterprise。† 指付費 Pro 或符合資格裝置的試用方案。尚未驗證帳號使用權；付費 API 與訂閱資格分開看。<a href="https://antigravity.google/docs/models" target="_blank" rel="noopener">模型資格表</a> · <a href="https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/" target="_blank" rel="noopener">Hydrogen 公告</a>。</span></p>
 <p class="foot"><span class="l-en">Antigravity will remove Claude Sonnet 4.6, Claude Opus 4.6 and GPT-OSS-120b on 2026-11-18. Historical session labels do not establish current model availability.</span><span class="l-zh">Antigravity 將於 2026-11-18 移除 Claude Sonnet 4.6、Claude Opus 4.6、GPT-OSS-120b。歷史 session 的模型名稱不代表目前仍可使用。</span></p>
-<p class="foot"><span class="l-en">Source (2026-11-13): <a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent role configuration</a>. This is a static snapshot, not a live Notion read or sync, and does not establish model access. Actual dispatch checks configuration, tools and account permissions separately.</span><span class="l-zh">來源（2026-11-13）：<a href="https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion s-agent 角色設定</a>。這是靜態快照，不是即時讀取或同步 Notion，也不代表帳號能用這些模型。實際派工時會另外檢查設定、工具與帳號權限。</span></p>
+<p class="foot">@@role_source@@ <a href="https://app.notion.com/p/4118e936085b810891bdc1a77dd59b63" target="_blank" rel="noopener">Notion v2.2</a></p>
 </section>
 <section class="panel"><h2><span class="l-en">Score 50+ (Artificial Analysis)</span><span class="l-zh">分數 50 以上（Artificial Analysis）</span></h2>
 <p class="std"><span class="l-en">Third-party benchmark for reference, not official guidance. Rule: Artificial Analysis Intelligence Index ≥ 50 → highest CP; none reach 50 → highest score. Claude never picks Fable.</span><span class="l-zh">第三方 benchmark，僅供參考，不是官方建議。規則：Artificial Analysis 指數達 50 → 取 CP 最高者；都未達 50 → 取最高分。Claude 一律不選 Fable。</span></p>

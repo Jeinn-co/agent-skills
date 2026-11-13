@@ -22,6 +22,7 @@ Then one `pick` line per CLI, searched across every model and effort AA lists fo
 provider (FAMILY): the highest cp that scores at least TARGET; when nothing from that
 provider reaches TARGET, its highest score, the closest it gets. The line says which
 rule applied (`rule cp` / `rule closest`). Models in UNAVAILABLE are never picked.
+Gemini personal picks exclude Argon because of cost.
 Claude picks never use Fable (too expensive), whatever its score; Fable rows remain
 visible as current-model benchmarks but are excluded from Qualified picks. An
 empty model means no local session: print that status and still select the provider's
@@ -32,7 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
-from guidance_data import GEMINI_MODELS
+from guidance_data import GEMINI_MODELS, EXCLUDED_GEMINI_PICKS
 
 portable.stdout_utf8()
 
@@ -59,6 +60,8 @@ def pick(rows, cli):
     found = []
     for r in rows:
         model, effort = r.get("model") or "", SUFFIX.get(r.get("effort"))
+        if cli == "agy" and model.lower().replace(" ", "-") in EXCLUDED_GEMINI_PICKS:
+            continue
         allowed = GEMINI_EFFORTS.get(model.lower().replace(" ", "-")) if cli == "agy" else None
         if allowed is not None and effort not in allowed:
             continue

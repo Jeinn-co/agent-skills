@@ -407,3 +407,5 @@ Model facts and personal role assignments are stored in `guidance_data.py`;
 renders the existing role table and model guidance from the same records.
 Adding a model does not require editing the HTML template. Role assignments are
 separate data and are not automatically changed when a new model is added.
+
+Local review override: Argon is excluded from personal Gemini recommendations because of cost. The five general roles use Hydrogen / high; Security keeps Carbon / high. This draft has not been synced to Notion.

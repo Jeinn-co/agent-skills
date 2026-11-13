@@ -631,10 +631,11 @@ class AAQualifiedMainTests(unittest.TestCase):
         self.assertIn("pick    codex  GPT-6.1 Sol High  aa 50.2", out)
 
     def test_unlisted_current_model_still_gets_a_pick(self):
-        rows = [{"model": "Gemini 4 Argon", "effort": "High", "score": 50.4, "cost": 9.95}]
+        # Synthetic eligible-model fixture; Argon is excluded by personal selection policy.
+        rows = [{"model": "Gemini 4 Hydrogen", "effort": "High", "score": 51, "cost": 2}]
         code, out = self.run_main(rows, ["agy=gemini-3.8-flash:high"], {})
         self.assertIn("bench   agy  Gemini 3.8 Flash  high  not listed", out)
-        self.assertIn("pick    agy  Gemini 4 Argon High  aa 50.4", out)
+        self.assertIn("pick    agy  Gemini 4 Hydrogen High  aa 51.0", out)
 
 
 class CursorBenchNameTests(unittest.TestCase):
@@ -673,6 +674,7 @@ class CursorBenchNameTests(unittest.TestCase):
             row("Sonnet 5.5", "High", 41.5, 1.64), row("Fable 5.2", "Low", 53.9, 3.10),
             row("Grok 4.7", "Extra High", 35.5, 7.77), row("Grok 4.7", "Low", 20.0, 0.50),
             row("Gemini 4 Carbon", "Medium", 58.3, 6.59), row("Gemini 4 Argon", "High", 50.4, 9.95),
+            row("Gemini 4 Hydrogen", "High", 51, 2),
             row("Gemini 3.8 Flash", "Medium", 30.1, 6.26), row("Opus 5.5", "None", 60.0, 0.10),
         ]
         # Claude reaches 50: best cp among >= 50 rows; Opus Medium has a better cp but is below 50,
@@ -682,7 +684,7 @@ class CursorBenchNameTests(unittest.TestCase):
         self.assertEqual(cursorbench.pick(rows, "grok"), ("Grok 4.7 Extra High", 35.5, 7.77, "closest"))
         # an unavailable model is never picked, even with the best cp
         with mock.patch.object(cursorbench, "UNAVAILABLE", {"Gemini 4 Carbon"}):
-            self.assertEqual(cursorbench.pick(rows, "agy")[0], "Gemini 4 Argon High")
+            self.assertEqual(cursorbench.pick(rows, "agy")[0], "Gemini 4 Hydrogen High")
         self.assertIsNone(cursorbench.pick(rows, "muse"))
 
 

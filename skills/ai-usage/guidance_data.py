@@ -28,12 +28,12 @@ ROLE_ASSIGNMENTS = ({'role': 'Planner',
                   '可執行的 plan（範圍、驗收條件與步驟）'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Sol', 'high'),
-             'gemini': ('Gemini 4 Argon', 'high')}},
+             'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'Designer',
   'description': ('UI, interaction and accessibility', 'UI、互動與無障礙'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Terra', 'high'),
-             'gemini': ('Gemini 4 Argon', 'high')}},
+             'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'Executor',
   'description': ('implements an approved plan step by step', '照已核准的 plan 逐步實作'),
   'models': {'anth': ('Sonnet 5.5', 'medium'),
@@ -43,14 +43,29 @@ ROLE_ASSIGNMENTS = ({'role': 'Planner',
   'description': ('independent review and testing', '獨立審查與測試'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Sol', 'high'),
-             'gemini': ('Gemini 4 Argon', 'high')}},
+             'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'DevOps',
   'description': ('environments and operations', '環境與維運'),
   'models': {'anth': ('Opus 5.5', 'high'),
              'oai': ('GPT-6.1-Sol', 'high'),
-             'gemini': ('Gemini 4 Argon', 'high')}},
+             'gemini': ('Gemini 4 Hydrogen', 'high')}},
  {'role': 'Security',
   'description': ('scans code, dependencies and configuration', '程式碼、相依套件與設定的安全掃描'),
   'models': {'anth': ('Opus 5.5', 'max'),
              'oai': ('GPT-6 Astra', 'max'),
              'gemini': ('Gemini 4 Carbon', 'high')}})
+
+# Personal selection policy; the source's benchmark data and account support stay intact.
+EXCLUDED_GEMINI_PICKS = {"gemini-4-argon"}
+ROLE_POLICY_NOTE = (
+    "Local selection draft based on Notion v2.2: Argon is excluded because of cost. "
+    "Planner, Designer, Executor, Reviewer and DevOps use Hydrogen / high; Security "
+    "keeps Carbon / high with safety and correctness first. Not synced to Notion.",
+    "以 Notion v2.2 為基準的本機選型草案：因成本排除 Argon。Planner、Designer、Executor、"
+    "Reviewer、DevOps 使用 Hydrogen / high；Security 保留 Carbon / high，安全性與正確性優先。尚未同步 Notion。",
+)
+ROLE_SOURCE_NOTE = (
+    "Source: Notion v2.2 plus the user's local selection changes. The table is a local "
+    "draft, not the current Notion JSON or a live sync. No active agent settings were changed.",
+    "來源：Notion v2.2 加上本次使用者的本機選型調整。此表是本機草案，不代表目前 Notion JSON 或即時同步結果；未變更正在使用的 agent 設定。",
+)

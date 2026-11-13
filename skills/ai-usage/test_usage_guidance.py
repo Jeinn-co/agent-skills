@@ -77,6 +77,18 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIn('high (official default) / xhigh', page)
         self.assertNotIn('@@roles@@', page)
 
+    def test_personal_gemini_policy_excludes_argon_but_keeps_security_carbon(self):
+        # Synthetic benchmark rows: even an attractive Argon result is not a personal pick.
+        argon = {'model': 'Gemini 4 Argon', 'effort': 'High', 'score': 99, 'cost': 0.01}
+        hydrogen = {'model': 'Gemini 4 Hydrogen', 'effort': 'High', 'score': 51, 'cost': 1}
+        self.assertEqual(cursorbench.pick([argon, hydrogen], 'agy')[0], 'Gemini 4 Hydrogen High')
+        self.assertIsNone(cursorbench.pick([argon], 'agy'))
+        for role in html_report.ROLE_ASSIGNMENTS:
+            expected = 'Gemini 4 Carbon' if role['role'] == 'Security' else 'Gemini 4 Hydrogen'
+            self.assertEqual(role['models']['gemini'], (expected, 'high'))
+        page = html_report.render('')
+        self.assertIn('尚未同步 Notion', page)
+
     def test_only_fable_has_no_qualified_pick(self):
         rows = [{'model': 'Fable 5.2', 'effort': 'High', 'score': 60, 'cost': 4}]
         self.assertIsNone(cursorbench.pick(rows, 'claude'))

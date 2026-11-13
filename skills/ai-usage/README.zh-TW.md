@@ -330,3 +330,5 @@ CLI 登入失效時，本機伺服器的報表會顯示 **Sign in to Claude** �
 模型資料與個人角色配置集中在 `guidance_data.py`；`cursorbench.py` 從此讀取 Gemini
 允許的 effort，`html_report.py` 依同一份資料產生原有角色表與模型說明。
 新增模型不需逐處修改 HTML。角色配置是另一組資料，不會因新增模型自動改派角色。
+
+本機 review 調整：因成本排除個人 Gemini 選型中的 Argon。五個一般角色使用 Hydrogen / high；Security 保留 Carbon / high。此草案尚未同步 Notion。
