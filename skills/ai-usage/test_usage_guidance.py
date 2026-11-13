@@ -19,6 +19,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIn('Claude Code mainly Opus 5.5 / high', page)
         self.assertIn('Codex GPT-6.1-Sol / high', page)
         self.assertIn('Claude Code 主要用 Opus 5.5 / high', page)
+        self.assertIn('Codex GPT-6.1-Sol / high; Gemini uses Gemini 4 Hydrogen / high.', page)
+        self.assertIn('Codex 用 GPT-6.1-Sol / high；Gemini 用 Gemini 4 Hydrogen / high。', page)
 
     def test_qualified_claude_pick_never_uses_fable(self):
         rows = [

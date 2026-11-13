@@ -58,6 +58,8 @@ ROLE_ASSIGNMENTS = ({'role': 'Planner',
              'oai': ('GPT-6 Astra', 'max'),
              'gemini': ('Gemini 4 Carbon', 'high')}})
 
+DAILY_GEMINI_CHOICE = ("gemini-4-hydrogen", "high")
+
 # Personal selection policy; the source's benchmark data and account support stay intact.
 EXCLUDED_GEMINI_PICKS = {"gemini-4-argon"}
 ROLE_POLICY_NOTE = (

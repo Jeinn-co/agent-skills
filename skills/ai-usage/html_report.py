@@ -8,7 +8,7 @@ import html
 import json
 import re
 
-from guidance_data import GEMINI_MODELS, ROLE_ASSIGNMENTS, ROLE_POLICY_NOTE
+from guidance_data import GEMINI_MODELS, ROLE_ASSIGNMENTS, ROLE_POLICY_NOTE, DAILY_GEMINI_CHOICE
 
 NAMES = {"CLAUDE": "Claude", "CHATGPT": "ChatGPT", "GROK": "Grok", "MUSE": "Muse",
          "GEMINI": "Gemini"}
@@ -446,9 +446,11 @@ def render(raw, now=None, loading=False):
                                              esc(", ".join(data["skipped"])))
                if data["skipped"] else "")
     page = PAGE
+    daily_model, daily_effort = DAILY_GEMINI_CHOICE
+    daily_gemini = GEMINI_MODELS[daily_model]["name"] + " / " + daily_effort
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", cards), ("bench", bench_rows(data, loading)), ("roles", role_rows()),
-                       ("role_policy", bi(*map(esc, ROLE_POLICY_NOTE))),
+                       ("role_policy", bi(*map(esc, ROLE_POLICY_NOTE))), ("daily_gemini", esc(daily_gemini)),
                        ("gemini_efforts", gemini_efforts()),
                        ("skipped", skipped), ("compare", esc(COMPARE)), ("dark", DARK),
                        ("expiry_script", EXPIRY_SCRIPT), ("lang_head", LANG_HEAD),
@@ -599,7 +601,7 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <div class="top"><h1>AI Usage</h1><button type="button" class="lang" id="lang">中文</button></div><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
 <section class="panel"><h2><span class="l-en">My usage</span><span class="l-zh">我的用法</span></h2>
-<p class="lead"><span class="l-en">My own choices: Claude Code mainly Opus 5.5 / high; Codex GPT-6.1-Sol / high. Gemini: Hydrogen / high for routine work, Carbon / high for security. Official guidance, what effort changes and API prices are on <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>.</span><span class="l-zh">我自己的用法：Claude Code 主要用 Opus 5.5 / high；Codex 用 GPT-6.1-Sol / high。Gemini 日常工作用 Hydrogen / high，安全工作用 Carbon / high。官方說法、effort 的影響與 API 價格放在 <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>。</span></p>
+<p class="lead"><span class="l-en">My own choices: Claude Code mainly Opus 5.5 / high; Codex GPT-6.1-Sol / high; Gemini uses @@daily_gemini@@. Official guidance, what effort changes and API prices are on <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>.</span><span class="l-zh">我自己的選擇：Claude Code 主要用 Opus 5.5 / high；Codex 用 GPT-6.1-Sol / high；Gemini 用 @@daily_gemini@@。官方說法、effort 的影響與 API 價格放在 <a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a>。</span></p>
 
 </section>
 <section class="panel"><h2><span class="l-en">Delegated roles</span><span class="l-zh">角色分派</span></h2>
