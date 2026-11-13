@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; check for skill updates, automatically sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # S-Agent
@@ -126,7 +126,10 @@ is optional, but must be present on all six roles when used. The catalog must
 cover exactly the platforms in the policy. Existing two-platform policies remain valid. It rejects duplicates, unsupported
 pairs and unexpected keys before writing. Model identifiers and supported effort
 values come from the current catalog, so adding a supported model in Notion does
-not require a skill release.
+not require a skill release. Known Gemini models additionally enforce their documented
+levels: Hydrogen accepts low, medium, high (default), xhigh; Carbon and Argon
+accept low, medium (default), high; 3.8 Flash accepts low, medium, high. Minimal
+is not supported on these models. The runtime catalog must still verify the pair.
 
 Targets: `~/.codex/agents/<role>.toml`, `~/.claude/agents/<role>.md`, and matching
 existing `~/.agents/roles/<role>.toml` sources. With Gemini configured, create or

@@ -22,6 +22,13 @@ ROLES = {
     'security': 'Scan code, dependencies and configuration for vulnerabilities and leaked secrets.',
 }
 PLATFORMS = {'codex', 'claude'}
+# Known model-specific constraints; other models still require a verified runtime catalog.
+GEMINI_EFFORTS = {
+    'gemini-4-hydrogen': {'low', 'medium', 'high', 'xhigh'},
+    'gemini-4-carbon': {'low', 'medium', 'high'},
+    'gemini-4-argon': {'low', 'medium', 'high'},
+    'gemini-3.8-flash': {'low', 'medium', 'high'},
+}
 
 
 def exact_keys(value, keys, label):
@@ -60,6 +67,9 @@ def validate(policy, catalog=None):
             exact_keys(values, {'model', 'effort'}, f'{role}.{platform}')
             for key, value in values.items():
                 token(value, f'{role}.{platform}.{key}')
+            allowed = GEMINI_EFFORTS.get(values['model']) if platform == 'gemini' else None
+            if allowed is not None and values['effort'] not in allowed:
+                raise ValueError(f'{role}.gemini: unsupported effort for {values["model"]}: {values["effort"]}')
             if catalog is not None and values['effort'] not in catalog[platform].get(values['model'], []):
                 raise ValueError(f'{role}.{platform}: unavailable model/effort {values}')
 
