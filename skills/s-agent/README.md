@@ -46,7 +46,9 @@ The shared Python updater replaces only this installed skill; installer-managed 
 manually copied folders work without Node/npm, install records or a sibling checkout.
 The bundle is validated before replacement; failed replacement restores the old copy.
 User settings outside the skill folder remain in place. Development checkouts are not
-replaced. A failed check/update is reported, then the installed version is used if usable.
+replaced. A failed check/update reports its reason and local version, then immediately continues
+the original request without a prompt when that local copy is usable. Only a missing or
+unusable local copy stops the request.
 
 Omit `--apply` for a read-only check. No credentials are read. Skill self-updates
 are separate from Notion model/effort synchronization and do not launch subagents.

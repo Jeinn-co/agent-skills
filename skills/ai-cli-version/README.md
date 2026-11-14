@@ -221,7 +221,8 @@ The shared Python updater replaces only this installed folder, including manual
 copies; Node/npm and installer records are not needed. It validates the downloaded
 bundle before replacement and restores the old copy if replacement fails. User
 settings outside the skill folder are preserved. Development checkouts are not
-replaced. An update failure is reported; the existing skill is used when usable.
+replaced. An update failure reports its reason and local version; a usable local copy immediately
+continues the original request without a prompt. Only a missing/unusable local copy stops it.
 Use `run.py --check-skill` for a read-only check. Provider CLI updates and login
 flows retain their existing confirmation requirements.
 

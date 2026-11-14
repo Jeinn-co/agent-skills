@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import sys
 import tempfile
 import unittest
@@ -28,7 +29,11 @@ def published(version):
 class UpdateTests(unittest.TestCase):
     def installed(self, root, name, version='1.0.0'):
         folder = root / name
-        folder.mkdir()
+        if name in update.SKILLS:
+            shutil.copytree(ROOT / 'skills' / name, folder,
+                            ignore=shutil.ignore_patterns('__pycache__'))
+        else:
+            folder.mkdir()
         (folder / 'SKILL.md').write_text(skill(version))
         (folder / 'old-marker').write_text('keep on failure')
         return folder
@@ -87,9 +92,35 @@ class UpdateTests(unittest.TestCase):
                 patch = (mock.patch.object(update, '_download', side_effect=value) if isinstance(value, Exception)
                          else mock.patch.object(update, '_download', return_value=value))
                 with self.subTest(value=value), patch:
-                    self.assertIn('update failed', update.check_skill_update('s-agent', folder, apply=True))
+                    result = update.check_skill_update('s-agent', folder, apply=True)
+                    self.assertIn('update failed', result)
+                    self.assertIn('fallback=local installed=1.0.0 action=continue', result)
                     self.assertEqual(update.skill_version(folder), '1.0.0')
                     self.assertTrue((folder / 'old-marker').exists())
+
+    def test_download_failure_reports_reason_and_continues_each_local_skill(self):
+        for name in update.SKILLS:
+            with self.subTest(skill=name), tempfile.TemporaryDirectory() as work:
+                folder = self.installed(Path(work), name)
+                with mock.patch.object(update, '_download', side_effect=[
+                        published('9.8.7'), urllib.error.URLError('download timed out')]):
+                    result = update.check_skill_update(name, folder, apply=True)
+                self.assertIn('download timed out', result)
+                self.assertIn('fallback=local installed=1.0.0 action=continue', result)
+                self.assertTrue((folder / 'old-marker').exists())
+
+    def test_missing_or_incomplete_local_skill_cannot_continue(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            for name in update.SKILLS:
+                folder = self.installed(root, name)
+                entry = 'scripts/sync_roles.py' if name == 's-agent' else 'run.py'
+                (folder / entry).unlink()
+                with mock.patch.object(update, '_download', side_effect=urllib.error.URLError('offline')):
+                    result = update.check_skill_update(name, folder, apply=True)
+                self.assertIn('fallback=none action=stop', result)
+            result = update.check_skill_update('s-agent', root / 'not-installed', apply=True)
+            self.assertIn('fallback=none action=stop', result)
 
     def test_raw_endpoint_remains_available_when_public_api_is_rate_limited(self):
         with tempfile.TemporaryDirectory() as work:

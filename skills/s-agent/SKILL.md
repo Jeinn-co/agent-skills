@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.4.1"
+  version: "1.4.2"
 ---
 
 # S-Agent
@@ -25,9 +25,11 @@ outside the skill folder remain in place. Source checkouts are not overwritten.
 - `up to date`: continue with the original request.
 - `updated`: report the new version in one line, re-read this installed `SKILL.md`
   and continue with the original request using the new code. Do not repeat Step 0.
-- `check failed` or `update failed`: report the reason without claiming the skill is
-  current. Continue with the installed version only if it remains usable; otherwise
-  stop and report the missing installation. Do not retry during the same invocation.
+- `check failed` or `update failed`: show the failure reason in one line. If the
+  updater reports `fallback=local installed=<version> action=continue`, immediately
+  continue the original request with that local version, without asking or waiting.
+  If it reports `fallback=none action=stop`, report that no usable local installation
+  exists and stop. Do not claim the local version is current or retry this invocation.
 
 Omit `--apply` for a read-only check. Skill self-updates do not authorize
 provider CLI updates, login flows, Notion configuration changes or task dispatch.

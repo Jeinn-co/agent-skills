@@ -70,3 +70,9 @@ skill. It rejects unsafe paths, links, oversized/incomplete bundles and older ve
 before replacing an installation. Replacement failures restore the previous folder;
 an unrecoverable restore leaves its sibling backup available. It never writes role,
 auth or provider settings outside the installed skill. Source checkouts are not updated.
+
+Check/download/install failures include their reason and a fallback decision.
+`fallback=local installed=<version> action=continue` means the local metadata and
+required runtime files are present; the agent continues without a prompt.
+`fallback=none action=stop` means no usable installation remains. Failure messages
+never label the local version as the latest published one.

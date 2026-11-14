@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, codeload.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.17.1"
+  version: "1.17.2"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -27,9 +27,11 @@ outside the skill folder remain in place. Source checkouts are not overwritten.
 - `up to date`: continue with the original request.
 - `updated`: report the new version in one line, re-read this installed `SKILL.md`
   and continue with the original request using the new code. Do not repeat Step 0.
-- `check failed` or `update failed`: report the reason without claiming the skill is
-  current. Continue with the installed version only if it remains usable; otherwise
-  stop and report the missing installation. Do not retry during the same invocation.
+- `check failed` or `update failed`: show the failure reason in one line. If the
+  updater reports `fallback=local installed=<version> action=continue`, immediately
+  continue the original request with that local version, without asking or waiting.
+  If it reports `fallback=none action=stop`, report that no usable local installation
+  exists and stop. Do not claim the local version is current or retry this invocation.
 
 `--check-skill` remains read-only. Skill self-updates do not authorize
 provider CLI updates, login flows, Notion configuration changes or task dispatch.

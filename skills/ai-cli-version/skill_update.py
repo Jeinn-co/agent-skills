@@ -33,6 +33,17 @@ def _download(url, timeout):
     return body
 
 
+def _required_files(name):
+    files = ['skill_update.py', 'skill_runtime.py']
+    files += (['scripts/check_update.py', 'scripts/sync_roles.py', 'references/source.json',
+               'data/gemini-models.json'] if name == 's-agent' else
+              ['run.py', 'html_report.py', 'report_i18n.py', 'templates/report.html',
+               'assets/report.js', 'locales/en.json', 'locales/common/en.json'])
+    if name == 'ai-usage':
+        files.append('portable.py')
+    return files
+
+
 def _install(name, folder, latest, timeout):
     if (folder.parent.parent / '.git').exists():
         raise ValueError('development checkout; update the repository instead')
@@ -67,14 +78,7 @@ def _install(name, folder, latest, timeout):
         current = skill_version(stage)
         if _version(current) < _version(latest):
             raise ValueError('downloaded skill is older than the published version')
-        required = ['skill_update.py', 'skill_runtime.py']
-        required += (['scripts/check_update.py', 'scripts/sync_roles.py', 'references/source.json',
-                      'data/gemini-models.json'] if name == 's-agent' else
-                     ['run.py', 'html_report.py', 'report_i18n.py', 'templates/report.html',
-                      'assets/report.js', 'locales/en.json', 'locales/common/en.json'])
-        if name == 'ai-usage':
-            required.append('portable.py')
-        if any(not (stage / file).is_file() for file in required):
+        if any(not (stage / file).is_file() for file in _required_files(name)):
             raise ValueError('downloaded skill is incomplete')
         if _version(current) < _version(skill_version(folder)):
             raise ValueError('installation changed during download; keeping its newer version')
@@ -114,4 +118,12 @@ def check_skill_update(name, folder, *, apply=False, timeout=10):
             status = 'updated'
         return f'skill installed={installed} latest={latest} status={status}'
     except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile) as error:
-        return f'skill {"update" if apply else "check"} failed ({error})'
+        message = f'skill {"update" if apply else "check"} failed ({error})'
+        try:
+            folder = Path(folder).resolve()
+            local = skill_version(folder)
+            if name in SKILLS and all((folder / file).is_file() for file in _required_files(name)):
+                return f'{message}; fallback=local installed={local} action=continue'
+        except (OSError, ValueError, TypeError):
+            pass
+        return f'{message}; fallback=none action=stop'
