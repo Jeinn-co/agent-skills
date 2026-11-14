@@ -22,7 +22,15 @@ The installer requires a compatible Node.js/npm; manual copying does not.
 
 Requirements: Codex, Claude Code or Antigravity with delegation tools, a connected Notion read
 tool or public-page web access, and **Python 3.11+** for schema validation/sync.
-No API key or user-specific path is bundled. Windows/Linux have not been tested.
+No API key or user-specific path is bundled.
+
+Platforms tested:
+
+| OS | Status |
+|---|---|
+| Windows 11 (10.0.26300) | 1.0.3 tested 2026-11-09 with Python 3.12.10: real `--apply` wrote Claude Code + Codex profiles. No live agent dispatch. |
+| macOS | Not recorded. |
+| Linux | Not tested. |
 
 ## Skill update check
 
@@ -133,8 +141,9 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # preview
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-Version 1.0.2: isolated sync unit tests cover strict validation, preservation,
-bootstrap, future model identifiers, idempotence and rollback. A Codex forward-test
+Version 1.0.3: isolated sync unit tests cover strict validation, preservation,
+bootstrap, future model identifiers, idempotence, rollback and Windows-safe file
+replacement (no rename while the temporary file is open). A Codex forward-test
 actually delegated a Python fixture fix and independently passed five regressions.
 That does not establish live Claude dispatch, every account's model access or
 cross-platform compatibility. Native configuration validation is not a live model

@@ -23,7 +23,14 @@ npx skills add Jeinn-co/agent-skills@s-agent
 
 需要：提供分派工具的 Codex／Claude Code、能讀取 Notion 的連接器或公開網頁工具，
 以及驗證／同步使用的 **Python 3.11+**。不包含 API key 或個人路徑。
-尚未測試 Windows／Linux。
+
+測試過的平台：
+
+| OS | 狀態 |
+|---|---|
+| Windows 11（10.0.26300） | 1.0.3，2026-11-09，Python 3.12.10：實際 `--apply` 寫入 Claude Code + Codex 角色檔。未實際派工。 |
+| macOS | 未記錄。 |
+| Linux | 尚未測試。 |
 
 ## Skill 新版檢查
 
@@ -118,8 +125,8 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # 預覽
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-版本 1.0.2：隔離單元測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、
-重複套用不寫入與失敗回復。Codex forward-test 曾真正分派修正 Python fixture，
+版本 1.0.3：隔離單元測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、
+重複套用不寫入、失敗回復，以及 Windows 安全的檔案替換（暫存檔關閉後才改名）。Codex forward-test 曾真正分派修正 Python fixture，
 並獨立通過五個回歸案例。這不等於 Claude 實際派工、所有帳號的模型權限或跨平台已驗證；
 原生設定驗證也不等於真的呼叫模型。
 
