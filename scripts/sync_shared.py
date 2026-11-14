@@ -18,7 +18,6 @@ def sync(compare_dir=None):
         target = ROOT / "skills" / name
         files = {
             "report_i18n.py": "report_i18n.py",
-            "skill_runtime.py": "skill_runtime.py",
             "report-language.js": "assets/report-language.js",
             "language-button.js": "assets/language-button.js",
             "globe.svg": "assets/globe.svg",
@@ -33,6 +32,9 @@ def sync(compare_dir=None):
             destination = target / destination
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / "shared" / source, destination)
+    for name in (*REPORTS, 's-agent'):
+        for resource in ('skill_runtime.py', 'skill_update.py'):
+            shutil.copyfile(ROOT / 'shared' / resource, ROOT / 'skills' / name / resource)
     for name in ("ai-usage", "s-agent"):
         target = ROOT / "skills" / name / "data/gemini-models.json"
         target.parent.mkdir(parents=True, exist_ok=True)

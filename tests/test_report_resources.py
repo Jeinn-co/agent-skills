@@ -78,6 +78,10 @@ class ReportResourcesTests(unittest.TestCase):
                 with self.subTest(skill=skill, resource=canonical):
                     self.assertEqual((ROOT / "shared" / canonical).read_bytes(),
                                      (ROOT / "skills" / skill / installed).read_bytes())
+        for skill in ('ai-usage', 'ai-cli-version', 's-agent'):
+            for helper in ('skill_runtime.py', 'skill_update.py'):
+                self.assertEqual((ROOT / 'shared' / helper).read_bytes(),
+                                 (ROOT / 'skills' / skill / helper).read_bytes())
         for skill in ("ai-usage", "s-agent"):
             self.assertEqual((ROOT / "shared/gemini-models.json").read_bytes(),
                              (ROOT / "skills" / skill / "data/gemini-models.json").read_bytes())

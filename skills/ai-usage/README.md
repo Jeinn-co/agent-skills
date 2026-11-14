@@ -52,7 +52,7 @@ must also be able to reach its own service over the internet. Quota probes use
 the provider CLIs or the optional browser adapter. Claude quota and reset grants
 use one authenticated GET to api.anthropic.com with existing CLI credentials. The benchmark helper
 also fetches public Artificial Analysis rows without credentials, and
-the update check reads this skill's published `SKILL.md` from `raw.githubusercontent.com`.
+the update check reads this skill's published `SKILL.md` from `raw.githubusercontent.com`, with skill archives downloaded from `codeload.github.com`.
 
 ### 4. Platform
 
@@ -97,8 +97,8 @@ or restart the agent so it reloads its skill list.
 
 ## Update
 
-Updates are not automatic. Installs made with `npx skills add` record their GitHub
-source, so users can update them in place after a release:
+Each invocation automatically updates the skill before continuing, including manual
+copies. Installer-managed copies can also be refreshed explicitly:
 
 ```bash
 npx skills update ai-usage -g -y    # global install
@@ -106,7 +106,7 @@ npx skills update ai-usage -p -y    # project install
 ```
 
 Open a new conversation or restart the agent after updating so it reloads the skill.
-A manually copied skill is not tracked; copy the directory again to update it.
+The invocation-time Python updater also supports manually copied skills; installer records are not required.
 
 ## Usage
 
@@ -179,11 +179,16 @@ on Windows 11; on Windows the server has no window. macOS is not yet tested.
 
 ### Skill updates
 
-Before each run the agent first compares this skill with the `SKILL.md` published on
-GitHub `main` (`run.py --check-skill`, one GET of `raw.githubusercontent.com`). When a
-newer version exists, it asks `y` / `n` before doing anything else; `y` runs
-`npx -y skills update -g ai-usage` and continues with the new version. When the skill is
-current or the lookup fails, it goes straight to the report.
+Before each invocation the agent runs `run.py --update-skill`. A newer version on
+GitHub `main` is downloaded and installed automatically, then the agent re-reads
+`SKILL.md` and continues the original request. No y/n prompt is shown for the skill.
+The shared Python updater replaces only this installed folder, including manual
+copies; Node/npm and installer records are not needed. It validates the downloaded
+bundle before replacement and restores the old copy if replacement fails. User
+settings outside the skill folder are preserved. Development checkouts are not
+replaced. An update failure is reported; the existing skill is used when usable.
+Use `run.py --check-skill` for a read-only check. Provider CLI updates and login
+flows retain their existing confirmation requirements.
 
 ### Choose which providers to report
 

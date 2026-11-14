@@ -8,7 +8,8 @@ they do not need this directory, a sibling skill, npm, a CDN or a build step.
 | Resource | Consumers |
 |---|---|
 | `report_i18n.py`, `report-language.js`, `language-button.js` | ai-usage, ai-cli-version |
-| `skill_runtime.py` | SKILL.md version loading and report server identity/ownership |
+| `skill_runtime.py` | all three skills: SKILL.md version loading; report server identity/ownership |
+| `skill_update.py` | all three skills: standalone, invocation-time automatic updates |
 | `report-toolbar.html`, `globe.svg`, `logos.json` | ai-usage, ai-cli-version |
 | `locales/en.json`, `locales/zh-TW.json` | common report controls |
 | `gemini-models.json` | ai-usage model facts and s-agent effort validation |
@@ -62,3 +63,9 @@ preserves a report-specific model spelling while `model` matches chart data name
 Product mark paths came from the existing report renderers, originally copied
 from ai-model-compare and LobeHub Icons (MIT). i18next's pinned source and license
 are recorded under `vendor/`.
+
+The shared updater downloads the public GitHub archive and stages only the requested
+skill. It rejects unsafe paths, links, oversized/incomplete bundles and older versions
+before replacing an installation. Replacement failures restore the previous folder;
+an unrecoverable restore leaves its sibling backup available. It never writes role,
+auth or provider settings outside the installed skill. Source checkouts are not updated.

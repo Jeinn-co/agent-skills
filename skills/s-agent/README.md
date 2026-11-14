@@ -32,21 +32,24 @@ Platforms tested:
 | macOS | Not recorded. |
 | Linux | Not tested. |
 
-## Skill update check
+## Automatic skill updates
 
-Every `/s-agent` invocation, including `-h`, first checks the published skill
-version on GitHub. A newer version offers `y` to update or `n` to skip before
-continuing the original request. The check never updates automatically; a failed
-check leaves the installed skill usable without claiming it is current.
-
-The checker uses Python's standard library, makes one public HTTPS request with
-a 10-second timeout and reads no credentials. For a direct check:
+Every `/s-agent` invocation, including `-h`, first runs:
 
 ```bash
-python3.11 scripts/check_update.py
+python3.11 scripts/check_update.py --apply
 ```
 
-Skill updates are separate from automatic Notion model/effort synchronization.
+A newer published version is downloaded and installed automatically, without a y/n
+prompt. The agent re-reads the updated `SKILL.md` and continues the original request.
+The shared Python updater replaces only this installed skill; installer-managed and
+manually copied folders work without Node/npm, install records or a sibling checkout.
+The bundle is validated before replacement; failed replacement restores the old copy.
+User settings outside the skill folder remain in place. Development checkouts are not
+replaced. A failed check/update is reported, then the installed version is used if usable.
+
+Omit `--apply` for a read-only check. No credentials are read. Skill self-updates
+are separate from Notion model/effort synchronization and do not launch subagents.
 
 ## Notion is configuration
 

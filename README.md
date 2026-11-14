@@ -17,7 +17,7 @@ npx skills add Jeinn-co/agent-skills@s-agent
 
 | Skill | What it does | Docs |
 |---|---|---|
-| [`ai-usage`](skills/ai-usage/) | One report for how much of your Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) subscription is left — percent used, when each window resets, what top-up you have, which model and effort each CLI is on now, and the CursorBench score, cost and CP of the model each CLI runs. `setup` picks which providers to report. Both skills first check GitHub for a newer version of themselves and ask before updating. | [README](skills/ai-usage/README.md) · [Traditional Chinese](skills/ai-usage/README.zh-TW.md) |
+| [`ai-usage`](skills/ai-usage/) | One report for how much of your Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) subscription is left — percent used, when each window resets, what top-up you have, which model and effort each CLI is on now, and the CursorBench score, cost and CP of the model each CLI runs. `setup` picks which providers to report. All three skills automatically install newer versions of themselves before continuing. | [README](skills/ai-usage/README.md) · [Traditional Chinese](skills/ai-usage/README.zh-TW.md) |
 | [`ai-cli-version`](skills/ai-cli-version/) | Whether your Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date — installed version and when you installed it, latest version and when it was released. When updates are available, choose `y` to update all or `Esc` to skip; `setup` picks which CLIs to check. Tested on Windows and macOS; Linux not yet tested. | [README](skills/ai-cli-version/README.md) · [Traditional Chinese](skills/ai-cli-version/README.zh-TW.md) |
 | [`s-agent`](skills/s-agent/) | Select subagents in Codex/Claude Code/Antigravity (Gemini); auto-sync changed Notion role settings, use local profiles when unchanged or offline, and show roles with `-h`. | [README](skills/s-agent/README.md) · [Traditional Chinese](skills/s-agent/README.zh-TW.md) |
 
@@ -67,8 +67,12 @@ restart the agent so it reloads its skill list.
 
 ## Update
 
-Updates are not automatic. Installs made with `npx skills add` record their GitHub
-source, so users can refresh them after a release:
+Each invocation automatically checks and installs a newer skill version, then continues
+the original request. This also works for manually copied skill folders without Node/npm
+or installer records. Settings outside the skill folder are preserved; a failed update
+keeps/restores the old installation. Development checkouts are not overwritten.
+
+Installer-managed copies can also be refreshed explicitly:
 
 ```bash
 npx skills update ai-usage -g -y          # global install
@@ -77,7 +81,7 @@ npx skills update ai-usage -p -y          # project install (same for ai-cli-ver
 ```
 
 Open a new conversation or restart the agent after updating so it reloads the skill.
-Manually copied skills are not tracked; copy the directory again to update them.
+Manual copies use the same invocation-time updater.
 
 ## Test
 

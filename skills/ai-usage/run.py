@@ -13,7 +13,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
-from skill_runtime import metadata_version, server_identity, server_owned_by
+from skill_runtime import server_identity, server_owned_by
+from skill_update import check_skill_update
 
 portable.stdout_utf8()
 
@@ -105,27 +106,15 @@ def set_providers(arg):
     return picked
 
 
-SKILL_URL = "https://raw.githubusercontent.com/Jeinn-co/agent-skills/main/skills/ai-usage/SKILL.md"
-
-
 def check_skill():
-    """Compare this skill with the SKILL.md published on GitHub main."""
-    def key(text):
-        return tuple(int(part) for part in re.findall(r"\d+", text)[:3])
-    try:
-        request = urllib.request.Request(SKILL_URL, headers={"User-Agent": "ai-usage"})
-        with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
-            text = response.read().decode("utf-8", errors="replace")
-        latest = metadata_version(text)
-    except Exception as exc:  # noqa: BLE001 -- the check must never block the report
-        return "skill check failed (%s)" % exc
-    status = "update available" if key(latest) > key(portable.VERSION) else "up to date"
-    return ("skill installed=%s latest=%s status=%s update_cmd=npx -y skills update -g ai-usage"
-            % (portable.VERSION, latest, status))
+    return check_skill_update('ai-usage', HERE, timeout=portable.CALL_TIMEOUT)
 
 
 if "--check-skill" in sys.argv:
     print(check_skill())
+    sys.exit(0)
+if "--update-skill" in sys.argv:
+    print(check_skill_update('ai-usage', HERE, apply=True, timeout=portable.CALL_TIMEOUT))
     sys.exit(0)
 if "--show-providers" in sys.argv:
     print("providers=" + ",".join(selected()))

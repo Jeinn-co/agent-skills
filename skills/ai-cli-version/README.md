@@ -91,7 +91,7 @@ npx skills update ai-cli-version -g -y    # global install
 npx skills update ai-cli-version -p -y    # project install
 ```
 
-A manually copied skill is not tracked; copy the directory again to update it.
+The invocation-time Python updater also supports manually copied skills; installer records are not required.
 
 ## Usage
 
@@ -214,11 +214,16 @@ and loads a short `SKILL.md`.
 
 ### Skill updates
 
-Before each run the agent first compares this skill with the `SKILL.md` published on
-GitHub `main` (`run.py --check-skill`, one GET of `raw.githubusercontent.com`). When a
-newer version exists, it asks `y` / `n` before doing anything else; `y` runs
-`npx -y skills update -g ai-cli-version` and continues with the new version. When the
-skill is current or the lookup fails, it goes straight to the check.
+Before each invocation the agent runs `run.py --update-skill`. A newer version on
+GitHub `main` is downloaded and installed automatically, then the agent re-reads
+`SKILL.md` and continues the original request. No y/n prompt is shown for the skill.
+The shared Python updater replaces only this installed folder, including manual
+copies; Node/npm and installer records are not needed. It validates the downloaded
+bundle before replacement and restores the old copy if replacement fails. User
+settings outside the skill folder are preserved. Development checkouts are not
+replaced. An update failure is reported; the existing skill is used when usable.
+Use `run.py --check-skill` for a read-only check. Provider CLI updates and login
+flows retain their existing confirmation requirements.
 
 ### Choose which CLIs to check
 

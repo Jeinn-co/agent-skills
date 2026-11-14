@@ -30,7 +30,8 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from skill_runtime import metadata_version, server_identity, server_owned_by, skill_version
+from skill_runtime import server_identity, server_owned_by, skill_version
+from skill_update import check_skill_update
 
 VERSION = skill_version(Path(__file__).resolve().parent)
 
@@ -348,23 +349,8 @@ def check_agy():
         print(f"agy\tcheck failed ({exc})")
 
 
-SKILL_URL = "https://raw.githubusercontent.com/Jeinn-co/agent-skills/main/skills/ai-cli-version/SKILL.md"
-
-
-def version_key(text):
-    return tuple(int(part) for part in re.findall(r"\d+", text)[:3])
-
-
 def check_skill():
-    """Compare this skill with the SKILL.md published on GitHub main."""
-    try:
-        latest = metadata_version(get_text(SKILL_URL))
-    except Exception as exc:  # noqa: BLE001 -- the check must never block the report
-        print(f"skill\tcheck failed ({exc})")
-        return
-    status = "update available" if version_key(latest) > version_key(VERSION) else "up to date"
-    print(f"skill\tinstalled={VERSION}\tlatest={latest}\tstatus={status}"
-          "\tupdate_cmd=npx -y skills update -g ai-cli-version")
+    print(check_skill_update('ai-cli-version', Path(__file__).resolve().parent, timeout=TIMEOUT))
 
 
 CHECKS = {"claude": check_claude, "codex": check_codex, "grok": check_grok,
@@ -905,6 +891,10 @@ def main():
         return
     if "--check-skill" in sys.argv:
         check_skill()
+        return
+    if "--update-skill" in sys.argv:
+        print(check_skill_update('ai-cli-version', Path(__file__).resolve().parent,
+                                 apply=True, timeout=TIMEOUT))
         return
     if "--show-tools" in sys.argv:
         print("tools=" + ",".join(selected_tools()))

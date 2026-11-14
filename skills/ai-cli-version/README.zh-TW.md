@@ -84,7 +84,7 @@ npx skills update ai-cli-version -g -y    # global 安裝
 npx skills update ai-cli-version -p -y    # project 安裝
 ```
 
-手動複製的 skill 不會被追蹤；需要再次複製目錄才能更新。
+呼叫時的 Python 更新器也支援手動複製的 skill，不需要安裝紀錄。
 
 ## 使用
 
@@ -182,9 +182,12 @@ Markdown，agent 會直接在對話框裡顯示同一張表，不開網頁。
 
 ### Skill 更新
 
-每次執行前，agent 會先比對 GitHub `main` 上發佈的 `SKILL.md`（`run.py --check-skill`，
-一次 `raw.githubusercontent.com` 請求）。有新版時，會先問 `y` / `n` 才做其他事；按 `y` 會執行
-`npx -y skills update -g ai-cli-version`，再用新版繼續。已是最新或查不到時，直接開始檢查。
+每次呼叫時，agent 先執行 `run.py --update-skill`。GitHub `main` 有新版就自動下載
+並安裝，再重新讀取 `SKILL.md`、繼續原本工作；skill 更新不再詢問 y/n。
+共用 Python 更新器只替換目前的安裝目錄，手動複製的副本也適用，不需要 Node/npm
+或安裝紀錄。下載內容先驗證完整性，替換失敗會還原舊副本；skill 目錄外的使用者
+設定不會改動，開發用 checkout 不會被覆寫。失敗時回報原因，舊版仍可用就繼續。
+只查不更新可執行 `run.py --check-skill`。Provider CLI 更新與登入仍依原本流程確認。
 
 ### 設定要檢查哪些 CLI
 

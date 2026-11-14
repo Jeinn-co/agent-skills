@@ -19,7 +19,7 @@ npx skills add Jeinn-co/agent-skills@s-agent
 
 | Skill | 做什麼 | 說明文件 |
 |---|---|---|
-| [`ai-usage`](skills/ai-usage/) | 一份報表看完 Claude、ChatGPT、Grok、Muse、Gemini（Antigravity CLI）五邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、還有多少加購額度，以及每個 CLI 目前的 model 與 effort、以及那個 model 在 CursorBench 的分數、成本與 CP。`setup` 可挑要報告哪些 provider。兩個 skill 執行前都會先檢查自己有沒有新版，有就先問要不要更新。 | [English](skills/ai-usage/README.md) · [中文](skills/ai-usage/README.zh-TW.md) |
+| [`ai-usage`](skills/ai-usage/) | 一份報表看完 Claude、ChatGPT、Grok、Muse、Gemini（Antigravity CLI）五邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、還有多少加購額度，以及每個 CLI 目前的 model 與 effort、以及那個 model 在 CursorBench 的分數、成本與 CP。`setup` 可挑要報告哪些 provider。三個 skill 每次呼叫都會自動安裝自己的新版，再繼續原本工作。 | [English](skills/ai-usage/README.md) · [中文](skills/ai-usage/README.zh-TW.md) |
 | [`ai-cli-version`](skills/ai-cli-version/) | 你的 Claude Code、Codex、Grok Build、Muse Code、Antigravity（Gemini）CLI 是不是最新版 —— 目前版本和安裝時間、最新版本和發佈時間。有更新時，可選 `y` 全部更新或 `Esc` 跳過；`setup` 可挑要檢查哪些 CLI。目前已在 Windows 與 macOS 測試，Linux 尚未測試。 | [English](skills/ai-cli-version/README.md) · [中文](skills/ai-cli-version/README.zh-TW.md) |
 | [`s-agent`](skills/s-agent/) | 在 Codex／Claude Code／Antigravity（Gemini）自動選角；Notion 有變更就自動同步，沒變或離線就用本機，`-h` 顯示角色。 | [English](skills/s-agent/README.md) · [中文](skills/s-agent/README.zh-TW.md) |
 
@@ -66,7 +66,11 @@ npx skills add Jeinn-co/agent-skills                    # 裝整個 repo
 
 ## 更新
 
-更新不會自動發生。透過 `npx skills add` 安裝時會記錄 GitHub 來源，發布新版後可執行：
+每次呼叫會自動檢查並安裝新版 skill，再繼續原本工作。手動複製的副本也適用，
+不需要 Node/npm 或安裝紀錄。Skill 目錄外的使用者設定保留；失敗時保留或還原舊版，
+開發用 checkout 不會被覆寫。
+
+透過安裝器管理的副本，也可明確執行：
 
 ```bash
 npx skills update ai-usage -g -y          # global 安裝
@@ -74,8 +78,8 @@ npx skills update ai-cli-version -g -y    # global 安裝
 npx skills update ai-usage -p -y          # project 安裝（ai-cli-version 同理）
 ```
 
-更新後請開新對話或重新啟動 agent，讓它重新載入 skill。手動複製的 skill 不會被追蹤；
-需要再次複製目錄才能更新。
+透過安裝器更新後請開新對話或重新啟動 agent，讓它重新載入 skill。手動複製的副本
+則使用相同的呼叫時自動更新流程。
 
 ## 測試
 

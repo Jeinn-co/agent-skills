@@ -1,39 +1,40 @@
 ---
 name: ai-usage
-description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, banked reset counts and expiry dates for Claude and ChatGPT, the model / effort of each CLI's newest session, and that model's Artificial Analysis score, cost and CP. `setup` chooses which providers to report. It first checks GitHub for a newer version of itself and asks y/n before updating. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
+description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, banked reset counts and expiry dates for Claude and ChatGPT, the model / effort of each CLI's newest session, and that model's Artificial Analysis score, cost and CP. `setup` chooses which providers to report. It automatically updates itself from GitHub before continuing. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 metadata:
   author: Jeinn
-  version: "1.27.7"
+  version: "1.28.0"
 ---
 
 
 # /ai-usage — unified AI usage report
 
-Requirements: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. The update check reads raw.githubusercontent.com.
+Requirements: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. Skill updates read raw.githubusercontent.com and codeload.github.com.
 
 Launcher, from this skill's directory: `./run.sh` on macOS or Linux; `py -3 run.py` on
-Windows (`python run.py` if `py` is missing). Never install anything or start a login
-flow automatically. When browser tools are available, read Claude's already signed-in
+Windows (`python run.py` if `py` is missing). Apart from the skill self-update below,
+never install provider CLIs or start a login flow automatically. When browser tools are available, read Claude's already signed-in
 browser as described below; do not extract cookies or make HTTP calls of your own. Report only what the
 launcher prints; never fill a number from memory or an earlier run.
 
-## Step 0 — update check
+## Step 0 — automatic skill update
 
-Run the launcher with `--check-skill`. It prints one line,
-`skill installed=… latest=… status=… update_cmd=…` or `skill check failed (...)`.
+Before every invocation, including setup, run the launcher with `--update-skill`.
+The shared Python updater compares this installed `SKILL.md` with GitHub `main`.
+When a newer version exists, download and replace only this installed skill without
+asking for confirmation. This works for installer-managed and manually copied skill
+folders; npm, an install record and a sibling repository are not required. Settings
+outside the skill folder remain in place. Source checkouts are not overwritten.
 
-- `up to date` or `check failed`: say nothing and continue.
-- `update available`: print only
+- `up to date`: continue with the original request.
+- `updated`: report the new version in one line, re-read this installed `SKILL.md`
+  and continue with the original request using the new code. Do not repeat Step 0.
+- `check failed` or `update failed`: report the reason without claiming the skill is
+  current. Continue with the installed version only if it remains usable; otherwise
+  stop and report the missing installation. Do not retry during the same invocation.
 
-  ```
-  ai-usage skill {installed} → {latest} is available.
-  Update the skill now?
-  [y] Update    [n] Skip
-  ```
-
-  and stop. On exact `y`/`Y` run `update_cmd`, report it in one line, re-read this
-  `SKILL.md` from disk and continue with the user's request. On `n`/`N` say it was not
-  updated and continue. Any other reply: repeat the two choices.
+`--check-skill` remains read-only. Skill self-updates do not authorize
+provider CLI updates, login flows, Notion configuration changes or task dispatch.
 
 `setup` (`/ai-usage setup`, `/uu setup`): read `references/setup.md` and follow it; do
 not run the report.

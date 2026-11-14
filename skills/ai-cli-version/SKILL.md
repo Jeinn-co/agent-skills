@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. `setup` chooses which CLIs to check. It first checks GitHub for a newer version of itself and asks y/n before updating. Use when the user runs /ai-cli-version or /check-uu (with or without `setup`), or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
-compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
+description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. `setup` chooses which CLIs to check. It automatically updates itself from GitHub before continuing. Use when the user runs /ai-cli-version or /check-uu (with or without `setup`), or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
+compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, codeload.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.16.4"
+  version: "1.17.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -15,26 +15,27 @@ The launcher is check-only. During the check, never run `claude update`, `codex 
 or `grok update` without `--check`, never set `MUSE_SYNC_UPDATE=1`, and never fill a
 version or time from memory.
 
-## Step 0 — update check
+## Step 0 — automatic skill update
 
-Run the launcher with `--check-skill`. It prints one line,
-`skill installed=… latest=… status=… update_cmd=…` or `skill check failed (...)`.
+Before every invocation, including setup, run the launcher with `--update-skill`.
+The shared Python updater compares this installed `SKILL.md` with GitHub `main`.
+When a newer version exists, download and replace only this installed skill without
+asking for confirmation. This works for installer-managed and manually copied skill
+folders; npm, an install record and a sibling repository are not required. Settings
+outside the skill folder remain in place. Source checkouts are not overwritten.
 
-- `up to date` or `check failed`: say nothing and continue.
-- `update available`: print only
+- `up to date`: continue with the original request.
+- `updated`: report the new version in one line, re-read this installed `SKILL.md`
+  and continue with the original request using the new code. Do not repeat Step 0.
+- `check failed` or `update failed`: report the reason without claiming the skill is
+  current. Continue with the installed version only if it remains usable; otherwise
+  stop and report the missing installation. Do not retry during the same invocation.
 
-  ```
-  ai-cli-version skill {installed} → {latest} is available.
-  Update the skill now?
-  [y] Update    [n] Skip
-  ```
-
-  and stop. On exact `y`/`Y` run `update_cmd`, report it in one line, re-read this
-  `SKILL.md` from disk and continue with the user's request. On `n`/`N` say it was not
-  updated and continue. Any other reply: repeat the two choices.
+`--check-skill` remains read-only. Skill self-updates do not authorize
+provider CLI updates, login flows, Notion configuration changes or task dispatch.
 
 `setup` (`/ai-cli-version setup`, `/check-uu setup`): read `references/setup.md` and
-follow it; do not run the check or any updater.
+follow it after Step 0; do not check or update provider CLIs during setup.
 
 ## Report
 

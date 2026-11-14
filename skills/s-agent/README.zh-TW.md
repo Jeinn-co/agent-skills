@@ -32,20 +32,22 @@ npx skills add Jeinn-co/agent-skills@s-agent
 | macOS | 未記錄。 |
 | Linux | 尚未測試。 |
 
-## Skill 新版檢查
+## Skill 自動更新
 
-每次 `/s-agent`（含 `-h`）先向 GitHub 查詢已發布的 skill 版本。
-有新版時，選 `y` 更新或 `n` 跳過，再繼續原本請求。不會自動安裝更新；
-查詢失敗仍可使用已安裝的 skill，但不宣稱已是最新版。
-
-檢查程式只用 Python 標準函式庫，發送一次公開 HTTPS 請求，10 秒逾時，
-不讀取憑證。也可直接執行：
+每次 `/s-agent`（含 `-h`）先執行：
 
 ```bash
-python3.11 scripts/check_update.py
+python3.11 scripts/check_update.py --apply
 ```
 
-Skill 新版檢查與 Notion 的 model／effort 自動同步是兩件事。
+有新版就自動下載安裝，不再詢問 y/n；agent 重新讀取更新後的 `SKILL.md`，再繼續原本工作。
+共用 Python 更新器只替換目前的 skill 安裝目錄，一般安裝和手動複製的副本都適用，
+不需要 Node/npm、安裝紀錄或同層 repo。下載內容先驗證完整性，替換失敗會還原舊副本；
+skill 目錄外的使用者設定保留，開發用 checkout 不會被覆寫。
+檢查或更新失敗會回報原因，已安裝版本仍可用就繼續。
+
+省略 `--apply` 可只查不更新，不讀取任何憑證。Skill 自動更新與 Notion 的 model／effort
+同步分開，也不會因此啟動 subagent。
 
 ## Notion 就是設定
 
