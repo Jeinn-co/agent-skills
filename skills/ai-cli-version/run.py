@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from skill_runtime import server_identity, server_owned_by
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.16.1"
+VERSION = "1.16.2"
 
 # Seconds per check. The chat report keeps 20; the browser page, which shows each tool
 # as soon as it answers, passes a longer one to its probes in AI_CLI_VERSION_TIMEOUT.
