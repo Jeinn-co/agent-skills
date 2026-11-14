@@ -61,29 +61,23 @@ macOS、Linux、Windows 都支援 —— 但請看[限制與已知問題](#限�
 
 ## 安裝
 
-用 `npx` 安裝需要 Node.js 與 npm。這個版本發布時，`skills` CLI 1.5.26 宣告需要
-Node.js 22.20 以上：
+安裝器需要 Node.js 22.20+ 與 npm；skill 與自動更新器執行時只需要 Python。
+一次安裝給三個工具：
 
 ```bash
-node --version
-npx --version
+npx skills add Jeinn-co/agent-skills -g --skill ai-usage -a codex claude-code antigravity-cli -y
 ```
 
-如果環境不符合，請改用下方的手動複製方式；skill 執行時不需要 Node.js。
+`-a` 只保留你使用的工具，需要 Grok 時加入 `grok`；不加 `-g` 則安裝到目前專案。
+預設共用模式將一份實體檔案放在 `~/.agents/skills/`，再接到各工具入口。
+Codex 直接讀取；Claude Code 使用 `~/.claude/skills/`（或 `$CLAUDE_CONFIG_DIR/skills/`），
+Antigravity CLI 使用 `~/.gemini/config/skills/`，不需要發布者本機的連結。
+無法建立共用連結時可用 `--copy`，每份副本仍包含完整資源。
 
-```bash
-npx skills add Jeinn-co/agent-skills@ai-usage     # 只裝這一個 skill
-npx skills add Jeinn-co/agent-skills              # 裝整個 repo
-```
-
-或是直接把 skill 目錄複製到你的 agent skills 資料夾 —— `~/.claude/skills/`、
-`~/.codex/skills/`、`~/.grok/skills/`。
-
-Windows 上請用複製，不要用連結；真的要連結就用 junction（`mklink /J`），它不需要提升
-權限。**絕對不要把 symlink commit 進這個 repo** —— Git for Windows 會把它 checkout 成
-一個內容是路徑字串的純文字檔，skill 會無聲無息地失效。
-
-如果安裝後沒有立刻看到 `/ai-usage`，請開新對話或重新啟動 agent，讓它重新載入 skill 清單。
+沒有 Node/npm 時，請複製整個 skill 目錄，保留腳本、assets、locales、data 與 references。
+不要將本機 symlink 提交到 repo。macOS/Linux 的報表啟動檔若遺失可執行權限，
+可用 `sh run.sh`。執行時使用你自己的工具與帳號；缺少先決條件會明確回報，
+不會借用發布者的設定。若沒有出現 skill，請開新對話或重新啟動工具。
 
 ## 更新
 

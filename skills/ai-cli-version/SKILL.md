@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, codeload.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.17.3"
+  version: "1.17.4"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -15,9 +15,21 @@ The launcher is check-only. During the check, never run `claude update`, `codex 
 or `grok update` without `--check`, never set `MUSE_SYNC_UPDATE=1`, and never fill a
 version or time from memory.
 
+## Installation and first use
+
+Resolve all bundled resources relative to this installed skill, and user files
+relative to this user's home/config directories. Do not require the publisher's
+checkout, credentials or aliases. Report missing Python/tools explicitly; version
+checks do not require provider sign-in. Continue with available tools instead of
+inventing version data.
+
 ## Step 0 — automatic skill update
 
-Before every invocation, including setup, run the launcher with `--update-skill`.
+Before every invocation, including setup, resolve `<skill-dir>` from the installed
+`SKILL.md` you are reading. From the task workspace, run Python 3.9+ on the absolute
+entry point: `python3 "<skill-dir>/run.py" --update-skill` (`py -3` on Windows).
+Keep the working directory outside `<skill-dir>` while updating so the installed
+folder can be replaced, including on Windows.
 The shared Python updater compares this installed `SKILL.md` with GitHub `main`.
 When a newer version exists, download and replace only this installed skill without
 asking for confirmation. This works for installer-managed and manually copied skill

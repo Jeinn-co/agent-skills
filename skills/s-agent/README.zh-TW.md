@@ -14,12 +14,22 @@ Codex 使用 `$s-agent`，參數相同。
 
 ## 安裝
 
+安裝器需要 Node.js 22.20+ 與 npm；skill 與自動更新器執行時只需要 Python。
+一次安裝給三個工具：
+
 ```bash
-npx skills add Jeinn-co/agent-skills@s-agent
+npx skills add Jeinn-co/agent-skills -g --skill s-agent -a codex claude-code antigravity-cli -y
 ```
 
-也可把整個目錄複製到 `~/.codex/skills/s-agent/` 或 `~/.claude/skills/s-agent/`。
-沒有出現時開新對話。安裝器需要相容的 Node.js/npm；手動複製不需要。
+`-a` 只保留你使用且受支援的工具；不加 `-g` 則安裝到目前專案。
+預設共用模式將一份實體檔案放在 `~/.agents/skills/`，再接到各工具入口。
+Codex 直接讀取；Claude Code 使用 `~/.claude/skills/`（或 `$CLAUDE_CONFIG_DIR/skills/`），
+Antigravity CLI 使用 `~/.gemini/config/skills/`，不需要發布者本機的連結。
+無法建立共用連結時可用 `--copy`，每份副本仍包含完整資源。
+
+沒有 Node/npm 時，請複製整個 skill 目錄，保留腳本、assets、locales、data 與 references。
+不要將本機 symlink 提交到 repo。執行時使用你自己的工具與帳號；缺少先決條件會明確回報，
+不會借用發布者的設定。若沒有出現 skill，請開新對話或重新啟動工具。
 
 需要：提供分派工具的 Codex／Claude Code、能讀取 Notion 的連接器或公開網頁工具，
 以及驗證／同步使用的 **Python 3.11+**。不包含 API key 或個人路徑。
@@ -34,10 +44,11 @@ npx skills add Jeinn-co/agent-skills@s-agent
 
 ## Skill 自動更新
 
-每次 `/s-agent`（含 `-h`）先執行：
+每次 `/s-agent`（含 `-h`）先解析已安裝的 skill 路徑，從工作目錄執行，
+不要把目前目錄切進即將替換的 skill 安裝資料夾：
 
 ```bash
-python3.11 scripts/check_update.py --apply
+python3.11 "<skill-dir>/scripts/check_update.py" --apply
 ```
 
 有新版就自動下載安裝，不再詢問 y/n；agent 重新讀取更新後的 `SKILL.md`，再繼續原本工作。

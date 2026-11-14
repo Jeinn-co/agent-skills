@@ -4,9 +4,7 @@ Agent skills for Claude Code, Codex CLI, Grok Build, and anything else that read
 `SKILL.md` convention. Supported hosts and prerequisites vary by skill.
 
 ```bash
-npx skills add Jeinn-co/agent-skills@ai-usage
-npx skills add Jeinn-co/agent-skills@ai-cli-version
-npx skills add Jeinn-co/agent-skills@s-agent
+npx skills add Jeinn-co/agent-skills -g --skill '*' -a codex claude-code antigravity-cli -y
 ```
 
 [Browse on skills.sh](https://skills.sh/jeinn-co/agent-skills) · [Traditional Chinese](README.zh-TW.md)
@@ -49,21 +47,32 @@ The current `skills` CLI declares Node.js 22.20 or newer. If that is not availab
 use the manual-copy method below; the skill itself does not require Node.js at runtime.
 
 ```bash
-npx skills add Jeinn-co/agent-skills@ai-usage           # one skill
-npx skills add Jeinn-co/agent-skills@ai-cli-version     # one skill
-npx skills add Jeinn-co/agent-skills@s-agent            # delegation
-npx skills add Jeinn-co/agent-skills                    # everything in the repo
+npx skills add Jeinn-co/agent-skills -g --skill '*' -a codex claude-code antigravity-cli -y
 ```
 
-Or copy a skill directory into your agent's skills folder — `~/.claude/skills/`,
-`~/.codex/skills/`, `~/.grok/skills/`.
+This installs all three public skills for Codex, Claude Code and Antigravity CLI.
+Use only the agents you have. The two report skills also support `grok`; S-Agent
+supports the three hosts shown above. To install just one skill, replace
+`--skill '*'` with its name. Omit `-g` for a project-scoped install.
 
-**Read the skill's own README before installing** — each one lists what must already be
-on your machine. Installing copies only that skill's directory, so its README travels
-with it and this page does not.
+The installer stores real skill files in `~/.agents/skills/` and connects the
+selected agents to those files. Codex reads that directory directly; Claude Code
+uses `~/.claude/skills/`, and Antigravity uses `~/.gemini/config/skills/`.
+Keep the default shared/symlink mode. `--copy` creates separate copies when links
+are unavailable; each copy still contains everything needed to run and update.
+No link to the publisher's development checkout is needed.
 
-If a newly installed skill is not visible immediately, start a new conversation or
-restart the agent so it reloads its skill list.
+Without Node/npm, copy an entire `skills/<name>/` folder into the host's skill
+folder. Include its scripts, assets, locales, data and references; copying only
+`SKILL.md` is insufficient. Invoke `/ai-usage`, `/ai-cli-version` or `/s-agent`
+(`$ai-usage`, `$ai-cli-version`, `$s-agent` in Codex). Personal aliases such as
+`uu` and `check-uu` are optional and are not prerequisites.
+
+On a new machine, use that machine's Python, installed tools and signed-in
+accounts. Reports mark missing providers unavailable; S-Agent fetches its selected
+Notion configuration and creates missing role profiles after validating support.
+Nothing requires the publisher's credentials, role files or local configuration.
+If a skill does not appear after installation, start a new session/restart the host.
 
 ## Update
 

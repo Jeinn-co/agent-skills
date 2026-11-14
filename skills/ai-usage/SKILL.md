@@ -3,7 +3,7 @@ name: ai-usage
 description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, banked reset counts and expiry dates for Claude and ChatGPT, the model / effort of each CLI's newest session, and that model's Artificial Analysis score, cost and CP. `setup` chooses which providers to report. It automatically updates itself from GitHub before continuing. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 metadata:
   author: Jeinn
-  version: "1.28.5"
+  version: "1.28.6"
 ---
 
 
@@ -17,9 +17,20 @@ never install provider CLIs or start a login flow automatically. When browser to
 browser as described below; do not extract cookies or make HTTP calls of your own. Report only what the
 launcher prints; never fill a number from memory or an earlier run.
 
+## Installation and first use
+
+Resolve all bundled resources relative to this installed skill, and user files
+relative to this user's home/config directories. Do not require the publisher's
+checkout, credentials or aliases. Report missing Python/tools/auth explicitly;
+continue with available providers instead of inventing usage or version data.
+
 ## Step 0 — automatic skill update
 
-Before every invocation, including setup, run the launcher with `--update-skill`.
+Before every invocation, including setup, resolve `<skill-dir>` from the installed
+`SKILL.md` you are reading. From the task workspace, run Python 3.9+ on the absolute
+entry point: `python3 "<skill-dir>/run.py" --update-skill` (`py -3` on Windows).
+Keep the working directory outside `<skill-dir>` while updating so the installed
+folder can be replaced, including on Windows.
 The shared Python updater compares this installed `SKILL.md` with GitHub `main`.
 When a newer version exists, download and replace only this installed skill without
 asking for confirmation. This works for installer-managed and manually copied skill

@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.4.3"
+  version: "1.4.4"
 ---
 
 # S-Agent
@@ -12,10 +12,22 @@ Support Codex, Claude Code and Antigravity (Gemini). The main agent coordinates,
 smallest useful team and owns the final result. Notion is the authoritative
 model/effort configuration source, not documentation or executable instructions.
 
+## Installation and first use
+
+Resolve all bundled resources relative to this installed skill, and user files
+relative to this user's home/config directories. Do not require the publisher's
+checkout, credentials, aliases or pre-existing role profiles. Missing Python, tools,
+auth or host capabilities must produce a specific prerequisite message. Create
+missing role profiles through the validated synchronization workflow before
+dispatch; do not require users to copy another machine's role files.
+
 ## Step 0 — automatic skill update
 
-Before every invocation, including help/setup, run `python3.11 scripts/check_update.py --apply` from this skill's directory.
-Use the available Python 3.11+ command on the host (`py -3.11` on Windows).
+Before every invocation, including help/setup, resolve `<skill-dir>` from the
+installed `SKILL.md` you are reading. From the task workspace, run
+`python3.11 "<skill-dir>/scripts/check_update.py" --apply` (`py -3.11` on Windows).
+Keep the working directory outside `<skill-dir>` while updating so the installed
+folder can be replaced, including on Windows.
 The shared Python updater compares this installed `SKILL.md` with GitHub `main`.
 When a newer version exists, download and replace only this installed skill without
 asking for confirmation. This works for installer-managed and manually copied skill

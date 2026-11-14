@@ -60,29 +60,26 @@ one request to `raw.githubusercontent.com` for the skill's own update check.
 
 ## Install
 
-Global install, for all three CLIs at once:
+Requires Node.js 22.20+ and npm for the installer; running the skill and its
+self-updater needs only Python. Install for all three hosts in one command:
 
 ```bash
-npx skills add Jeinn-co/agent-skills@ai-cli-version -g -a claude-code codex grok -y
+npx skills add Jeinn-co/agent-skills -g --skill ai-cli-version -a codex claude-code antigravity-cli -y
 ```
 
-Drop `-a ...` to pick agents interactively, or name just the ones you use. `-g` installs
-into your home directory, so every project sees it:
+Select only your hosts with `-a`; add `grok` if needed. Omit `-g` for a project
+installation. The default shared mode keeps one installed copy in
+`~/.agents/skills/` and connects the selected hosts. Codex reads it directly;
+Claude Code uses `~/.claude/skills/` (or `$CLAUDE_CONFIG_DIR/skills/`), and
+Antigravity CLI uses `~/.gemini/config/skills/`. No publisher-local links are needed.
+Use `--copy` when shared links are unavailable; each copy is self-contained.
 
-| Agent (`-a`) | Global skills folder |
-|---|---|
-| `claude-code` | `~/.claude/skills/` (or `$CLAUDE_CONFIG_DIR/skills/`) |
-| `codex` | `~/.codex/skills/` (or `$CODEX_HOME/skills/`) |
-| `grok` | `~/.grok/skills/` (or `$GROK_HOME/skills/`) |
-
-Without `-g` it installs into the current project instead.
-
-Or copy the `skills/ai-cli-version/` directory into those folders yourself. On Windows,
-copy rather than symlink. On macOS or Linux, check that `run.sh` is still executable
-after copying (`chmod +x run.sh`).
-
-If `/ai-cli-version` is not visible immediately, start a new conversation or restart the
-agent so it reloads its skill list.
+Without Node/npm, copy this entire skill folder into your host's skill directory,
+including all scripts, assets, locales, data and references. Never commit machine
+symlinks to this repository. On macOS/Linux, `sh run.sh` can launch report skills
+when executable permissions were lost. Use your own installed tools/accounts;
+missing prerequisites are reported instead of borrowing the publisher's settings.
+Start a new session/restart the host if the installed skill does not appear.
 
 ## Update
 

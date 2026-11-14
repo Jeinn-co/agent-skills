@@ -6,9 +6,7 @@
 skills。各 skill 支援的 host 與先決條件不同。
 
 ```bash
-npx skills add Jeinn-co/agent-skills@ai-usage
-npx skills add Jeinn-co/agent-skills@ai-cli-version
-npx skills add Jeinn-co/agent-skills@s-agent
+npx skills add Jeinn-co/agent-skills -g --skill '*' -a codex claude-code antigravity-cli -y
 ```
 
 [在 skills.sh 上瀏覽](https://skills.sh/jeinn-co/agent-skills) · English: [README.md](README.md)
@@ -50,19 +48,28 @@ npx --version
 手動複製方式；skill 執行時本身不需要 Node.js。
 
 ```bash
-npx skills add Jeinn-co/agent-skills@ai-usage           # 只裝一個 skill
-npx skills add Jeinn-co/agent-skills@ai-cli-version     # 只裝一個 skill
-npx skills add Jeinn-co/agent-skills@s-agent            # 自動選角與分派
-npx skills add Jeinn-co/agent-skills                    # 裝整個 repo
+npx skills add Jeinn-co/agent-skills -g --skill '*' -a codex claude-code antigravity-cli -y
 ```
 
-或是直接把 skill 目錄複製到你的 agent skills 資料夾 —— `~/.claude/skills/`、
-`~/.codex/skills/`、`~/.grok/skills/`。
+這會把三個公開 skill 安裝給 Codex、Claude Code 與 Antigravity CLI。
+只保留你使用的 agent。兩個報表 skill 另支援 `grok`；S-Agent 支援上面列出的三個工具。
+只裝單一 skill 時，把 `--skill '*'` 換成名稱；不加 `-g` 則安裝到目前專案。
 
-**安裝前請先讀該 skill 自己的 README** —— 每個 skill 都列出了它需要你機器上先有什麼。
-安裝時只會複製該 skill 的目錄，所以它的 README 會跟著走，而這一頁不會。
+安裝器將實體檔案放在 `~/.agents/skills/`，再接到所選工具的入口。
+Codex 直接讀取共用目錄；Claude Code 使用 `~/.claude/skills/`，
+Antigravity 使用 `~/.gemini/config/skills/`。保留預設共用／symlink 模式；
+無法建立連結時可用 `--copy`，每份副本都包含執行與更新所需的內容。
+不需要連到發布者的開發 repo。
 
-如果剛安裝的 skill 沒有立刻出現，請開新對話或重新啟動 agent，讓它重新載入 skill 清單。
+沒有 Node/npm 時，可將完整的 `skills/<名稱>/` 複製到工具的技能目錄。
+腳本、assets、locales、data、references 都要保留，只複製 `SKILL.md` 不夠。
+使用 `/ai-usage`、`/ai-cli-version`、`/s-agent`；Codex 使用對應的 `$ai-usage`、
+`$ai-cli-version`、`$s-agent`。`uu`、`check-uu` 等個人別名不是安裝先決條件。
+
+換到新機器後，使用該機器的 Python、已安裝工具與已登入帳號。
+報表會將缺少的 provider 標示為不可用；S-Agent 會讀取選定的 Notion 設定，
+確認模型支援後建立缺少的角色檔，不需要複製發布者的憑證、角色檔或本機設定。
+若安裝後沒有出現 skill，請開新對話或重新啟動工具。
 
 ## 更新
 

@@ -12,13 +12,25 @@ In Codex, use `$s-agent` with the same arguments.
 
 ## Install
 
+Requires Node.js 22.20+ and npm for the installer; running the skill and its
+self-updater needs only Python. Install for all three hosts in one command:
+
 ```bash
-npx skills add Jeinn-co/agent-skills@s-agent
+npx skills add Jeinn-co/agent-skills -g --skill s-agent -a codex claude-code antigravity-cli -y
 ```
 
-Or copy this whole directory into `~/.codex/skills/s-agent/` or
-`~/.claude/skills/s-agent/`. Start a new session if the skill does not appear.
-The installer requires a compatible Node.js/npm; manual copying does not.
+Select only your supported hosts with `-a`. Omit `-g` for a project
+installation. The default shared mode keeps one installed copy in
+`~/.agents/skills/` and connects the selected hosts. Codex reads it directly;
+Claude Code uses `~/.claude/skills/` (or `$CLAUDE_CONFIG_DIR/skills/`), and
+Antigravity CLI uses `~/.gemini/config/skills/`. No publisher-local links are needed.
+Use `--copy` when shared links are unavailable; each copy is self-contained.
+
+Without Node/npm, copy this entire skill folder into your host's skill directory,
+including all scripts, assets, locales, data and references. Never commit machine
+symlinks to this repository. Use your own installed tools/accounts;
+missing prerequisites are reported instead of borrowing the publisher's settings.
+Start a new session/restart the host if the installed skill does not appear.
 
 Requirements: Codex, Claude Code or Antigravity with delegation tools, a connected Notion read
 tool or public-page web access, and **Python 3.11+** for schema validation/sync.
@@ -34,10 +46,11 @@ Platforms tested:
 
 ## Automatic skill updates
 
-Every `/s-agent` invocation, including `-h`, first runs:
+Every `/s-agent` invocation, including `-h`, first resolves the installed skill
+directory and runs from the task workspace, outside that installed directory:
 
 ```bash
-python3.11 scripts/check_update.py --apply
+python3.11 "<skill-dir>/scripts/check_update.py" --apply
 ```
 
 A newer published version is downloaded and installed automatically, without a y/n
