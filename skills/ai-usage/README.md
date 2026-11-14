@@ -42,8 +42,10 @@ opens a login browser automatically. Usage comes from authenticated CLIs or an
 optional browser observation. For Claude quota and reset grants, the skill reads an
 existing CLI access token from its environment, Keychain or credential file and sends
 it only to the official api.anthropic.com HTTPS endpoint; without one it falls back to
-`claude -p /usage`. It never refreshes, saves or prints tokens, and browser
-observations do not read browser cookies.
+`claude -p /usage`. When the token has expired, the CLI renews its own login during
+`claude -p /usage` and the skill then reads the OAuth usage once more (at most once).
+The skill never refreshes, saves or prints tokens, and browser observations do not
+read browser cookies.
 
 ### 3. Network and subprocess access
 

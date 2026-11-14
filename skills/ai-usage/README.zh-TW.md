@@ -38,7 +38,8 @@ Microsoft Store 的 stub，執行後會跳出商店頁面而不是跑程式。
 **五個不必裝滿。** 裝一個就有一列，其他印 `not installed`，不會因此壞掉。這個 skill
 不會自動開啟登入頁。用量由 CLI 或可選瀏覽器觀測取得。Claude 額度與 reset 查詢會從環境變數、
 Keychain 或 CLI 憑證檔讀取既有 access token，只送往官方 api.anthropic.com HTTPS 網域，
-沒有登入時改用 `claude -p /usage`；不自行更新、不另存、不輸出 token，瀏覽器觀測也不讀 cookies。
+沒有登入時改用 `claude -p /usage`。token 過期時，`claude -p /usage` 會由 CLI 自行更新登入，之後 skill 再讀一次 OAuth 用量（最多一次）。
+skill 不自行更新、不另存、不輸出 token，瀏覽器觀測也不讀 cookies。
 
 ### 3. 網路與 subprocess 權限
 
