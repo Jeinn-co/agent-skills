@@ -3,7 +3,7 @@ name: pp
 description: Bump the current project's version, integrate its release into main, and publish from main using the existing release workflow. Use when the user says pp, /pp, or asks to bump version and publish.
 metadata:
   author: local
-  version: "1.0.2"
+  version: "1.0.3"
 ---
 
 # Bump and publish
@@ -20,4 +20,4 @@ Publish from `main` only. Release changes and their version bump must be integra
 4. Commit the release changes, integrate them into `main`, and push `main`. Publish the resulting `main` commit using the existing workflow. If publication is simply a push to `main`, do not add other release artifacts. Never force-push. If publication fails, inspect the remote state before retrying; do not bump again merely to retry.
 5. Verify that the release commit is on remote `main` and that the actual publication destination serves the intended version. Report the version, commit, branch or package, and publication result. Report unavailable checks plainly.
 
-For `Jeinn-co/agent-skills`, inspect the changed skill's release history. `ai-usage` mirrors its version in `skills/ai-usage/SKILL.md` (`metadata.version`) and `skills/ai-usage/portable.py` (`VERSION`); its updater reads GitHub `main`. Follow that source publication workflow unless the repository has since added another one.
+For `Jeinn-co/agent-skills`, inspect the changed skill's release history. Each skill's sole version source is `skills/<name>/SKILL.md` (`metadata.version`); Python reads it at runtime. Bump only that field, never add or update a second version literal in Python. Updaters read GitHub `main`. Follow that source publication workflow unless the repository has since added another one.

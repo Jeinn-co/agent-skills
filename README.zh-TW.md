@@ -94,8 +94,8 @@ python3.11 -m unittest discover -v -s tests
   或使用者明確指定的語言翻譯報表；沒有這些資訊時用英文，不從先前對話猜語言。
 - **說明跟著 skill 走。** 使用者裝完之後會需要的內容，一律放在 `skills/<name>/` 裡面，
   不放在這裡。這一頁只是索引。
-- **版本靠手動維護。** `SKILL.md` frontmatter 裡有 `metadata.version`，skill 執行時也會
-  印出自己的版本，讓已安裝的副本能自報身分。這個值只供辨識：`npx skills` 會用來源與
+- **每個 skill 只有一個版本來源。** 升版只改 `SKILL.md` 的 `metadata.version`；
+  CLI 輸出、報表標頭與更新檢查都讀這個值。這個值只供辨識：`npx skills` 會用來源與
   內容 hash 追蹤它安裝的 skill；手動複製的版本則沒有更新紀錄。
 - **共用資源只有一個來源。** 修改 `shared/` 後執行
   `python3.11 scripts/sync_shared.py`，把分發到各 skill 的檔案一起提交。

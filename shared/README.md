@@ -8,7 +8,7 @@ they do not need this directory, a sibling skill, npm, a CDN or a build step.
 | Resource | Consumers |
 |---|---|
 | `report_i18n.py`, `report-language.js`, `language-button.js` | ai-usage, ai-cli-version |
-| `skill_runtime.py` | report server code/resource identity and ownership |
+| `skill_runtime.py` | SKILL.md version loading and report server identity/ownership |
 | `report-toolbar.html`, `globe.svg`, `logos.json` | ai-usage, ai-cli-version |
 | `locales/en.json`, `locales/zh-TW.json` | common report controls |
 | `gemini-models.json` | ai-usage model facts and s-agent effort validation |
@@ -25,6 +25,11 @@ resources. No translation resources are fetched when a report opens.
 Page templates live in each skill's `templates/report.html`. Its browser controller,
 toolbar styles and (for ai-usage) expiry timer live under `assets/`. Python owns
 provider parsing and HTML rendering; the launchers keep probe/server orchestration.
+
+Each skill's `SKILL.md` frontmatter `metadata.version` is its only release-version
+source. The report launchers and update checks read it through `skill_runtime.py`;
+Python does not carry a second version literal. ai-model-compare keeps its existing
+`package.json` version source.
 
 Server identities include a fingerprint of the installed Python and report resources.
 On the next launcher run, changed files replace an older server from that same skill

@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 SKILL = Path(__file__).resolve().parents[1] / "skills" / "ai-usage"
+sys.path.insert(0, str(SKILL))
 spec = importlib.util.spec_from_file_location("ai_usage_portable", SKILL / "portable.py")
 portable = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(portable)

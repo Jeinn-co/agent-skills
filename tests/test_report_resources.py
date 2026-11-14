@@ -2,6 +2,7 @@
 import importlib.util
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -19,6 +20,40 @@ runtime_spec.loader.exec_module(runtime)
 
 
 class ReportResourcesTests(unittest.TestCase):
+    def test_version_only_comes_from_skill_frontmatter_metadata(self):
+        self.assertEqual(runtime.metadata_version(
+            '---\r\nname: report\r\nmetadata:\r\n  author: Example\r\n  version: "9.8.7"\r\n---\r\n'), '9.8.7')
+        for text in (
+            '---\nname: report\n---\nmetadata:\n  version: "9.8.7"\n',
+            '---\nversion: "9.8.7"\n---\n',
+            '---\nother:\n  version: "9.8.7"\nmetadata:\n  author: Example\n---\n',
+            '---\nmetadata:\n  version: "next"\n---\n',
+        ):
+            with self.subTest(text=text), self.assertRaisesRegex(ValueError, 'metadata.version'):
+                runtime.metadata_version(text)
+
+    def test_changing_only_metadata_updates_cli_and_report_versions(self):
+        for skill, head in (("ai-usage", "run.head()"),
+                            ("ai-cli-version", "run.head_lines([])")):
+            with self.subTest(skill=skill), tempfile.TemporaryDirectory() as folder:
+                installed = Path(folder) / skill
+                shutil.copytree(ROOT / 'skills' / skill, installed,
+                                ignore=shutil.ignore_patterns('__pycache__'))
+                metadata = installed / 'SKILL.md'
+                metadata.write_text(re.sub(r'(^  version: )"[^"]+"', r'\g<1>"9.8.7"',
+                                           metadata.read_text(encoding='utf-8'), count=1, flags=re.M),
+                                    encoding='utf-8')
+                for args, expected in (
+                    (['run.py', '--version'], '9.8.7'),
+                    (['-c', 'import run,html_report; print(html_report.render(' + head + '))'],
+                     skill + ' 9.8.7'),
+                ):
+                    result = subprocess.run([sys.executable, *args], cwd=installed,
+                                            env={**os.environ, 'PYTHONPATH': ''}, text=True,
+                                            capture_output=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn(expected, result.stdout)
+
     def test_translation_fallback_and_literal_interpolation(self):
         catalog = resources.ReportI18n(ROOT / "skills/ai-usage", "test-language")
         catalog.resources["en"]["fixture"] = "{{value}} left"

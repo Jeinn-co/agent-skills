@@ -99,8 +99,8 @@ python3.11 -m unittest discover -v -s tests
   information, use English; do not infer a language from earlier conversation.
 - **Docs live with the skill.** Anything a user needs after installing goes inside
   `skills/<name>/`, not here. This page is an index.
-- **Versions are by hand.** `SKILL.md` frontmatter carries `metadata.version`; the skill
-  also prints its version so an installed copy can identify itself. The value is
+- **One version source per skill.** Bump only `metadata.version` in `SKILL.md`;
+  runtime output, report headers and update checks read that value. The value is
   informational: `npx skills` tracks its own installs by source and content hash, while
   manually copied skills have no update record.
 - **Shared resources have one source.** Edit `shared/`, then run

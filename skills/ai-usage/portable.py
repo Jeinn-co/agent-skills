@@ -14,9 +14,9 @@ Windows needs two things POSIX does not:
 Neither has any effect on macOS or Linux.
 """
 import atexit, datetime, json, os, shutil, signal, subprocess, sys, time
+from skill_runtime import skill_version
 
-# Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.27.6"
+VERSION = skill_version(os.path.dirname(os.path.realpath(__file__)))
 # Seconds per lookup. The chat report keeps 20; the browser page, which shows each
 # provider as soon as it answers, passes a longer one to its probes in AI_USAGE_TIMEOUT.
 CALL_TIMEOUT = float(os.environ.get("AI_USAGE_TIMEOUT") or 20)

@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
-from skill_runtime import server_identity, server_owned_by
+from skill_runtime import metadata_version, server_identity, server_owned_by
 
 portable.stdout_utf8()
 
@@ -116,10 +116,7 @@ def check_skill():
         request = urllib.request.Request(SKILL_URL, headers={"User-Agent": "ai-usage"})
         with urllib.request.urlopen(request, timeout=portable.CALL_TIMEOUT) as response:
             text = response.read().decode("utf-8", errors="replace")
-        found = re.search(r'^\s*version:\s*"([^"]+)"', text, re.M)
-        if not found:
-            raise RuntimeError("no version in the published SKILL.md")
-        latest = found.group(1)
+        latest = metadata_version(text)
     except Exception as exc:  # noqa: BLE001 -- the check must never block the report
         return "skill check failed (%s)" % exc
     status = "update available" if key(latest) > key(portable.VERSION) else "up to date"

@@ -30,10 +30,9 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from skill_runtime import server_identity, server_owned_by
+from skill_runtime import metadata_version, server_identity, server_owned_by, skill_version
 
-# Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
-VERSION = "1.16.3"
+VERSION = skill_version(Path(__file__).resolve().parent)
 
 # Seconds per check. The chat report keeps 20; the browser page, which shows each tool
 # as soon as it answers, passes a longer one to its probes in AI_CLI_VERSION_TIMEOUT.
@@ -359,10 +358,7 @@ def version_key(text):
 def check_skill():
     """Compare this skill with the SKILL.md published on GitHub main."""
     try:
-        found = re.search(r'^\s*version:\s*"([^"]+)"', get_text(SKILL_URL), re.M)
-        if not found:
-            raise RuntimeError("no version in the published SKILL.md")
-        latest = found.group(1)
+        latest = metadata_version(get_text(SKILL_URL))
     except Exception as exc:  # noqa: BLE001 -- the check must never block the report
         print(f"skill\tcheck failed ({exc})")
         return
