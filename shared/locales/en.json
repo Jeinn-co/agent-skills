@@ -1,0 +1,17 @@
+{
+  "refresh": "Refresh",
+  "refreshing": "Refreshing…",
+  "retry": "Retry",
+  "auto": "Auto",
+  "light": "Light",
+  "dark": "Dark",
+  "theme": "Theme",
+  "language_target": "中文",
+  "language_aria": "切換成中文",
+  "check_failed": "check failed",
+  "not_installed": "not installed",
+  "update": "Update",
+  "up_to_date": "up to date",
+  "model_selection_guide": "Model selection guide: ",
+  "not_checked": "Not checked (setup): "
+}

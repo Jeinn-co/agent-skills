@@ -14,6 +14,13 @@ import cursorbench
 
 
 class UsageGuidanceTests(unittest.TestCase):
+    def test_now_line_shows_model_and_bold_effort_without_age(self):
+        card = html_report.card_html(
+            '### CLAUDE\nsession local (6h34m ago)\nmodel claude-opus-5-5\neffort high\n')
+        self.assertIn('<code>claude-opus-5-5</code> / <strong>high</strong>', card)
+        self.assertNotIn('6h34m', card)
+        self.assertNotIn(' · effort ', card)
+
     def test_my_usage_paragraph_keeps_daily_choices_separate_from_roles(self):
         page = html_report.render("")
         usage = page.split('<h2><span class="l-en">My usage</span>', 1)[1].split('</section>', 1)[0]
@@ -66,18 +73,30 @@ class UsageGuidanceTests(unittest.TestCase):
         page = html_report.render('')
         self.assertIn('Gemini 4 Hydrogen / high', page)
 
-    def test_role_and_model_data_changes_render_without_template_edits(self):
+    def test_daily_choices_and_roles_render_without_template_edits(self):
         roles = copy.deepcopy(html_report.ROLE_ASSIGNMENTS)
         executor = next(role for role in roles if role['role'] == 'Executor')
         executor['models']['gemini'] = ('Gemini Fixture <script>', 'xhigh')
-        fixture = {'name': 'Gemini Fixture', 'efforts': ('high', 'xhigh'),
-                   'default_effort': 'high', 'use_cases': ('Fixture task', '測試任務')}
+        choices = {
+            'claude': ('Claude Fixture <script>', 'low'),
+            'codex': ('Codex Fixture', 'medium'),
+            'gemini': ('Gemini Fixture', 'xhigh'),
+        }
         with patch.object(html_report, 'ROLE_ASSIGNMENTS', roles), \
-                patch.dict(html_report.GEMINI_MODELS, {'gemini-fixture': fixture}), \
-                patch.object(html_report, 'DAILY_GEMINI_CHOICE', ('gemini-fixture', 'xhigh')):
+                patch.object(html_report, 'DAILY_CHOICES', choices):
             page = html_report.render('')
         self.assertIn('Gemini Fixture &lt;script&gt; / xhigh', page)
-        self.assertIn('Gemini uses Gemini Fixture / xhigh.', page)
+        for text in (
+            'Claude Code mainly Claude Fixture &lt;script&gt; / low.',
+            'Claude Code 主要用 Claude Fixture &lt;script&gt; / low。',
+            'Codex Codex Fixture / medium.',
+            'Codex 用 Codex Fixture / medium。',
+            'Gemini uses Gemini Fixture / xhigh.',
+            'Gemini 用 Gemini Fixture / xhigh。',
+        ):
+            with self.subTest(text=text):
+                self.assertIn(text, page)
+        self.assertNotIn('@@daily_', page)
         self.assertNotIn('@@roles@@', page)
 
     def test_personal_gemini_policy_excludes_argon_but_keeps_security_carbon(self):
@@ -97,8 +116,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertNotIn('安全工作使用 Carbon / high', choice)
         self.assertIn('Gemini selection', roles)
         self.assertIn('Gemini 選型', roles)
-        self.assertEqual(page.count('日常工作以 Hydrogen / high 開始；複雜推理在 high 不足時升 xhigh。安全工作使用 Carbon / high，以安全性與正確性優先。Argon 因成本不納入選型。'), 1)
-        self.assertIn('日常工作以 Hydrogen / high 開始', roles.split('<table', 1)[0])
+        self.assertEqual(page.count('日常工作使用 Gemini 4 Hydrogen / high；high 不足時可明確指定單次派工使用 xhigh。安全工作使用 Gemini 4 Carbon / high，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
+        self.assertIn('日常工作使用 Gemini 4 Hydrogen / high', roles.split('<table', 1)[0])
         self.assertNotIn('Upgrade to xhigh', roles)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / high ~ xhigh</td>'), 4)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / high</td>'), 1)

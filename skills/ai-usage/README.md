@@ -159,7 +159,7 @@ instead of the file:
   each provider with its own request: a card fills in as soon as its CLI answers, never
   waiting for the others. The page gives each lookup up to **90 seconds** instead of 20.
   A card that fails says so in place; old numbers are never shown as current.
-  Reloading the page only re-reads the last report.
+  Reloading applies the current template to saved data and preserves its capture time; timed-out cards retain the automatic retry described below.
 - A card whose lookup timed out in the chat report (20 s) is fetched again with the
   page's 90-second budget as soon as the page opens, behind a skeleton.
 - `Updated MM-DD HH:MM:SS` is when the report on screen was written.
@@ -224,11 +224,11 @@ Read top to bottom:
    faster than it runs out.
 3. **Now** — the model and effort of that CLI's newest local session, plus a link to the
    provider's own usage page (Claude, ChatGPT, Grok).
-4. **My usage** — my own model and effort choices (Claude: mainly Opus 5.5 / high; Codex:
-   GPT-6.1-Sol / high) with a link to AI Model Compare for official guidance,
-   what effort changes and API prices, plus a dated
-   snapshot of the six s-agent role assignments checked against Notion. This section
-   does not change CLI settings or fetch/sync Notion during report generation.
+4. **My usage** — personal model and effort choices from `DAILY_CHOICES`, with a
+   link to AI Model Compare for official guidance, effort and API prices, plus
+   personal choices for the six delegated roles. These display preferences are
+   separate from the actual s-agent defaults in Notion. Report generation does
+   not change CLI settings or fetch/sync Notion.
    Security uses Opus 5.5 / max, GPT-6 Astra / max and Gemini 4 Carbon / high.
    Executor uses Gemini 4 Hydrogen / high (Notion snapshot, 2026-11-13).
    The current Antigravity table lists Hydrogen for Free, Plus, Pro, Ultra and Enterprise (rechecked 2026-11-13).
@@ -398,14 +398,27 @@ remain readable with static expiry text; no ambiguous local date is guessed.
 approximate and covers local sessions on this machine only; the headline percentages
 are account-wide.
 
+
+## Report configuration
+
+Edit `data/personal-choices.json` to change the Claude, Codex and Gemini choices
+shown under My usage in both languages. For repository development, edit the
+canonical `shared/personal-choices.json` and distribute it with `scripts/sync_shared.py`.
+The HTML template contains no personal model or effort values.
+
+`guidance_data.py` loads personal daily and role choices from that JSON. Model facts
+come from `data/gemini-models.json`, distributed from the repository's shared
+catalog. `cursorbench.py` derives supported Gemini efforts from that catalog.
+Adding a model does not require editing the HTML template or s-agent's Python code.
+
+UI translations live in `locales/en.json` and `locales/zh-TW.json`; common controls
+are distributed into `locales/common/`. Both Python-rendered text and browser
+controls use those catalogs. Pinned i18next 27.1.1 and its MIT license are bundled
+under `assets/`, and the report embeds its JavaScript and translations for offline use.
+The page template is `templates/report.html`; the browser controller, toolbar styles
+and reset-expiry timer are `assets/report.js`, `assets/toolbar.css` and
+`assets/reset-expiry.js`. Python files handle report data and server orchestration.
+
 ## License
 
 MIT
-
-Model facts and personal role assignments are stored in `guidance_data.py`;
-`cursorbench.py` reads the supported Gemini efforts there, and `html_report.py`
-renders the existing role table and model guidance from the same records.
-Adding a model does not require editing the HTML template. Role assignments are
-separate data and are not automatically changed when a new model is added.
-
-Local review override: Argon is excluded from personal Gemini recommendations because of cost. All five general roles start with Hydrogen / high. Escalate to xhigh only when high cannot resolve complex planning, review or incident-analysis tasks; Security keeps Carbon / high. This draft has not been synced to Notion.

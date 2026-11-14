@@ -1,0 +1,13 @@
+.title-row{align-items:center;position:sticky;top:0;z-index:10;background:var(--card);margin:-40px calc(50% - 50vw) 16px;padding:14px calc(50vw - 50%);border-bottom:1px solid var(--line)}body{overflow-x:clip}.tools{display:flex;flex-wrap:wrap;gap:8px}
+.sel{position:relative;display:inline-flex;font-size:14px;border:1px solid var(--accent);border-radius:4px;color:var(--accent)}
+.sel select{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;background:transparent;border:0;
+min-height:30px;padding:0 28px 0 34px;border-radius:4px;cursor:pointer}.sel select:focus{outline:0}
+:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
+.sel option{background:var(--card);color:var(--text)}
+.sel .chev{position:absolute;right:11px;top:50%;width:10px;height:10px;margin-top:-5px;pointer-events:none;
+fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#all[hidden]{display:none}
+.tools .lang{display:inline-flex;align-items:center;gap:6px}
+.ico{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sel>.ico{position:absolute;left:14px;top:50%;margin-top:-7px;pointer-events:none}#all{background:var(--accent);color:var(--card)}
+.tools button:disabled{opacity:.6;cursor:default}

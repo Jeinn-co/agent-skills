@@ -26,7 +26,11 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from skill_runtime import server_identity, server_owned_by
 
 # Bumped by hand. `metadata.version` in SKILL.md mirrors this; keep them equal.
 VERSION = "1.16.1"
@@ -486,354 +490,22 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PAGE = os.path.join(tempfile.gettempdir(), "ai-cli-version", "report.html")
 # /ping answer: version and location, so a server left from an older or moved copy of
 # this skill is not mistaken for this one (its Refresh would run that other run.py).
-PING = ("ai-cli-version %s %s" % (VERSION, HERE)).encode("utf-8")
+PING = server_identity("ai-cli-version", VERSION, HERE)
 # `/` is the last report itself, with Theme, Update all and Refresh added to its own header
 # next to the language switch (no iframe). Refresh shows skeleton rows under the header and
 # checks each tool with its own request, so every row fills in as soon as its tool answers.
-GLOBE_ICON = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg>'
-SERVE_TOOLS = ('<div class="tools"><button type="button" class="lang" id="lang"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg><span>中文</span></button>'
-               '<label class="sel"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><select id="theme" aria-label="Theme"><option value="auto">Auto</option>'
-               '<option value="light">Light</option><option value="dark">Dark</option></select>'
-               '<svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75l3 3 3-3"/></svg></label>'
-               '<button type="button" class="lang" id="all" hidden></button>'
-               '<button type="button" class="lang" id="refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg><span>Refresh</span></button></div>')
-SERVE_CSS = """.title-row{align-items:center;position:sticky;top:0;z-index:10;background:var(--card);margin:-40px calc(50% - 50vw) 16px;padding:14px calc(50vw - 50%);border-bottom:1px solid var(--line)}body{overflow-x:clip}.tools{display:flex;flex-wrap:wrap;gap:8px}
-.sel{position:relative;display:inline-flex;font-size:14px;border:1px solid var(--accent);border-radius:4px;color:var(--accent)}
-.sel select{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;background:transparent;border:0;
-min-height:30px;padding:0 28px 0 34px;border-radius:4px;cursor:pointer}.sel select:focus{outline:0}
-:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
-.sel option{background:var(--card);color:var(--text)}
-.sel .chev{position:absolute;right:11px;top:50%;width:10px;height:10px;margin-top:-5px;pointer-events:none;
-fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-#all[hidden]{display:none}
-.tools .lang{display:inline-flex;align-items:center;gap:6px}
-.ico{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.sel>.ico{position:absolute;left:14px;top:50%;margin-top:-7px;pointer-events:none}#all{background:var(--accent);color:var(--card)}
-.tools button:disabled{opacity:.6;cursor:default}"""
-SHELL = """const button = document.getElementById("refresh");
-const allButton = document.getElementById("all");
-const picker = document.getElementById("theme");
-addEventListener("pointerdown", () => document.documentElement.classList.add("mouse"), true);
-addEventListener("keydown", () => document.documentElement.classList.remove("mouse"), true);
-const THEMES = ["auto", "light", "dark"];
-let lang;
-try { lang = localStorage.getItem("ai-cli-version-lang"); } catch (e) {}
-if (lang !== "zh" && lang !== "en") lang = /^zh/i.test(navigator.language || "") ? "zh" : "en";
-const t = (en, zh) => lang === "zh" ? zh : en;
-const langButton = document.getElementById("lang");
-let refreshState = "refresh", updatedAt = __UPDATED__;
-const applyLang = doc => {
-  doc.documentElement.dataset.lang = lang;
-  doc.documentElement.lang = lang === "zh" ? "zh-Hant" : "en";
-};
-const refreshLabel = () => { button.querySelector("span").textContent = refreshState === "busy" ? t("Refreshing…", "重新整理中…") : refreshState === "retry" ? t("Retry", "重試") : t("Refresh", "重新整理"); };
-const labels = () => {
-  applyLang(document);
-  langButton.innerHTML = __GLOBE__ + "<span>" + t("中文", "EN") + "</span>";
-  langButton.setAttribute("aria-label", t("切換成中文", "Switch to English"));
-  picker.setAttribute("aria-label", t("Theme", "主題"));
-  [picker.options[0].textContent, picker.options[1].textContent, picker.options[2].textContent] =
-    [t("Auto", "自動"), t("Light", "淺色"), t("Dark", "深色")];
-  refreshLabel();
-};
-langButton.onclick = () => {
-  lang = lang === "zh" ? "en" : "zh";
-  try { localStorage.setItem("ai-cli-version-lang", lang); } catch (e) {}
-  labels(); stamp(updatedAt); syncButtons();
-  document.querySelectorAll(".acv-err").forEach(el => { el.textContent = t("Update failed: ", "更新失敗：") + failures[el.dataset.tool]; });
-};
-labels();
-const SKELETON = __SKELETON__;
-let theme = "auto";  // Auto follows the OS; the choice is kept per browser
-try { theme = localStorage.getItem("ai-cli-version-theme") || "auto"; } catch (e) {}
-// The value is spliced into the report's HTML, so only a known name may pass.
-if (!THEMES.includes(theme)) theme = "auto";
-picker.value = theme;
-const applyTheme = doc => {
-  if (theme === "auto") delete doc.documentElement.dataset.theme;
-  else doc.documentElement.dataset.theme = theme;
-};
-// Puts a freshly fetched page's content under this header, keeping the header itself.
-const show = html => {
-  const fresh = new DOMParser().parseFromString(html, "text/html").querySelector("main");
-  fresh?.querySelector(".title-row")?.remove();
-  const main = document.querySelector("main");
-  [...main.children].filter(el => !el.matches(".title-row")).forEach(el => el.remove());
-  if (fresh) main.append(...fresh.children);
-  decorate(document);
-  return Promise.resolve(document);
-};
-applyTheme(document);
-picker.onchange = () => {
-  theme = THEMES.includes(picker.value) ? picker.value : "auto";
-  try { localStorage.setItem("ai-cli-version-theme", theme); } catch (e) {}
-  applyTheme(document);
-};
-const stamp = ms => {  // when the shown report was written, in local time
-  updatedAt = ms;
-  const d = new Date(ms), p = n => String(n).padStart(2, "0");
-  const line = document.querySelector("main > p.top");
-  if (line) line.textContent = (ms ? t("Updated ", "更新於 ") + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " +
-    p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) + " · " : "") + "ai-cli-version __VERSION__";
-};
-stamp(__UPDATED__);
-// Last update error per tool, shown on its row again after the re-check.
-const failures = {};
-// shortcut: queued clicks live in this tab; use a server queue if they must survive reload.
-const queue = [], pending = new Set();
-let busy = false, updating = false, current = "";
-// While updates run, the same button cancels the ones not started yet; the running one
-// always finishes, since stopping an installer halfway could leave a broken install.
-const syncButtons = () => {
-  button.disabled = busy || updating;
-  const rows = [...document.querySelectorAll("tr[data-tool]")];
-  allButton.hidden = rows.length < 2 && !queue.length;
-  allButton.disabled = busy || (updating && !queue.length);
-  allButton.textContent = !updating ? t("Update all (", "全部更新（") + rows.length + t(")", "）") :
-    queue.length ? t("Cancel queued (", "取消佇列（") + queue.length + t(")", "）") : t("Finishing…", "即將完成…");
-  // While updates run, only a queued row's button works, and it cancels just that tool;
-  // the running row and rows outside the queue stay disabled until the queue ends.
-  document.querySelectorAll("button.acv-up").forEach(b => {
-    const tool = b.dataset.tool, queued = pending.has(tool) && tool !== current;
-    b.disabled = busy || (updating && !queued);
-    if (queued) b.textContent = t("Queued · Cancel", "佇列中 · 取消");
-    else if (tool === current) b.textContent = t("Updating…", "更新中…");
-    else b.textContent = failures[tool] ? t("Retry", "重試") : t("Update", "更新");
-  });
-};
-const setBusy = on => { busy = on; syncButtons(); };
-const ROW_CSS = ".acv-up{margin-left:8px;padding:2px 12px;border:0;border-radius:4px;" +
-  "font:inherit;font-size:13px;font-weight:500;background:var(--accent);color:var(--card);" +
-  "cursor:pointer}.acv-up:disabled{opacity:.6;cursor:default}" +
-  ".acv-err{color:var(--bad);font-size:13px;margin-top:4px}" +
-  ".acv-run{color:var(--muted);font-size:13px;margin-top:4px;max-width:420px;" +
-  "overflow:hidden;text-overflow:ellipsis;white-space:nowrap}";
-// Adds an Update button to each row with an update that has none yet, plus Update all
-// when there are two or more. Only the tool name goes to the server, which looks up the
-// updater itself. Runs again after a row is swapped in.
-const decorate = doc => {
-  if (!doc.getElementById("acv-style")) {
-    const style = doc.createElement("style");
-    style.id = "acv-style";
-    style.textContent = ROW_CSS;
-    doc.head.appendChild(style);
-  }
-  for (const row of doc.querySelectorAll("tr[data-row]")) {
-    if (failures[row.dataset.row]) row.dataset.tool = row.dataset.row;
-  }
-  const rows = [...doc.querySelectorAll("tr[data-tool]")];
-  for (const row of rows) {
-    if (row.querySelector("button.acv-up")) continue;
-    const tool = row.dataset.tool, cell = row.lastElementChild;
-    const up = doc.createElement("button");
-    up.className = "acv-up";
-    up.dataset.tool = tool;
-    up.textContent = pending.has(tool) && tool !== current ? t("Queued · Cancel", "佇列中 · 取消") :
-      failures[tool] ? t("Retry", "重試") : t("Update", "更新");
-    up.onclick = () => pending.has(tool) && tool !== current ? cancelQueued([tool]) :
-      enqueueTools([tool]);
-    (cell.querySelector("code") || cell.firstElementChild || cell).after(up);
-    if (failures[tool]) {
-      const err = doc.createElement("div");
-      err.className = "acv-err";
-      err.dataset.tool = tool;
-      err.textContent = t("Update failed: ", "更新失敗：") + failures[tool];
-      cell.appendChild(err);
-    }
-  }
-  syncButtons();
-};
-// Puts the summary above the table and the notes below it from a freshly saved page.
-const swapSummary = (doc, fresh) => {
-  for (const sel of [".summary", "#foot"]) {
-    const old = doc.querySelector(sel), now = fresh.querySelector(sel);
-    if (old && now) old.replaceWith(doc.importNode(now, true));
-  }
-};
-// Puts one re-checked row, and the summary above the table, in place without reloading.
-const swapRow = (tool, html) => {
-  const doc = document, fresh = new DOMParser().parseFromString(html, "text/html");
-  const pick = d => d.querySelector('tr[data-row="' + CSS.escape(tool) + '"]');
-  const oldRow = pick(doc), newRow = pick(fresh);
-  if (!oldRow || !newRow) return null;
-  const row = doc.importNode(newRow, true);
-  oldRow.replaceWith(row);
-  swapSummary(doc, fresh);
-  decorate(doc);
-  return row;
-};
-// Replaces the report after a failure, so old versions never look current.
-const notice = text => '<main><p class="note">' + text.replace(/&/g, "&amp;").replace(/</g, "&lt;") + '</p></main>';
-const ok = r => r.ok ? r : Promise.reject(r.status + " " + r.statusText);
-const get = path => fetch(path + "?" + Date.now()).then(ok).then(r => r.text());
-const post = (path, body) => fetch(path, {method: "POST", body: JSON.stringify(body || {}),
-  headers: {"X-AI-CLI-Version": "1", "Content-Type": "application/json"}}).then(ok).then(r => r.json());
-// One request per tool, none waiting for another: each row is swapped in as soon as its
-// tool answers. A failed request says so on its row; once all have answered, the merged
-// report is saved and its summary shown.
-const check = (doc, tools) => {
-  const lines = [];
-  return Promise.all(tools.map(tool => post("/row", {tool}).then(r => {
-    lines.push(...r.lines);
-    const holder = doc.createElement("tbody");
-    holder.innerHTML = r.html;
-    doc.querySelector('tr[data-row="' + CSS.escape(tool) + '"]')?.replaceWith(holder.firstElementChild);
-    decorate(doc);
-  }, e => {
-    lines.push(tool + "\\tcheck failed (" + e + ")");
-    const cell = doc.querySelector('tr[data-row="' + CSS.escape(tool) + '"] .skel')?.parentElement;
-    if (cell) {
-      cell.className = "bad";
-      cell.textContent = t("check failed (", "檢查失敗（") + e + t(")", "）");
-    }
-  }))).then(() => post("/finish", {lines})).then(r => {
-    swapSummary(doc, new DOMParser().parseFromString(r.page, "text/html"));
-    decorate(doc);
-    stamp(Number(r.written));
-  });
-};
-// Runs after this script, so refresh() below is defined; with no report on disk yet it
-// checks every tool at once.
-Promise.resolve().then(() => {
-  decorate(document);
-  return document.documentElement.dataset.empty ? refresh().then(() => document) : document;
-})
-  .then(doc => {
-    // A row whose check ran out of the chat report's 20 s is checked again here, with
-    // the page's longer budget.
-    const late = [...doc.querySelectorAll("tr[data-timeout]")];
-    if (!late.length) return;
-    for (const row of late) {
-      row.removeAttribute("data-timeout");
-      while (row.children.length > 1) row.lastElementChild.remove();
-      row.insertAdjacentHTML("beforeend", SKELETON);
-    }
-    setBusy(true);
-    refreshState = "busy"; refreshLabel();
-    stamp(0);
-    check(doc, late.map(row => row.dataset.row))
-      .then(() => { refreshState = "refresh"; refreshLabel(); })
-      .catch(e => {
-        show(notice(t("Check failed (", "檢查失敗（") + e + t("). Press Retry.", "）。請按重試。")));
-        refreshState = "retry"; refreshLabel();
-      })
-      .finally(() => { setBusy(false); });
-  });
-// Update or Update all starts the queue; the server also serializes other tabs' requests.
-const enqueueTools = tools => {
-  if (busy || updating) return;  // nothing joins a queue that is already running
-  for (const tool of tools) {
-    if (pending.has(tool)) continue;
-    pending.add(tool);
-    queue.push(tool);
-  }
-  syncButtons();
-  if (!updating && queue.length) void updateTools();
-};
-// Drops queued tools that have not started (all of them by default); the running one
-// carries on.
-const cancelQueued = (tools = [...queue]) => {
-  for (const tool of tools) {
-    const at = queue.indexOf(tool);
-    if (at < 0) continue;
-    queue.splice(at, 1);
-    pending.delete(tool);
-  }
-  syncButtons();
-};
-allButton.onclick = () => {
-  if (updating) cancelQueued();
-  else enqueueTools([...document.querySelectorAll("tr[data-tool]")]
-    .map(row => row.dataset.tool));
-};
-const updateTools = async () => {
-  updating = true;
-  syncButtons();
-  let reloadAll = false;
-  while (queue.length) {
-    const tool = queue.shift();
-    current = tool;
-    syncButtons();  // the running row's button off, the queue count without it
-    const doc = document;
-    const row = doc.querySelector('tr[data-tool="' + CSS.escape(tool) + '"]');
-    if (!row) {
-      pending.delete(tool);
-      current = "";
-      syncButtons();
-      continue;
-    }
-    const cell = row.lastElementChild, up = row.querySelector("button.acv-up");
-    cell.querySelector(".acv-err")?.remove();
-    const status = doc.createElement("div");
-    status.className = "acv-run";
-    status.textContent = t("Updating…", "更新中…");
-    cell.appendChild(status);
-    if (up) up.textContent = t("Updating…", "更新中…");
-    const start = Date.now();
-    let line = "";
-    const tick = setInterval(() => {
-      fetch("/progress").then(r => r.json()).then(p => {
-        line = p.tool === tool ? p.line || "" : "";
-      }).catch(() => {});
-      status.textContent = Math.round((Date.now() - start) / 1000) + "s" + (line ? " \\u00b7 " + line : "");
-      status.title = line;
-    }, 500);
-    let result;
-    try {
-      const r = await fetch("/update?tool=" + encodeURIComponent(tool),
-                            {method: "POST", headers: {"X-AI-CLI-Version": "1"}});
-      result = await r.json().catch(() => ({ok: false, error: r.status + " " + r.statusText}));
-    } catch (e) {
-      result = {ok: false, error: String(e)};
-    }
-    clearInterval(tick);
-    if (result.ok) delete failures[tool];
-    else failures[tool] = result.error || "unknown error";
-    pending.delete(tool);
-    current = "";
-    const swapped = result.page ? swapRow(tool, result.page) : null;
-    if (result.written) stamp(Number(result.written));
-    if (swapped && !failures[tool]) {
-      const note = doc.createElement("div");
-      note.className = "acv-run";
-      note.textContent = t("Updated just now", "剛剛已更新");
-      swapped.lastElementChild.appendChild(note);
-    } else if (!swapped) {
-      reloadAll = true;  // no saved lines: fall back to a full check
-      status.textContent = failures[tool] ? t("Failed: ", "失敗：") + failures[tool] : t("Done", "完成");
-      status.title = status.textContent;
-      if (up) up.textContent = failures[tool] ? t("Retry", "重試") : t("Updated", "已更新");
-    }
-    syncButtons();
-  }
-  updating = false;
-  decorate(document);
-  if (reloadAll) await refresh();
-  else setBusy(false);
-};
-const refresh = () => {
-  setBusy(true);
-  refreshState = "busy"; refreshLabel();
-  stamp(0);
-  return get("/skeleton").then(show)
-    .then(doc => check(doc, [...doc.querySelectorAll("tr[data-row]")].map(row => row.dataset.row)))
-    .then(() => { refreshState = "refresh"; refreshLabel(); })
-    .catch(e => {
-      show(notice(t("Check failed (", "檢查失敗（") + e + t("). Press Retry.", "）。請按重試。")));
-      refreshState = "retry"; refreshLabel();
-    })
-    .finally(() => { setBusy(false); });
-};
-button.onclick = () => refresh();
-"""
+SERVE_CSS = (Path(__file__).resolve().parent / 'assets/toolbar.css').read_text(encoding="utf-8")
+SHELL = (Path(__file__).resolve().parent / 'assets/report.js').read_text(encoding="utf-8")
 
 
 def serve_page(page, empty=False):
     """The report page with the served tools in its header and the refresh script."""
     import html_report
-    page = page.replace('<button type="button" class="lang" id="lang">中文</button>', SERVE_TOOLS, 1)
+    if 'data-report-i18n' not in page:
+        page = page.replace('<head>', '<head><script data-report-i18n>' + html_report.I18N.head() + '</script>', 1)
+    page = page.replace(html_report.I18N.language_button, html_report.I18N.toolbar('<button type="button" class="lang" id="all" hidden></button>'), 1)
     page = page.replace("</head>", "<style>%s</style></head>" % SERVE_CSS, 1)
-    script = SHELL.replace("__GLOBE__", json.dumps(GLOBE_ICON)).replace("__SKELETON__", json.dumps(html_report.SKELETON)).replace("__VERSION__", VERSION)
+    script = SHELL.replace("__GLOBE__", json.dumps(html_report.I18N.globe)).replace("__SKELETON__", json.dumps(html_report.SKELETON)).replace("__VERSION__", VERSION)
     page = page.replace("</body>", "<script>%s</script></body>" % script, 1)
     return page.replace("<html", '<html data-empty="1"', 1) if empty else page
 
@@ -936,7 +608,7 @@ def port_pid():
 def take_over(holder):
     """Stop a server left running by an older version of this same copy, so updating the
     skill does not leave Refresh broken. Returns what holds the port afterwards."""
-    if holder in (None, PING) or holder.split(b" ", 2)[2:] != [HERE.encode("utf-8")]:
+    if holder in (None, PING) or not server_owned_by(holder, HERE):
         return holder  # free, ours, or another copy's server: leave it alone
     pid = port_pid()
     if pid:
@@ -1018,7 +690,7 @@ def skeleton():
 def written_ms():
     """When the report on disk was written (ms since epoch), "0" if there is none."""
     try:
-        return str(int(os.path.getmtime(PAGE) * 1000))
+        return str(int(os.path.getmtime(LINES if os.path.exists(LINES) else PAGE) * 1000))
     except OSError:
         return "0"
 
@@ -1040,6 +712,19 @@ def saved_lines():
     except (OSError, ValueError):
         return []
     return lines if isinstance(lines, list) else []
+
+
+def saved_page():
+    """Apply the current renderer to captured checks without checking tools again."""
+    import html_report
+    lines = saved_lines()
+    if not lines:
+        with open(PAGE, encoding="utf-8") as stream:
+            return stream.read()
+    lines = ['### ai-cli-version ' + VERSION if line.startswith('### ai-cli-version ') else line
+             for line in lines]
+    captured_at = datetime.datetime.fromtimestamp(os.path.getmtime(LINES))
+    return html_report.render(lines, now=captured_at)
 
 
 def serve():
@@ -1102,8 +787,7 @@ def serve():
                 self.reply(PING, "text/plain; charset=utf-8")
             elif path == "/":
                 try:
-                    with open(PAGE, encoding="utf-8") as fh:
-                        page, empty = fh.read(), False
+                    page, empty = saved_page(), False
                 except OSError:
                     page, empty = skeleton(), True
                 page = serve_page(page, empty).replace("__UPDATED__", written_ms())

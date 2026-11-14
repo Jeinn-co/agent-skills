@@ -123,7 +123,7 @@ Python 標準函式庫），改開 `http://127.0.0.1:47822/`，不再開檔案�
 
 - 按 **Refresh** 會先把每一列換成 skeleton，再為每個工具各發一個請求：哪個工具先回應就先填上，
   彼此不等待。頁面上每次檢查最多等 **90 秒**，不是 20 秒。失敗的列會就地顯示錯誤，不會把舊版本
-  當成最新。重新整理頁面只會重讀上一次的報表。
+  當成最新。重新載入會以目前模板呈現已保存資料並保留擷取時間；逾時項目仍依下述規則自動重試。
 - 對話報表裡超過 20 秒而逾時的列，在頁面開啟時會以 skeleton 顯示並用 90 秒上限重新檢查。
 - 有更新的那一列會出現 **Update** 按鈕；兩個以上時，上方會有 **Update all (N)**：
   - 按某一列的 **Update** 只更新那一個工具。**Update all** 會把所有有更新的工具排入佇列，
@@ -252,20 +252,19 @@ skill 假設原生版的版號跟 npm 套件一致；驗證時版號確實相同
 
 **下載量。** `@openai/codex` 的 npm registry 文件約 14 MB（列出所有版本），每次執行約需一兩秒。
 
-**已驗證**：2026-09-17，Windows 11（zh-TW，Python 3.12），`claude` 2.1.274、
-`codex` 0.154.0、`grok` 1.0.34。同一天已對照 Codex 與 Grok 的安裝腳本
-（`chatgpt.com/codex/install.sh`、`x.ai/cli/install.sh`）確認路徑。
+**平台涵蓋範圍。** 唯讀查詢與原生 CLI 更新流程曾在 Windows、macOS 驗證；Muse 涵蓋 Windows，Antigravity 涵蓋 macOS。尚未涵蓋 Linux。
 
-**已驗證**：2026-09-18，macOS 26.6.2（arm64，Python 3.10.8），`claude` 2.1.273、
-`codex` 0.154.0、`grok` 1.0.34。唯讀檢查 launcher、版本與安裝時間查詢，以及安裝到
-Claude Code、Codex、Grok Build 三個 agent 的 global 安裝流程皆成功。Linux 尚未測試。
 
-**已驗證** 2026-09-24 在 Windows 11（zh-TW、Python 3.12）上針對 Muse Code 1.3.0-R3401.1：
-版本、安裝時間、channel 查詢，以及更新指令在 bash 與 PowerShell 下都能執行。Muse 在
-macOS 與 Linux 尚未測試；POSIX launcher（`api.meta.ai/muse-launcher.sh`）用的是同樣的檔名與變數。
+## 報表資源
 
-**已驗證** 2026-10-02 在 macOS（arm64、Python 3.10.8）上針對 Antigravity CLI（`agy`）1.2.14：
-版本、安裝時間，以及 updater 的 stable 版本。Antigravity 在 Windows 與 Linux 尚未測試。
+介面文字放在 `locales/en.json`、`locales/zh-TW.json`，共用控制項放在
+`locales/common/`。HTML 產生器與瀏覽器動態控制項使用相同字典。i18next 27.1.1
+及 MIT 授權檔放在 `assets/`，輸出的 HTML 會內嵌離線切換語言所需的資源。
+報表輔助程式、工具列與產品圖示由專案的 `shared/` 分發，獨立安裝此 skill
+不需要其他 skill、npm install 或 CDN 連線。
+畫面模板是 `templates/report.html`；重新整理、主題與更新佇列的瀏覽器行為集中在
+`assets/report.js`，工具列樣式是 `assets/toolbar.css`。
+Python 檔案保留版本查詢、伺服器與更新流程。
 
 ## 授權
 

@@ -28,7 +28,7 @@ npx skills add Jeinn-co/agent-skills@s-agent
 
 | OS | 狀態 |
 |---|---|
-| Windows 11（10.0.26300） | 1.0.3，2026-11-09，Python 3.12.10：實際 `--apply` 寫入 Claude Code + Codex 角色檔。未實際派工。 |
+| Windows 11 | 曾以 Python 3.12 驗證角色檔寫入；未涵蓋實際派工。 |
 | macOS | 未記錄。 |
 | Linux | 尚未測試。 |
 
@@ -100,6 +100,10 @@ S-Agent 先驗證支援，再回報實際強度並傳入 `--effort xhigh`；不�
 已儲存的角色預設，後續派工回到設定值。`-h` 會列出預設 high 與可選 xhigh，
 尚未確認執行支援時會明確標示。沒有自動升級。
 
+已知 Gemini 思考強度從內附的 `data/gemini-models.json` 讀取，此檔案與 ai-usage
+由同一份專案模型目錄分發。仍須另行確認當前 host 與帳號支援；模型資料不會覆蓋
+Notion 預設，也不代表帳號具有使用權限。
+
 ## 角色與協調
 
 | 角色 | 責任 |
@@ -131,10 +135,8 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # 預覽
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-版本 1.0.3：隔離單元測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、
-重複套用不寫入、失敗回復，以及 Windows 安全的檔案替換（暫存檔關閉後才改名）。Codex forward-test 曾真正分派修正 Python fixture，
-並獨立通過五個回歸案例。這不等於 Claude 實際派工、所有帳號的模型權限或跨平台已驗證；
-原生設定驗證也不等於真的呼叫模型。
+隔離測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、重複套用不寫入、
+失敗回復，以及暫存檔關閉後才替換。設定檢查不代表已確認模型權限或實際派工。
 
 [English](README.md) ·
 [Claude subagents](https://code.claude.com/docs/en/sub-agents) ·

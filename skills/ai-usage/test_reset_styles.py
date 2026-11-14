@@ -38,8 +38,10 @@ const make = minutes => {
   return note;
 };
 const notes = [301, 300, 180, 60, 59, 0, -1, 0.5, 1440, 31, 30, 29].map(make);
-const context = {document: {querySelectorAll: () => notes}, Date: {now: () => now},
+const context = {document: {documentElement: {dataset: {}}, querySelectorAll: () => notes},
+  navigator: {language: 'en'}, localStorage: {getItem: () => null, setItem: () => {}}, Date: {now: () => now},
   setInterval: (fn, ms) => {tick = fn; interval = ms;}};
+context.window = context;
 vm.runInNewContext(fs.readFileSync(0, 'utf8'), context);
 const read = () => notes.map(n => ({expiring: n.expiring, urgent: n.urgent,
   hue: n.style['--reset-hue'], text: n.remaining.textContent}));
@@ -49,7 +51,7 @@ tick();
 console.log(JSON.stringify({initial, later: read(), interval}));
 """
         result = subprocess.run([shutil.which("node"), "-e", driver],
-                                input=html_report.EXPIRY_SCRIPT, text=True,
+                                input=html_report.LANG_HEAD + '\n' + html_report.EXPIRY_SCRIPT, text=True,
                                 capture_output=True, check=True, timeout=5)
         data = json.loads(result.stdout)
         rows = data["initial"]

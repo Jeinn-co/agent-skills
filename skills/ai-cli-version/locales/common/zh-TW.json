@@ -1,0 +1,17 @@
+{
+  "refresh": "重新整理",
+  "refreshing": "更新中…",
+  "retry": "重試",
+  "auto": "自動",
+  "light": "淺色",
+  "dark": "深色",
+  "theme": "主題",
+  "language_target": "EN",
+  "language_aria": "Switch to English",
+  "check_failed": "檢查失敗",
+  "not_installed": "未安裝",
+  "update": "更新",
+  "up_to_date": "已是最新版",
+  "model_selection_guide": "選型參考：",
+  "not_checked": "未檢查（設定）："
+}

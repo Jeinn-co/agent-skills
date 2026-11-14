@@ -7,12 +7,13 @@ or worse, a Microsoft Store stub that opens the store instead of running anythin
 
 Verified 2026-09-12 on macOS, 2026-09-14 on Windows 11. See README for platform notes.
 """
-import json, os, re, shutil, subprocess, sys, tempfile, time, urllib.request
+import datetime, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
+from skill_runtime import server_identity, server_owned_by
 
 portable.stdout_utf8()
 
@@ -156,174 +157,23 @@ RAW = PAGE.with_name("report.txt")  # the text behind PAGE, so the page can upda
 PAGE_TIMEOUT = 90
 # /ping answer: version and location, so a server left from an older or moved copy of
 # this skill is not mistaken for this one (its Refresh would run that other run.py).
-PING = ("ai-usage %s %s" % (portable.VERSION, HERE)).encode("utf-8")
+PING = server_identity("ai-usage", portable.VERSION, HERE)
 # `/` is the last report itself, with Theme and Refresh added to its own header next to the
 # language switch (no iframe). Reload only re-reads the last report; Refresh swaps in
 # skeleton cards under the header and fetches each provider with its own request, so
 # every card fills in as soon as its CLI answers.
-GLOBE_ICON = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg>'
-SERVE_TOOLS = ('<div class="tools"><button type="button" class="lang" id="lang"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M1.75 8h12.5M8 1.75c1.8 1.9 2.6 3.9 2.6 6.25S9.8 12.35 8 14.25C6.2 12.35 5.4 10.35 5.4 8S6.2 3.65 8 1.75"/></svg><span>中文</span></button>'
-               '<label class="sel"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg><select id="theme" aria-label="Theme"><option value="auto">Auto</option>'
-               '<option value="light">Light</option><option value="dark">Dark</option></select>'
-               '<svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.75l3 3 3-3"/></svg></label>'
-               '<button type="button" class="lang" id="refresh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg><span>Refresh</span></button></div>')
-SERVE_CSS = """.top{flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:10;background:var(--card);margin:-40px calc(50% - 50vw) 16px;padding:14px calc(50vw - 50%);border-bottom:1px solid var(--line)}body{overflow-x:clip}.tools{display:flex;flex-wrap:wrap;gap:8px}
-.sel{position:relative;display:inline-flex;font-size:14px;border:1px solid var(--accent);border-radius:4px;color:var(--accent)}
-.sel select{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;background:transparent;border:0;
-min-height:30px;padding:0 28px 0 34px;border-radius:4px;cursor:pointer}.sel select:focus{outline:0}
-:root:not(.mouse) .sel:has(select:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
-.sel option{background:var(--card);color:var(--text)}
-.sel .chev{position:absolute;right:11px;top:50%;width:10px;height:10px;margin-top:-5px;pointer-events:none;
-fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-#refresh:disabled{opacity:.6;cursor:progress}
-.tools .lang{display:inline-flex;align-items:center;gap:6px}
-.ico{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.sel>.ico{position:absolute;left:14px;top:50%;margin-top:-7px;pointer-events:none}"""
-SHELL = """const SKELETON = __SKELETON__;
-const root = document.documentElement;
-const button = document.getElementById("refresh"), picker = document.getElementById("theme");
-const WORDS = {refresh: ["Refresh", "重新整理"], busy: ["Refreshing\\u2026", "更新中\\u2026"],
-  retry: ["Retry", "重試"], auto: ["Auto", "自動"], light: ["Light", "淺色"], dark: ["Dark", "深色"]};
-let state = "refresh";
-const word = key => WORDS[key][root.dataset.lang === "zh" ? 1 : 0];
-const GLOBE = __GLOBE__;
-// The report's own switch rewrites the language button as plain text, so its icon is put back here.
-const relabel = () => {
-  const lang = document.getElementById("lang");
-  lang.innerHTML = GLOBE + "<span>" + (root.dataset.lang === "zh" ? "EN" : "中文") + "</span>";
-  button.querySelector("span").textContent = word(state);
-  for (const option of picker.options) option.textContent = word(option.value);
-};
-// The report's own script switches the language first; this then renames the tools.
-document.getElementById("lang").addEventListener("click", relabel);
-const THEMES = ["auto", "light", "dark"];
-let theme = "auto";  // Auto follows the OS; the choice is kept per browser
-try { theme = localStorage.getItem("aiu-theme") || "auto"; } catch (e) {}
-if (!THEMES.includes(theme)) theme = "auto";
-picker.value = theme;
-const applyTheme = () => {
-  if (theme === "auto") delete root.dataset.theme;
-  else root.dataset.theme = theme;
-};
-applyTheme();
-relabel();
-picker.onchange = () => {
-  theme = THEMES.includes(picker.value) ? picker.value : "auto";
-  try { localStorage.setItem("aiu-theme", theme); } catch (e) {}
-  applyTheme();
-};
-// Chrome treats a mouse-focused <select> as :focus-visible, so the ring is keyed to the last input.
-addEventListener("pointerdown", () => root.classList.add("mouse"), true);
-addEventListener("keydown", () => root.classList.remove("mouse"), true);
-const ok = r => r.ok ? r : Promise.reject(r.status + " " + r.statusText);
-const get = path => fetch(path + "?" + Date.now()).then(ok).then(r => r.text());
-const post = (path, body) => fetch(path, {method: "POST", body: JSON.stringify(body || {}),
-  headers: {"X-AI-Usage": "1", "Content-Type": "application/json"}}).then(ok).then(r => r.json());
-function bindProviderLogin(doc) {
-  doc.querySelectorAll('[data-provider-login]').forEach(signIn => {
-    const provider = signIn.dataset.providerLogin, name = signIn.dataset.providerName;
-    const command = provider === 'CLAUDE' ? 'claude auth login' : 'codex login';
-    signIn.hidden = false;
-    signIn.onclick = async () => {
-      const status = doc.getElementById(provider.toLowerCase() + '-login-status');
-      signIn.disabled = true;
-      signIn.textContent = 'Signing in…';
-      status.hidden = false;
-      status.textContent = 'Complete ' + name + ' authorization in the browser that opens. This may take up to 5 minutes.';
-      try {
-        const result = await post('/login', {id: provider});
-        status.textContent = result.message;
-        if (result.ok) button.click();
-      } catch (error) {
-        status.textContent = 'Could not start sign-in. Try again, or run ' + command + ' in a terminal.';
-      } finally {
-        signIn.disabled = false;
-        signIn.textContent = 'Sign in to ' + name;
-      }
-    };
-  });
-}
-// Everything in <main> under the header.
-const below = () => [...document.querySelector("main").children].filter(el => !el.matches(".top"));
-// Puts a freshly fetched page's content under this header, keeping the header itself.
-const swap = html => {
-  const fresh = new DOMParser().parseFromString(html, "text/html").querySelector("main");
-  fresh.querySelector(".top")?.remove();
-  below().forEach(el => el.remove());
-  document.querySelector("main").append(...fresh.children);
-};
-// Replaces the report after a failure, so old numbers never look current.
-const notice = text => {
-  below().forEach(el => el.remove());
-  const note = document.createElement("p");
-  note.className = "note";
-  note.textContent = text;
-  document.querySelector("main").append(note);
-};
-// One request per provider (and one for the benchmark), none waiting for another. A
-// failed card says so in place; once all have answered the merged report is saved.
-const update = (ids, bench) => {
-  const sections = [];
-  const jobs = ids.map(id => post("/card", {id}).then(r => {
-    sections.push(r.raw);
-    document.querySelector('.card[data-id="' + id + '"]').outerHTML = r.html;
-    window.updateResetExpiry?.();
-    bindProviderLogin(document);
-  }, e => {
-    sections.push("### " + id + "\\nusage call failed (" + e + ")\\n");
-    const note = document.createElement("div");
-    note.className = "note";
-    note.textContent = "Fetch failed (" + e + "). Press Refresh.";
-    document.querySelector('.card[data-id="' + id + '"] .skel-body')?.replaceWith(note);
-  }));
-  if (bench) jobs.push(post("/bench").then(r => {
-    sections.push(r.raw);
-    document.getElementById("bench").innerHTML = r.html;
-  }, e => {
-    sections.push("### CURSORBENCH\\nbench failed (" + e + ")\\n");
-    document.getElementById("bench").innerHTML = "";
-  }));
-  return Promise.all(jobs).then(() => post("/finish", {sections}));
-};
-const busy = work => {
-  button.disabled = true;
-  state = "busy";
-  relabel();
-  return work()
-    .then(() => { state = "refresh"; })
-    .catch(e => {
-      notice("Fetch failed (" + e + "). Press Retry.");
-      state = "retry";
-    })
-    .finally(() => { button.disabled = false; relabel(); });
-};
-bindProviderLogin(document);
-button.onclick = () => busy(() => get("/skeleton").then(html => {
-  swap(html);
-  return update([...document.querySelectorAll(".card[data-id]")].map(card => card.dataset.id), true);
-}));
-if (root.dataset.empty) {
-  button.click();  // no report on disk yet
-} else {
-  // A card whose lookup ran out of the chat report's 20 s is fetched again here,
-  // with the page's longer budget.
-  const late = [...document.querySelectorAll(".card[data-timeout]")];
-  if (late.length) {
-    late.forEach(card => {
-      card.querySelectorAll(".row, .note").forEach(el => el.remove());
-      card.querySelector(".now").insertAdjacentHTML("beforebegin", SKELETON);
-    });
-    busy(() => update(late.map(card => card.dataset.id), false));
-  }
-}"""
+SERVE_CSS = (Path(__file__).resolve().parent / 'assets/toolbar.css').read_text(encoding="utf-8")
+SHELL = (Path(__file__).resolve().parent / 'assets/report.js').read_text(encoding="utf-8")
 
 
 def serve_page(page, empty=False):
     """The report page with the served tools in its header and the refresh script."""
     import html_report
-    page = page.replace('<button type="button" class="lang" id="lang">中文</button>', SERVE_TOOLS, 1)
+    if 'data-report-i18n' not in page:
+        page = page.replace('<head>', '<head><script data-report-i18n>' + html_report.I18N.head() + '</script>', 1)
+    page = page.replace(html_report.I18N.language_button, html_report.I18N.toolbar(), 1)
     page = page.replace("</head>", "<style>%s</style></head>" % SERVE_CSS, 1)
-    script = SHELL.replace("__GLOBE__", json.dumps(GLOBE_ICON)).replace("__SKELETON__", json.dumps(html_report.SKELETON))
+    script = SHELL.replace("__GLOBE__", json.dumps(html_report.I18N.globe)).replace("__SKELETON__", json.dumps(html_report.SKELETON))
     page = page.replace("</body>", "<script>%s</script></body>" % script, 1)
     return page.replace("<html", '<html data-empty="1"', 1) if empty else page
 
@@ -361,7 +211,7 @@ def port_pid():
 def take_over(holder):
     """Stop a server left running by an older version of this same copy, so updating the
     skill does not leave Refresh broken. Returns what holds the port afterwards."""
-    if holder in (None, PING) or holder.split(b" ", 2)[2:] != [str(HERE).encode("utf-8")]:
+    if holder in (None, PING) or not server_owned_by(holder, HERE):
         return holder  # free, ours, or another copy's server: leave it alone
     pid = port_pid()
     if pid:
@@ -421,6 +271,15 @@ def write_page(html, raw):
                     time.sleep(0.1)
         finally:
             tmp.unlink(missing_ok=True)
+
+
+def saved_page():
+    """Apply the current renderer to captured data without re-running probes."""
+    import html_report
+    raw = RAW.read_text(encoding="utf-8")
+    raw = re.sub(r"(?m)^### ai-usage [^\n]+", "### ai-usage " + portable.VERSION, raw, count=1)
+    captured_at = datetime.datetime.fromtimestamp(RAW.stat().st_mtime)
+    return html_report.render(raw, now=captured_at)
 
 
 def active():
@@ -557,7 +416,8 @@ if "--serve" in sys.argv:
     def written_ms():
         """When the report on disk was written (ms since epoch), "0" if there is none."""
         try:
-            return str(int(PAGE.stat().st_mtime * 1000))
+            source = RAW if RAW.exists() else PAGE
+            return str(int(source.stat().st_mtime * 1000))
         except OSError:
             return "0"
 
@@ -578,9 +438,12 @@ if "--serve" in sys.argv:
                 self.reply(PING, "text/plain; charset=utf-8")
             elif path == "/":
                 try:
-                    page, empty = PAGE.read_text(encoding="utf-8"), False
+                    page, empty = saved_page(), False
                 except OSError:
-                    page, empty = skeleton(), True
+                    try:
+                        page, empty = PAGE.read_text(encoding="utf-8"), False
+                    except OSError:
+                        page, empty = skeleton(), True
                 self.reply(serve_page(page, empty).encode("utf-8"), "text/html; charset=utf-8")
             elif path == "/skeleton":
                 self.reply(skeleton().encode("utf-8"), "text/html; charset=utf-8")

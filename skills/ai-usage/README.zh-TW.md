@@ -129,7 +129,7 @@ Benchmark 查詢另有 20 秒上限；超時仍顯示用量，但省略 benchmar
 
 - 按 **Refresh** 會先把每張卡片與 benchmark 表格換成 skeleton，再為每家供應商各發一個請求：
   哪家 CLI 先回應就先填上，彼此不等待。頁面上每次查詢最多等 **90 秒**，不是 20 秒。
-  失敗的卡片會就地顯示錯誤，不會把舊數字當成最新。重新整理頁面只會重讀上一次的報表。
+  失敗的卡片會就地顯示錯誤，不會把舊數字當成最新。重新載入會以目前模板呈現已保存資料並保留擷取時間；逾時項目仍依下述規則自動重試。
 - 對話報表裡超過 20 秒而逾時的卡片，在頁面開啟時會以 skeleton 顯示並用 90 秒上限重新抓取。
 - `Updated MM-DD HH:MM:SS` 是畫面上這份報表寫入的時間。
 - **Auto / Light / Dark** 切換配色；Auto 跟著系統，選擇會記在該瀏覽器。
@@ -180,9 +180,9 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    例如 `2h32m left`。用量條跑在時間條前面，就代表用得比時間過得快。
 3. **Now** —— 該 CLI 最新一個本機 session 的 model 與 effort，以及這家自己的用量頁連結
    （Claude、ChatGPT、Grok）。
-4. **我的用法** —— 我自己的模型與 effort 選擇（Claude：主要用 Opus 5.5 / high；Codex：GPT-6.1-Sol /
-   high），官方說法、effort 的影響與 API 價格則連到 AI Model Compare，以及經 Notion 核對、
-   附日期的六個 s-agent 角色安排快照；報表不會修改 CLI 設定，也不會即時讀取或同步 Notion。
+4. **我的用法** —— 從 `DAILY_CHOICES` 讀取個人的模型與 effort 選擇；官方說法、effort
+   與 API 價格連到 AI Model Compare，並顯示六個派工角色的個人選擇。這些顯示偏好與
+   Notion 的 s-agent 實際預設分開；產生報表不會修改 CLI 設定或讀取、同步 Notion。
    Security 使用 Opus 5.5 / max、GPT-6 Astra / max、Gemini 4 Carbon / high。
    Executor 使用 Gemini 4 Hydrogen / high（Notion 快照，2026-11-13）。
    2026-11-13 重新核對 Antigravity 官方表：Hydrogen 已列 Free、Plus、Pro、Ultra、Enterprise；Carbon 限 Ultra 或 Enterprise；Argon 為 Pro（†）、Ultra、Enterprise，† 指付費 Pro 或符合資格裝置的試用方案。
@@ -314,9 +314,6 @@ HTML 倒數直接使用原始 expiry epoch 毫秒，保留秒數與夏令時間�
 **數字是帳號層級，不是機器層級。** Claude 的 `/usage` 註明它的細項是近似值、且只涵蓋
 本機的 session；但最上層那幾個百分比是整個帳號的。
 
-## 授權
-
-MIT
 
 ## Claude / ChatGPT 登入按鈕
 
@@ -327,8 +324,23 @@ CLI 登入失效時，本機伺服器的報表會顯示 **Sign in to Claude** �
 不會因載入或 Refresh 自動啟動登入。同時僅允許一個流程，5 分鐘逾時可重試。
 沒有桌面瀏覽器的遠端主機及靜態 HTML 匯出，使用畫面上的 CLI 指令登入。
 
-模型資料與個人角色配置集中在 `guidance_data.py`；`cursorbench.py` 從此讀取 Gemini
-允許的 effort，`html_report.py` 依同一份資料產生原有角色表與模型說明。
-新增模型不需逐處修改 HTML。角色配置是另一組資料，不會因新增模型自動改派角色。
+## 報表設定
 
-本機 review 調整：因成本排除個人 Gemini 選型中的 Argon。五個一般角色以 Hydrogen / high 開始；high 無法解決複雜規劃、審查或排障任務時才升 xhigh；Security 保留 Carbon / high。此草案尚未同步 Notion。
+修改 `data/personal-choices.json` 即可同步變更中英文「我的用法」裡的 Claude、
+Codex 與 Gemini 常用選擇。開發專案時修改原始的 `shared/personal-choices.json`，
+再以 `scripts/sync_shared.py` 分發。HTML 模板不再存放個人的模型或 effort 值。
+
+`guidance_data.py` 從該 JSON 讀取個人常用與角色選擇。模型資料從 `data/gemini-models.json`
+讀取，此檔案由專案的共用目錄分發；`cursorbench.py` 從同一份模型目錄取得 Gemini
+允許的 effort。新增模型不需修改 HTML 模板或 s-agent 的 Python 程式。
+
+介面翻譯放在 `locales/en.json`、`locales/zh-TW.json`，共用控制項分發到
+`locales/common/`。Python 產生的文字與瀏覽器控制項使用相同字典。i18next 27.1.1
+與 MIT 授權檔放在 `assets/`，產出的 HTML 會內嵌程式與翻譯，可離線使用。
+畫面模板是 `templates/report.html`；瀏覽器控制程式、工具列樣式與重置倒數分別是
+`assets/report.js`、`assets/toolbar.css`、`assets/reset-expiry.js`。
+Python 檔案負責報表資料與伺服器流程。
+
+## 授權
+
+MIT

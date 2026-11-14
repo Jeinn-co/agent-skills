@@ -10,6 +10,7 @@ import re
 import runpy
 import subprocess
 import sys
+import tempfile
 import time
 import unittest
 from unittest.mock import patch, MagicMock
@@ -27,6 +28,23 @@ def launcher_function(name, namespace):
                 if isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name == name)
     exec(compile(ast.Module(body=[node], type_ignores=[]), 'run.py', 'exec'), namespace)
     return namespace[name]
+
+
+class SavedReportTests(unittest.TestCase):
+    def test_reload_uses_current_renderer_and_original_capture_time_without_probes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            raw = Path(folder) / 'report.txt'
+            raw.write_text('### ai-usage old\n### CLAUDE\nmodel claude-opus-5-5\neffort high\n')
+            captured = 1794000000
+            os.utime(raw, (captured, captured))
+            saved_page = launcher_function('saved_page', {
+                'RAW': raw, 'portable': portable, 'datetime': dt, 're': re,
+            })
+            with patch('subprocess.run', side_effect=AssertionError('reload must not run a probe')), \
+                    patch('subprocess.Popen', side_effect=AssertionError('reload must not start a CLI')):
+                page = saved_page()
+            self.assertIn('<code>claude-opus-5-5</code> / <strong>high</strong>', page)
+            self.assertIn(dt.datetime.fromtimestamp(captured).strftime('%m-%d %H:%M'), page)
 
 
 class DeadlineTests(unittest.TestCase):

@@ -43,6 +43,22 @@ class ParallelCheckTests(unittest.TestCase):
         self.assertEqual(rows, [name + "\tchecked" for name in run.CHECKS])
 
 
+class SavedReportTests(unittest.TestCase):
+    def test_reload_uses_saved_lines_instead_of_stale_html_without_checking_tools(self):
+        run = load()
+        with tempfile.TemporaryDirectory() as folder:
+            page = Path(folder) / 'report.html'
+            lines = Path(folder) / 'report.lines'
+            page.write_text('obsolete presentation')
+            lines.write_text('["### ai-cli-version old", "codex\\tinstalled=1\\tlatest=1\\tstatus=up to date"]')
+            with mock.patch.object(run, 'PAGE', str(page)), mock.patch.object(run, 'LINES', str(lines)), \
+                    mock.patch.object(run, 'check_tool', side_effect=AssertionError('reload must not check tools')):
+                rendered = run.saved_page()
+            self.assertNotIn('obsolete presentation', rendered)
+            self.assertIn('Codex', rendered)
+            self.assertIn('ai-cli-version ' + run.VERSION, rendered)
+
+
 class SummaryTests(unittest.TestCase):
     def summary(self, text):
         spec = importlib.util.spec_from_file_location("ai_cli_version_html", SCRIPT.parent / "html_report.py")

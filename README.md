@@ -103,6 +103,10 @@ python3.11 -m unittest discover -v -s tests
   also prints its version so an installed copy can identify itself. The value is
   informational: `npx skills` tracks its own installs by source and content hash, while
   manually copied skills have no update record.
+- **Shared resources have one source.** Edit `shared/`, then run
+  `python3.11 scripts/sync_shared.py` and include the distributed skill files in
+  the same change. Each skill remains independently installable. See
+  [resource ownership](shared/README.md) for translation and model-data locations.
 
 ## License
 

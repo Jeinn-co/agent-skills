@@ -138,8 +138,7 @@ background (`run.py --serve`, Python standard library only) and opens
 - **Refresh** shows a skeleton for every row, then checks each tool with its own
   request: a row fills in as soon as its tool answers, never waiting for the others. The
   page gives each check up to **90 seconds** instead of 20. A row that fails says so in
-  place; old versions are never shown as current. Reloading the page only re-reads the
-  last report.
+  place; old versions are never shown as current. Reloading applies the current template to saved data and preserves its capture time; timed-out rows retain the automatic retry described below.
 - A row whose check timed out in the chat report (20 s) is checked again with the page's
   90-second budget as soon as the page opens, behind a skeleton.
 - **Update** appears on each row with an update, and **Update all (N)** at the top when
@@ -301,23 +300,21 @@ package manager (`brew upgrade`, `npm install -g`) is the safe choice.
 **Payload size.** The npm registry document for `@openai/codex` is about 14 MB, because it
 lists every version; expect a second or two per run.
 
-**Verified** 2026-09-17 on Windows 11 (zh-TW, Python 3.12) against `claude` 2.1.274,
-`codex` 0.154.0 and `grok` 1.0.34. On the same date the Codex and Grok paths were checked
-against their install scripts (`chatgpt.com/codex/install.sh`, `x.ai/cli/install.sh`).
+**Platform coverage.** The check-only flow and native CLI updates have been exercised on Windows and macOS. Muse coverage is Windows; Antigravity coverage is macOS. Linux is not covered.
 
-**Verified** 2026-09-18 on macOS 26.6.2 (arm64, Python 3.10.8) against `claude` 2.1.273,
-`codex` 0.154.0 and `grok` 1.0.34. The check-only launcher, version and timestamp lookup,
-and global installation for Claude Code, Codex and Grok Build all completed successfully.
-Linux has not been tested yet.
 
-**Verified** 2026-09-24 on Windows 11 (zh-TW, Python 3.12) against Muse Code
-1.3.0-R3401.1: version, install time, channel lookup, and the update command from both
-bash and PowerShell. Muse on macOS and Linux has not been tested; the POSIX launcher
-(`api.meta.ai/muse-launcher.sh`) uses the same file names and variables.
+## Report resources
 
-**Verified** 2026-10-02 on macOS (arm64, Python 3.10.8) against the Antigravity CLI
-(`agy`) 1.2.14: version, install time and the updater's stable version. Windows and Linux
-have not been tested for Antigravity.
+UI text lives in `locales/en.json` and `locales/zh-TW.json`, with shared controls
+under `locales/common/`. Both the HTML renderer and dynamic browser controls use
+these catalogs. i18next 27.1.1 and its MIT license are bundled under `assets/`;
+exported HTML embeds everything it needs for offline language switching.
+Report helpers, toolbar markup and product marks are distributed from the
+repository's `shared/` directory. Installing this skill needs no sibling skill,
+npm install or CDN access.
+The page template is `templates/report.html`; browser refresh, theme and update-queue
+behavior live in `assets/report.js`, with toolbar styles in `assets/toolbar.css`.
+Python files retain version checks and server/update orchestration.
 
 ## License
 

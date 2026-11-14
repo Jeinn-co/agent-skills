@@ -23,12 +23,8 @@ ROLES = {
 }
 PLATFORMS = {'codex', 'claude'}
 # Known model-specific constraints; other models still require a verified runtime catalog.
-GEMINI_EFFORTS = {
-    'gemini-4-hydrogen': {'low', 'medium', 'high', 'xhigh'},
-    'gemini-4-carbon': {'low', 'medium', 'high'},
-    'gemini-4-argon': {'low', 'medium', 'high'},
-    'gemini-3.8-flash': {'low', 'medium', 'high'},
-}
+_CATALOG = json.loads((Path(__file__).resolve().parents[1] / 'data/gemini-models.json').read_text(encoding='utf-8'))
+GEMINI_EFFORTS = {model['id']: set(model['efforts']) for model in _CATALOG['models']}
 
 
 def exact_keys(value, keys, label):

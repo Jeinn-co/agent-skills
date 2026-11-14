@@ -28,7 +28,7 @@ Platforms tested:
 
 | OS | Status |
 |---|---|
-| Windows 11 (10.0.26300) | 1.0.3 tested 2026-11-09 with Python 3.12.10: real `--apply` wrote Claude Code + Codex profiles. No live agent dispatch. |
+| Windows 11 | Profile writes have been exercised with Python 3.12. Live agent dispatch is not covered. |
 | macOS | Not recorded. |
 | Linux | Not tested. |
 
@@ -114,6 +114,11 @@ passes `--effort xhigh`. It does not change Notion or saved role defaults; later
 handoffs use their configured effort. `-h` shows the default and optional xhigh,
 with support labeled unverified until checked. There is no automatic escalation.
 
+Known Gemini thinking levels are read from the bundled `data/gemini-models.json`,
+distributed from the repository's shared model catalog also used by ai-usage.
+Current host/account support is still checked separately; model facts never
+override Notion defaults or establish account access.
+
 ## Roles and coordination
 
 | Role | Responsibility |
@@ -148,13 +153,9 @@ python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # preview
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-Version 1.0.3: isolated sync unit tests cover strict validation, preservation,
-bootstrap, future model identifiers, idempotence, rollback and Windows-safe file
-replacement (no rename while the temporary file is open). A Codex forward-test
-actually delegated a Python fixture fix and independently passed five regressions.
-That does not establish live Claude dispatch, every account's model access or
-cross-platform compatibility. Native configuration validation is not a live model
-request.
+Isolated sync tests cover strict validation, preservation, bootstrap, future model
+identifiers, idempotence, rollback and closing temporary files before replacement.
+Configuration checks do not establish live model access or agent dispatch.
 
 [Traditional Chinese](README.zh-TW.md) ·
 [Claude subagents](https://code.claude.com/docs/en/sub-agents) ·

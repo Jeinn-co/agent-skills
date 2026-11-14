@@ -62,10 +62,11 @@ class ProviderLoginTests(unittest.TestCase):
         page = html_report.render("### CLAUDE\nplan: unavailable\nClaude CLI is not signed in.\n")
         self.assertIn('data-provider-login="CLAUDE"', page)
         self.assertIn('role="status"', page)
-        self.assertIn('>Sign in to Claude</button>', page)
+        self.assertIn('class="l-en">Sign in to Claude</span>', page)
+        self.assertIn('class="l-zh">登入 Claude</span>', page)
         page = html_report.render("### CHATGPT\nplan: unavailable\nChatGPT CLI is not signed in.\n")
         self.assertIn('data-provider-login="CHATGPT"', page)
-        self.assertIn('>Sign in to ChatGPT</button>', page)
+        self.assertIn('class="l-en">Sign in to ChatGPT</span>', page)
         self.assertIn('aria-describedby="chatgpt-login-status"', page)
         for raw in ("### CLAUDE\nplan: pro\n", "### CHATGPT\nplan: plus\n"):
             self.assertNotIn("data-provider-login", html_report.render(raw))
@@ -136,16 +137,16 @@ class ProviderLoginTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("node"), "Node required for browser-handler self-check")
     def test_browser_binding_does_not_login_until_clicked_and_refreshes_after_success(self):
-        tree = ast.parse(Path(__file__).with_name("run.py").read_text())
-        shell = next(ast.literal_eval(n.value) for n in tree.body if isinstance(n, ast.Assign)
-                     and any(isinstance(t, ast.Name) and t.id == "SHELL" for t in n.targets))
+        shell = (Path(__file__).with_name("assets") / "report.js").read_text()
         source = re.search(r"function bindProviderLogin\(doc\) \{.*?\n\}", shell, re.S).group()
         driver = """const vm = require('node:vm'), fs = require('node:fs');
 const signIn = {hidden: true, dataset: {providerLogin: 'CLAUDE', providerName: 'Claude'}}, status = {}, calls = [];
 let refresh = 0, finish;
 const doc = {querySelectorAll: () => [signIn], getElementById: () => status};
 const context = {post: (path, body) => {calls.push({path, body}); return new Promise(r => finish=r);},
-  button: {click: () => refresh++}};
+  button: {click: () => refresh++}, document: {documentElement: {dataset: {}}},
+  navigator: {language: 'en'}, localStorage: {getItem: () => null, setItem: () => {}}};
+context.window = context;
 vm.runInNewContext(fs.readFileSync(0, 'utf8'), context);
 context.bindProviderLogin(doc);
 if (calls.length || signIn.hidden) throw Error('binding started login or left button hidden');
@@ -159,7 +160,7 @@ if (calls.length || signIn.hidden) throw Error('binding started login or left bu
   console.log(JSON.stringify(calls));
 })().catch(e => {console.error(e); process.exitCode=1;});
 """
-        result = subprocess.run([shutil.which("node"), "-e", driver], input=source,
+        result = subprocess.run([shutil.which("node"), "-e", driver], input=html_report.LANG_HEAD + '\n' + source,
                                 text=True, capture_output=True, check=True, timeout=5)
         self.assertEqual(json.loads(result.stdout)[0], {"path": "/login", "body": {"id": "CLAUDE"}})
 

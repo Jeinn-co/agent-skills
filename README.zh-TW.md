@@ -97,6 +97,9 @@ python3.11 -m unittest discover -v -s tests
 - **版本靠手動維護。** `SKILL.md` frontmatter 裡有 `metadata.version`，skill 執行時也會
   印出自己的版本，讓已安裝的副本能自報身分。這個值只供辨識：`npx skills` 會用來源與
   內容 hash 追蹤它安裝的 skill；手動複製的版本則沒有更新紀錄。
+- **共用資源只有一個來源。** 修改 `shared/` 後執行
+  `python3.11 scripts/sync_shared.py`，把分發到各 skill 的檔案一起提交。
+  各 skill 仍可獨立安裝；翻譯與模型資料的位置見[資源分工](shared/README.md)。
 
 ## 授權
 
