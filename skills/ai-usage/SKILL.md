@@ -3,13 +3,13 @@ name: ai-usage
 description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, banked reset counts and expiry dates for Claude and ChatGPT, the model / effort of each CLI's newest session, and that model's Artificial Analysis score, cost and CP. `setup` chooses which providers to report. It automatically updates itself from GitHub before continuing. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 metadata:
   author: Jeinn
-  version: "1.28.0"
+  version: "1.28.1"
 ---
 
 
 # /ai-usage — unified AI usage report
 
-Requirements: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. Skill updates read raw.githubusercontent.com and codeload.github.com.
+Requirements: Requires Python 3.9+ and permission to launch subprocesses. Each provider shown needs its authenticated CLI and internet access; providers without a CLI are reported as unavailable. Skill updates read api.github.com, raw.githubusercontent.com and codeload.github.com.
 
 Launcher, from this skill's directory: `./run.sh` on macOS or Linux; `py -3 run.py` on
 Windows (`python run.py` if `py` is missing). Apart from the skill self-update below,

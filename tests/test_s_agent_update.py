@@ -1,5 +1,7 @@
 """Isolated update coverage for all public skills; network responses are fixtures."""
 import io
+import base64
+import json
 import os
 from pathlib import Path
 import re
@@ -17,6 +19,10 @@ import skill_update as update
 
 def skill(version):
     return f'---\nname: s-agent\nmetadata:\n  version: "{version}"\n---\n'
+
+
+def published(version):
+    return json.dumps({'content': base64.b64encode(skill(version).encode()).decode()}).encode()
 
 
 class UpdateTests(unittest.TestCase):
@@ -55,7 +61,7 @@ class UpdateTests(unittest.TestCase):
                 settings = root / 'user-settings.json'
                 settings.write_text('preserve')
                 sibling = self.installed(root, 'another-skill')
-                with mock.patch.object(update, '_download', side_effect=[skill('9.8.7').encode(), self.archive(name)]):
+                with mock.patch.object(update, '_download', side_effect=[published('9.8.7'), self.archive(name)]):
                     result = update.check_skill_update(name, folder, apply=True)
                 self.assertIn('installed=9.8.7 latest=9.8.7 status=updated', result)
                 self.assertFalse((folder / 'old-marker').exists())
@@ -69,7 +75,7 @@ class UpdateTests(unittest.TestCase):
             for version, apply, status in [('1.10.0', False, 'update available'),
                                            ('1.9.0', True, 'up to date'), ('1.8.0', True, 'up to date')]:
                 with self.subTest(version=version, apply=apply), \
-                        mock.patch.object(update, '_download', return_value=skill(version).encode()), \
+                        mock.patch.object(update, '_download', return_value=published(version)), \
                         mock.patch.object(update, '_install') as install:
                     self.assertIn('status=' + status, update.check_skill_update('s-agent', folder, apply=apply))
                     install.assert_not_called()
@@ -77,7 +83,7 @@ class UpdateTests(unittest.TestCase):
     def test_network_or_invalid_metadata_keeps_installed_copy(self):
         with tempfile.TemporaryDirectory() as work:
             folder = self.installed(Path(work), 's-agent')
-            for value in [urllib.error.URLError('offline'), b'not markdown', skill('next').encode()]:
+            for value in [urllib.error.URLError('offline'), b'not markdown', published('next')]:
                 patch = (mock.patch.object(update, '_download', side_effect=value) if isinstance(value, Exception)
                          else mock.patch.object(update, '_download', return_value=value))
                 with self.subTest(value=value), patch:
@@ -85,12 +91,21 @@ class UpdateTests(unittest.TestCase):
                     self.assertEqual(update.skill_version(folder), '1.0.0')
                     self.assertTrue((folder / 'old-marker').exists())
 
+    def test_raw_endpoint_remains_available_when_public_api_is_rate_limited(self):
+        with tempfile.TemporaryDirectory() as work:
+            folder = self.installed(Path(work), 's-agent')
+            with mock.patch.object(update, '_download', side_effect=[
+                    urllib.error.HTTPError(update.CONTENTS, 403, 'rate limited', {}, None),
+                    skill('9.8.7').encode()]):
+                self.assertIn('status=update available', update.check_skill_update('s-agent', folder))
+            self.assertTrue((folder / 'old-marker').exists())
+
     def test_unsafe_or_incomplete_archives_never_replace_installation(self):
         with tempfile.TemporaryDirectory() as work:
             folder = self.installed(Path(work), 's-agent')
             for archive in [self.archive('s-agent', '../escape'), self.archive('s-agent', 'C:escape'),
                             self.archive('s-agent', incomplete=True), b'not a zip']:
-                with mock.patch.object(update, '_download', side_effect=[skill('9.8.7').encode(), archive]):
+                with mock.patch.object(update, '_download', side_effect=[published('9.8.7'), archive]):
                     self.assertIn('update failed', update.check_skill_update('s-agent', folder, apply=True))
                     self.assertEqual(update.skill_version(folder), '1.0.0')
 
@@ -102,7 +117,7 @@ class UpdateTests(unittest.TestCase):
                 if Path(source).name == 'incoming':
                     raise OSError('replacement failed')
                 return replace(source, destination)
-            with mock.patch.object(update, '_download', side_effect=[skill('9.8.7').encode(), self.archive('s-agent')]), \
+            with mock.patch.object(update, '_download', side_effect=[published('9.8.7'), self.archive('s-agent')]), \
                     mock.patch.object(update.os, 'replace', side_effect=fail_incoming):
                 self.assertIn('update failed', update.check_skill_update('s-agent', folder, apply=True))
             self.assertEqual(update.skill_version(folder), '1.0.0')
@@ -114,7 +129,7 @@ class UpdateTests(unittest.TestCase):
             (root / '.git').mkdir()
             (root / 'skills').mkdir()
             folder = self.installed(root / 'skills', 's-agent')
-            with mock.patch.object(update, '_download', return_value=skill('9.8.7').encode()) as download:
+            with mock.patch.object(update, '_download', return_value=published('9.8.7')) as download:
                 self.assertIn('development checkout', update.check_skill_update('s-agent', folder, apply=True))
                 download.assert_called_once()
             self.assertTrue((folder / 'old-marker').exists())

@@ -64,7 +64,8 @@ Product mark paths came from the existing report renderers, originally copied
 from ai-model-compare and LobeHub Icons (MIT). i18next's pinned source and license
 are recorded under `vendor/`.
 
-The shared updater downloads the public GitHub archive and stages only the requested
+The shared updater reads versions through the GitHub contents API (falling back to
+raw GitHub when the public API is unavailable) and downloads the public GitHub archive and stages only the requested
 skill. It rejects unsafe paths, links, oversized/incomplete bundles and older versions
 before replacing an installation. Replacement failures restore the previous folder;
 an unrecoverable restore leaves its sibling backup available. It never writes role,

@@ -1,6 +1,8 @@
 """Update one installed skill from its public GitHub source using only the stdlib."""
 from pathlib import Path, PurePosixPath
+import base64
 import io
+import json
 import os
 import shutil
 import stat
@@ -11,6 +13,7 @@ import zipfile
 from skill_runtime import metadata_version, skill_version
 
 SOURCE = 'https://raw.githubusercontent.com/Jeinn-co/agent-skills/main/skills/'
+CONTENTS = 'https://api.github.com/repos/Jeinn-co/agent-skills/contents/skills/'
 ARCHIVE = 'https://codeload.github.com/Jeinn-co/agent-skills/zip/refs/heads/main'
 SKILLS = ('ai-usage', 'ai-cli-version', 's-agent')
 MAX_BYTES = 64 * 1024 * 1024
@@ -21,7 +24,8 @@ def _version(value):
 
 
 def _download(url, timeout):
-    request = urllib.request.Request(url, headers={'User-Agent': 'agent-skills-updater'})
+    request = urllib.request.Request(url, headers={'User-Agent': 'agent-skills-updater',
+                                                  'Cache-Control': 'no-cache'})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         body = response.read(MAX_BYTES + 1)
     if len(body) > MAX_BYTES:
@@ -87,6 +91,15 @@ def _install(name, folder, latest, timeout):
     return current
 
 
+def _latest(name, timeout):
+    try:
+        document = _download(CONTENTS + name + '/SKILL.md?ref=main', timeout)
+    except OSError:  # The raw endpoint still works when the public API is unavailable/rate-limited.
+        return metadata_version(_download(SOURCE + name + '/SKILL.md', timeout).decode('utf-8'))
+    content = json.loads(document)['content']
+    return metadata_version(base64.b64decode(content).decode('utf-8'))
+
+
 def check_skill_update(name, folder, *, apply=False, timeout=10):
     """Check by default; an explicit apply call replaces only this installation."""
     try:
@@ -94,11 +107,11 @@ def check_skill_update(name, folder, *, apply=False, timeout=10):
             raise ValueError('unknown skill')
         folder = Path(folder).resolve()
         installed = skill_version(folder)
-        latest = metadata_version(_download(SOURCE + name + '/SKILL.md', timeout).decode('utf-8'))
+        latest = _latest(name, timeout)
         status = 'update available' if _version(latest) > _version(installed) else 'up to date'
         if status == 'update available' and apply:
             installed = _install(name, folder, latest, timeout)
             status = 'updated'
         return f'skill installed={installed} latest={latest} status={status}'
-    except (OSError, ValueError, zipfile.BadZipFile) as error:
+    except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile) as error:
         return f'skill {"update" if apply else "check"} failed ({error})'
