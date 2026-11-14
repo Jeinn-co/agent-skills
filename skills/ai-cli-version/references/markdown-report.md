@@ -2,24 +2,8 @@
 
 Read this only when setup saved `output=md`.
 
-## Output format — HTML (default) or Markdown
-
-Setup saves the format; `html` is the default when nothing is saved. There is no
-command argument for it — only `setup` changes it. `--show-tools` prints `output=html`
-or `output=md`.
-
-- **html**: the launcher prints its usual raw lines, then writes a Morandi-palette page (the version table with status badges) to
-  `<temp>/ai-cli-version/report.html`, opens it in the default browser, and ends with
-  `### HTML <path>` (plus `(could not open a browser)` when that failed). The page is
-  drawn by Python with no scripts and no external requests, so it costs no model
-  tokens. In chat, print only:
-  1. the summary as a blockquote (`> **→ N update(s) available:** <tools>.` or
-     `> **All up to date.**`),
-  2. `**Report:** [Open the HTML report](file:///<path with forward slashes>)`, and a short
-     note when the browser could not be opened,
-  3. the update prompt below when anything is outdated.
-  Do not print the Markdown report as well.
-- **md**: no file is written; render the Markdown report below in chat.
+No file is written in this mode; render the Markdown report below in chat. The HTML
+report is described in `SKILL.md`.
 
 ## Report (Markdown)
 
@@ -46,8 +30,9 @@ _\* Grok release time is approximate (third-party mirror); official: x.ai/build/
 `[y]` Update all · `[Esc]` Skip
 
 **When no row has `status=update available`, print the short form instead of the table**
-and no prompt — the heading says everything is current, then one row per tool with its
-installed version:
+and no prompt — one row per tool with its installed version. The heading says
+`all up to date` only when every selected check succeeded; when any row is
+`check failed (...)`, it says `check incomplete` instead:
 
 ### CLI versions — 10-20 · all up to date
 
@@ -62,7 +47,7 @@ installed version:
 **Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)
 
 `not installed` and `check failed (...)` rows still appear in the short form, with their
-reason in the Version cell. As soon as one tool is outdated, print the full table above.
+reason in the Version cell, and the `### SUMMARY` line names the failed tools. As soon as one tool is outdated, print the full table above.
 
 **Skipped tools.** When setup has narrowed the list, the launcher prints
 `### skipped <ids>` after the version line and no row for those tools. Do not show a
@@ -99,7 +84,7 @@ Rules:
 - `ahead of channel` means the installed build is newer than the channel tag — show it
   as-is, not as an error.
 - Summary, `Not checked (setup)` line and update prompt: copy the launcher's `### SUMMARY`
-  lines (the short form says `all up to date` in its heading instead of the summary line).
+  lines (the short form puts `all up to date` or `check incomplete` in its heading instead of the summary line; a `Check failed` summary line is still printed).
 - `**Compare models:** [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/)` always follows the report (after the summary and any `Not checked (setup)`
   line), before any update prompt. Keep the URL exactly as written.
 - Use the report language resolved below for labels, readable status and error

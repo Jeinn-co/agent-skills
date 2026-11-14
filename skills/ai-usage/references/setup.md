@@ -6,8 +6,9 @@ not run the report. Provider ids: `claude` (Claude), `codex` (ChatGPT), `grok` (
 
 1. Run the platform launcher with `--show-providers`; it prints `providers=<ids>`, the
    current selection (every provider when nothing is saved), and `installed=<ids>`, the
-   providers whose CLI is present. Offer only installed providers; one that is not
-   installed is never saved.
+   providers whose CLI is present. Offer installed providers, plus Claude without its CLI
+   when a connected browser tool is available (its Usage page is a source of its own,
+   see `claude-browser.md`). Never save any other provider that is not installed.
 2. Ask about the providers — **keep first**, with one short question at a time.
    First show the current selection in the choice descriptions and ask `Keep or change?`
    with `Keep` first and `Change…` second. `Keep` saves nothing for this step.

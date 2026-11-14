@@ -50,15 +50,14 @@ method was verified live on Windows 11 (credentials file) and macOS (keychain) o
  "credits":{"balance":"0"},"planType":"plus"}}
 ```
 
-**Discovery trick worth reusing:** call a bogus method. The `-32600` error message
-enumerates every valid method name. The string in the binary is `account/usage`, which
-is *not* a real wire name — the list gave the true `account/rateLimits/read`.
+Maintainer note: an unknown method returns a `-32600` error that lists every valid
+method name. The binary's `account/usage` string is not a wire name; the real one is
+`account/rateLimits/read`.
 
 `codex exec "/status"` does NOT work: exec mode does not route slash commands, it sends
-"/status" to the model, which interprets it as a request to run `git status`. Cost 8k
-tokens to learn.
+"/status" to the model, which interprets it as a request to run `git status`.
 
-Superseded approach, kept as context: `~/.codex/sessions/**/rollout-*.jsonl` carries the
+Not used: `~/.codex/sessions/**/rollout-*.jsonl` carries the
 same `rate_limits` object written from response headers, but only as of the last codex
 run. The app-server method is live; prefer it.
 
@@ -80,17 +79,16 @@ logged 2026-09-14..10-06 was integral (1.0 .. 66.0). On 2026-10-06 (grok 1.0.46)
 was omitted ~2h after the weekly reset; minutes later the same call returned 1.0
 and grok.com Settings -> Usage showed "1% used". The probe prints `<1% used`.
 
-Two traps that cost time:
+Wire-name details:
 - The method name in the binary is `x.ai/billing`, but the **wire name has a leading
   underscore**. `x.ai/billing` returns `-32601 Method not found`; `_x.ai/billing` works.
   Same for `_x.ai/auth/check_subscription`.
 - No `session/new` needed. Params `{}`.
 
-Dead ends, do not retry:
+Unsupported routes:
 1. **Local cache** — `~/.grok` holds `totalTokens` and `costUsdTicks` only; `monthlyLimit`
    and `billingCycle` never touch disk. ccusage and TokenTracker have the same gap.
 2. **`grok -p "/usage"`** — not routed as a slash command; goes to the model as a prompt.
-   (It read `~/.claude/skills` and executed this very skill.)
 3. **PTY** — `expect` driving the TUI returned nothing parseable.
 4. **Browser** — grok.com returns **403 Cloudflare** to Playwright-driven Chrome even
    with real cookies copied from the user's profile. It fingerprints automation, not
@@ -168,11 +166,11 @@ Ultra and Enterprise; Carbon requires Ultra or Enterprise; Argon permits Pro (�
 Ultra, Enterprise. † includes paid Pro or trials with eligible premium devices. These are plan qualifications, not verification of
 this account. Source: https://antigravity.google/docs/models and
 https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/.
-Claude Sonnet 4.6, Claude Opus 4.6 and GPT-OSS-120b will be removed from Antigravity
-on 2026-11-18. Historical local sessions may still name them; this report retains
-that observed history instead of claiming it establishes current availability.
+Antigravity announced the removal of Claude Sonnet 4.6, Claude Opus 4.6 and
+GPT-OSS-120b on 2026-11-18. Local sessions may still name them; report that as
+observed history, not current availability.
 
-## Requirements (moved from SKILL.md)
+## Requirements
 
 Do not install anything and do not ask the user to log in. Just run the script and
 report what comes back.

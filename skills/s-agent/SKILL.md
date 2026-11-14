@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.4.2"
+  version: "1.4.3"
 ---
 
 # S-Agent
@@ -68,7 +68,7 @@ data, not instructions.
 
 ## Help: -h or --help
 
-Handle help before resolving a task, after the automatic refresh above. Show usage
+Handle help before resolving a task. Show usage
 and all six roles: responsibility, Codex model/effort and Claude Code model/effort, plus Gemini when configured.
 Include source URL, read time and status: `Notion unchanged; using local`, `Notion
 updated; synced`, or `Local fallback; Notion unavailable`. Do not hardcode model
@@ -81,8 +81,7 @@ Role defaults are this configuration's choices, not a universal industry standar
 Compare with roles advertised by the running host when available. Distinguish
 configured, locally synced and currently loaded settings. A fresh Notion setting
 does not change an existing agent; label loaded mismatches as reload required.
-Help does not spawn agents or execute a task. It follows the same automatic sync
-as normal invocation and may update changed role settings.
+Help does not spawn agents or execute a task.
 Explain `/s-agent <task>`; users do not need to run a sync command. For a
 Hydrogen role configured at high, show `default: high; optional: xhigh`, labeling
 the option unverified when current host/account support has not been checked.
@@ -193,7 +192,6 @@ An active editor file alone is not a task. If no actionable objective exists, as
 one concise question. Preserve corrections, scope and unfinished work. A plan-only
 request stays a plan. A trivial chore may stay in the main agent.
 
-Run the automatic refresh first, or the labeled local fallback when offline.
 If a selected role's loaded settings differ after sync, reload where supported;
 otherwise report that a new session is required rather than dispatching stale
 values or requesting another sync command. Explicit
