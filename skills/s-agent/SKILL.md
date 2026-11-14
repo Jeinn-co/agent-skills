@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; check for skill updates, automatically sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.2.0"
+  version: "1.2.2"
 ---
 
 # S-Agent
@@ -84,7 +84,9 @@ configured, locally synced and currently loaded settings. A fresh Notion setting
 does not change an existing agent; label loaded mismatches as reload required.
 Help does not spawn agents or execute a task. It follows the same automatic sync
 as normal invocation and may update changed role settings.
-Explain `/s-agent <task>`; users do not need to run a sync command.
+Explain `/s-agent <task>`; users do not need to run a sync command. For a
+Hydrogen role configured at high, show `default: high; optional: xhigh`, labeling
+the option unverified when current host/account support has not been checked.
 
 ## Automatic synchronization
 
@@ -126,7 +128,10 @@ is optional, but must be present on all six roles when used. The catalog must
 cover exactly the platforms in the policy. Existing two-platform policies remain valid. It rejects duplicates, unsupported
 pairs and unexpected keys before writing. Model identifiers and supported effort
 values come from the current catalog, so adding a supported model in Notion does
-not require a skill release.
+not require a skill release. Known Gemini models additionally enforce their documented
+levels: Hydrogen accepts low, medium, high (default), xhigh; Carbon and Argon
+accept low, medium (default), high; 3.8 Flash accepts low, medium, high. Minimal
+is not supported on these models. The runtime catalog must still verify the pair.
 
 Targets: `~/.codex/agents/<role>.toml`, `~/.claude/agents/<role>.md`, and matching
 existing `~/.agents/roles/<role>.toml` sources. With Gemini configured, create or
@@ -153,8 +158,21 @@ capabilities. Use `agy models` for account availability when signed in. A failed
 login check leaves account availability unverified; documented support can still
 validate configuration, but does not establish that a task can run.
 
+Treat the Notion `effort` as the dispatch default. For a Hydrogen role configured
+at high, use high normally; xhigh is an optional override for one explicitly
+requested handoff (for example, `/s-agent Use Gemini reviewer at xhigh to review
+this change.`). Resolve the requested role and override before launch. Validate
+xhigh against the model's allowed levels and current host/account capabilities;
+report unsupported or unverified execution instead of silently substituting high.
+Pass the selected value through `--effort`, report both configured and effective
+effort, and use that effective pair when verifying native delegation. Do not write
+the override to Notion, shared role sources or native profiles. Subsequent handoffs
+return to their configured defaults unless the user explicitly extends the scope.
+Do not auto-escalate, pass a range such as `high ~ xhigh`, or apply Hydrogen's
+option to Carbon, Argon or Flash.
+
 Help shows the exact `[gemini]` model/effort and the native `inherit` tier separately.
-For an exact configured pair, launch the named role in a separate Antigravity CLI
+For the selected model/effort pair, launch the named role in a separate Antigravity CLI
 session using `agy --agent <role> --model <model> --effort <effort> -p <handoff>`
 in the authorized workspace. Resolve `agy` from PATH, then `~/.gemini/bin/agy.exe`
 on Windows. Pass arguments as a list or use proper shell quoting. Preserve the

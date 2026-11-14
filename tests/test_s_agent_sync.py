@@ -203,6 +203,28 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(self.run_cli(apply=True), 1)
         self.assertFalse(self.root.exists())
 
+    def test_hydrogen_levels_sync_and_other_gemini_models_reject_xhigh(self):
+        self.configure_gemini()
+        self.catalog['gemini']['gemini-4-hydrogen'] = ['low', 'medium', 'high', 'xhigh']
+        for effort in ('low', 'medium', 'high', 'xhigh'):
+            with self.subTest(effort=effort):
+                self.policy['roles']['executor']['gemini'] = {'model': 'gemini-4-hydrogen', 'effort': effort}
+                self.catalog_path.write_text(json.dumps(self.catalog))
+                self.assertEqual(self.run_cli(apply=True), 0)
+                shared = tomllib.loads((self.root / '.agents/roles/executor.toml').read_text())
+                self.assertEqual(shared['gemini'], self.policy['roles']['executor']['gemini'])
+        baseline = self.snapshot()
+        for model in sync.GEMINI_EFFORTS:
+            invalid = 'minimal' if model == 'gemini-4-hydrogen' else 'xhigh'
+            self.policy['roles']['executor']['gemini'] = {'model': model, 'effort': invalid}
+            # Even a mistaken runtime catalog must not bypass known model constraints.
+            self.catalog['gemini'][model] = [invalid]
+            self.catalog_path.write_text(json.dumps(self.catalog))
+            self.assertEqual(self.run_cli(apply=True), 1)
+            self.assertEqual(self.snapshot(), baseline)
+            with self.assertRaisesRegex(ValueError, 'unsupported effort'):
+                sync.validate(self.policy)
+
     def test_bad_last_target_prevents_entire_batch(self):
         self.seed()
         (self.root / '.claude/agents/devops.md').write_text('---\nmodel: *alias\n---\n')

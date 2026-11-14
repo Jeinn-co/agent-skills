@@ -107,6 +107,13 @@ Separate CLI sessions do not automatically inherit parent permissions or sandbox
 enforce equivalent scopes before launch, or keep work in the authorized host.
 The coordinator verifies the returned work.
 
+For Hydrogen roles configured with `"effort": "high"`, high remains the default.
+To select xhigh for one handoff, say `/s-agent Use Gemini reviewer at xhigh to
+review this change.` S-Agent verifies support, reports the effective effort and
+passes `--effort xhigh`. It does not change Notion or saved role defaults; later
+handoffs use their configured effort. `-h` shows the default and optional xhigh,
+with support labeled unverified until checked. There is no automatic escalation.
+
 ## Roles and coordination
 
 | Role | Responsibility |
