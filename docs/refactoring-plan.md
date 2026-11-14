@@ -2,13 +2,13 @@
 
 ## Scope
 
-Keep all four skills independently installable. Consolidate manually maintained
+Keep all three published skills independently installable. Consolidate manually maintained
 report resources, not unrelated provider probes or update/server behavior.
 The existing My usage changes are part of this refactor.
 
 ## Steps
 
-1. [x] Inventory ai-usage, ai-cli-version, s-agent and pp.
+1. [x] Inventory ai-usage, ai-cli-version and s-agent.
 2. [x] Define canonical resources under shared/ and standalone distributed copies.
 3. [x] Migrate report translations, language controls, logos and Gemini model facts.
 4. [x] Update affected callers, regression fixtures and documentation; preserve local customizations.
