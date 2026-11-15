@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.4.4"
+  version: "1.4.5"
 ---
 
 # S-Agent
@@ -153,8 +153,7 @@ layouts and symlinks fail without changes; missing profiles receive minimal
 responsibility prompts. Backups live in `~/.agents/s-agent-backups/`; a failed write
 triggers rollback. Repeating an unchanged sync does not rewrite profiles.
 `--root <temporary-home>` is for isolated verification, not a real sync destination.
-For compatibility, a legacy `sync [Notion URL]` invocation uses this same refresh
-without dispatching a task; it is no longer a required step.
+For compatibility, `sync [Notion URL]` runs this same refresh without dispatching a task.
 
 ## Gemini configuration and dispatch
 
