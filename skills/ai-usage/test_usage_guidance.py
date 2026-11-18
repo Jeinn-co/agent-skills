@@ -20,14 +20,13 @@ class LiveChoicesTests(unittest.TestCase):
         import guidance_data
         self.data = guidance_data
         saved = (dict(guidance_data.DAILY_CHOICES), list(guidance_data.ROLE_ASSIGNMENTS),
-                 dict(guidance_data.CLI_DEFAULTS), set(guidance_data.EXCLUDED_GEMINI_PICKS),
+                 set(guidance_data.EXCLUDED_GEMINI_PICKS),
                  guidance_data.OPTIONAL_GEMINI_EFFORT)
 
         def restore():
-            daily, roles, cli, excluded, optional = saved
+            daily, roles, excluded, optional = saved
             guidance_data.DAILY_CHOICES.clear(); guidance_data.DAILY_CHOICES.update(daily)
             guidance_data.ROLE_ASSIGNMENTS[:] = roles
-            guidance_data.CLI_DEFAULTS.clear(); guidance_data.CLI_DEFAULTS.update(cli)
             guidance_data.EXCLUDED_GEMINI_PICKS.clear(); guidance_data.EXCLUDED_GEMINI_PICKS.update(excluded)
             guidance_data.OPTIONAL_GEMINI_EFFORT = optional
         self.addCleanup(restore)
@@ -40,13 +39,11 @@ class LiveChoicesTests(unittest.TestCase):
         import json
         live = json.loads((Path(self.data.__file__).with_name('data') / 'personal-choices.json').read_text(encoding='utf-8'))
         live['daily'][1] = {'provider': 'codex', 'model': 'GPT-9 Sol', 'effort': 'low'}
-        live['cliDefaults'] = [{'provider': 'codex', 'model': 'gpt-9-sol', 'effort': 'low'}]
         with self.serve(json.dumps(live)):
             self.assertTrue(self.data.refresh_live())
         page = html_report.render('')
         self.assertIn('Codex GPT-9 Sol / low.', page)
-        self.assertIn('CLI defaults: Codex gpt-9-sol / low.', page)
-        self.assertIn('CLI 預設：Codex gpt-9-sol / low。', page)
+        self.assertNotIn('CLI defaults', page)
 
     def test_invalid_or_unreachable_choices_keep_the_bundled_ones(self):
         before = dict(self.data.DAILY_CHOICES)
@@ -149,11 +146,11 @@ class UsageGuidanceTests(unittest.TestCase):
         hydrogen = {'model': 'Gemini 4 Hydrogen', 'effort': 'High', 'score': 51, 'cost': 1}
         self.assertEqual(cursorbench.pick([argon, hydrogen], 'agy')[0], 'Gemini 4 Hydrogen High')
         self.assertIsNone(cursorbench.pick([argon], 'agy'))
-        # Roles mirror the s-agent Notion configuration.
+        # Displayed Gemini roles follow My usage roleOverrides, not s-agent's Argon dispatch.
         for role in html_report.ROLE_ASSIGNMENTS:
-            expected = {'Executor': ('Gemini 4 Hydrogen', 'medium'),
-                        'Security': ('Gemini 4 Carbon', 'high')}.get(role['role'], ('Gemini 4 Argon', 'high'))
-            self.assertEqual(role['models']['gemini'], expected)
+            expected = 'Gemini 4 Carbon' if role['role'] == 'Security' else 'Gemini 4 Hydrogen'
+            effort = {'Executor': 'medium', 'Security': 'high'}.get(role['role'], 'high ~ xhigh')
+            self.assertEqual(role['models']['gemini'], (expected, effort))
         page = html_report.render('')
         self.assertNotIn('本機選型草案', page)
         self.assertNotIn('尚未同步 Notion', page)
@@ -164,7 +161,7 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertEqual(page.count('日常工作使用 Gemini 4 Hydrogen / high；high 不足時可明確指定單次派工使用 xhigh。安全工作使用 Gemini 4 Carbon / high，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
         self.assertIn('日常工作使用 Gemini 4 Hydrogen / high', roles.split('<table', 1)[0])
         self.assertNotIn('Upgrade to xhigh', roles)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Argon / high</td>'), 4)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / high ~ xhigh</td>'), 4)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / medium</td>'), 1)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Carbon / high</td>'), 1)
 

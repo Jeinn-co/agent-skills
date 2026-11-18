@@ -28,7 +28,7 @@ def _pair(choice):
 
 
 def _parse(personal):
-    """(daily, roles, cli defaults, excluded Gemini picks, optional Gemini effort), validated."""
+    """(daily, roles, excluded Gemini picks, optional Gemini effort), validated."""
     daily = {choice["provider"]: _pair(choice) for choice in personal["daily"]}
     if "gemini" not in daily:
         raise ValueError("daily choices lack gemini")
@@ -41,14 +41,13 @@ def _parse(personal):
         if not isinstance(role["role"], str) or not isinstance(role["description"], str):
             raise ValueError("every role needs a name and description key")
         roles.append({**role, "models": models})
-    cli = {choice["provider"]: _pair(choice) for choice in personal.get("cliDefaults", [])}
     optional = personal["optionalGeminiEffort"]
     if not isinstance(optional, str):
         raise ValueError("optionalGeminiEffort must be text")
-    return daily, roles, cli, set(personal["excludedGeminiPicks"]), optional
+    return daily, roles, set(personal["excludedGeminiPicks"]), optional
 
 
-DAILY_CHOICES, ROLE_ASSIGNMENTS, CLI_DEFAULTS, EXCLUDED_GEMINI_PICKS, OPTIONAL_GEMINI_EFFORT = _parse(
+DAILY_CHOICES, ROLE_ASSIGNMENTS, EXCLUDED_GEMINI_PICKS, OPTIONAL_GEMINI_EFFORT = _parse(
     json.loads((_DATA / "personal-choices.json").read_text(encoding="utf-8")))
 
 
@@ -58,14 +57,12 @@ def refresh_live(timeout=3):
     try:
         request = urllib.request.Request(LIVE_URL, headers={"User-Agent": "ai-usage"})
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            daily, roles, cli, excluded, optional = _parse(json.loads(response.read().decode("utf-8")))
+            daily, roles, excluded, optional = _parse(json.loads(response.read().decode("utf-8")))
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return False
     DAILY_CHOICES.clear()
     DAILY_CHOICES.update(daily)
     ROLE_ASSIGNMENTS[:] = roles
-    CLI_DEFAULTS.clear()
-    CLI_DEFAULTS.update(cli)
     EXCLUDED_GEMINI_PICKS.clear()
     EXCLUDED_GEMINI_PICKS.update(excluded)
     OPTIONAL_GEMINI_EFFORT = optional
