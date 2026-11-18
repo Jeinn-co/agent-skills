@@ -126,6 +126,10 @@ CLOCK = ('<svg class="clock" viewBox="0 0 16 16" aria-hidden="true">'
          '<circle cx="8" cy="8" r="6.25"/><path d="M8 4.6V8l2.4 1.5"/></svg>')
 
 
+REFRESH_ICON = ('<svg class="ico" viewBox="0 0 16 16" aria-hidden="true">'
+                '<path d="M13.25 8A5.25 5.25 0 1 1 11.7 4.3"/><path d="M12.25 1.75v3h-3"/></svg>')
+
+
 def window_label(label):
     """A window's label; `week` also reads in Chinese, the rest are names or `5h`."""
     return bi('week') if label == "week" else esc(label)
@@ -357,13 +361,20 @@ def card(p, now, loading=False):
     timed_out = any(note.startswith(TIMED_OUT) for note in p["notes"])
     clis = {name: cli for cli, name in CLI_NAMES.items()}
     link = USAGE_PAGES.get(p["name"])
-    return ('<section class="card" data-id="%s"%s><header><h2>%s%s</h2><span class="plan">%s</span>%s</header>%s'
+    link = ('<a class="usage" href="%s" target="_blank" rel="noopener">%s</a>'
+            % (esc(link), bi('usage_page')) if link else "")
+    # The usage link sits at the right of the first reset block; cards without one keep it in the header.
+    for i, row in enumerate(rows):
+        if link and row.startswith('<fieldset class="reset-credits">'):
+            rows[i], link = row.replace('</legend>', '</legend>' + link, 1), ""
+    # Hidden until the served page's script binds it; the saved file has no server to call.
+    refresh = ('<button type="button" class="card-refresh" data-card-refresh hidden>%s<span>%s</span></button>'
+               % (REFRESH_ICON, bi('refresh')))
+    return ('<section class="card" data-id="%s"%s><header><h2>%s%s</h2><span class="plan">%s</span>%s%s</header>%s'
             '<div class="now">%s%s</div></section>'
             % (esc(p["id"]), " data-timeout" if timed_out and not loading else "",
                logo(clis[p["name"]]), esc(p["name"]), "…" if loading else esc(p["plan"]),
-               '<a class="usage" href="%s" target="_blank" rel="noopener">%s</a>'
-               % (esc(link), bi('usage_page')) if link else "",
-               "".join(rows), bi('now_label'), now_line))
+               link, refresh, "".join(rows), bi('now_label'), now_line))
 
 
 # Row tint class per CLI; the CSS gives each the same --brand as its provider card.

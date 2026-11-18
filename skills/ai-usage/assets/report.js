@@ -89,6 +89,7 @@ const update = (ids, bench) => {
     document.querySelector('.card[data-id="' + id + '"]').outerHTML = r.html;
     window.updateResetExpiry?.();
     bindProviderLogin(document);
+    bindCardRefresh();
   }, e => {
     sections.push("### " + id + "\nusage call failed (" + e + ")\n");
     const note = document.createElement("div");
@@ -117,7 +118,25 @@ const busy = work => {
     })
     .finally(() => { button.disabled = false; relabel(); });
 };
+// Puts the skeleton in place of a card's figures while it is fetched again.
+const loadingCard = card => {
+  [...card.children].filter(el => !el.matches("header, .now")).forEach(el => el.remove());
+  card.querySelector(".now").insertAdjacentHTML("beforebegin", SKELETON);
+};
+// Each card's own Refresh re-fetches only that provider; the others keep their figures.
+function bindCardRefresh() {
+  document.querySelectorAll(".card [data-card-refresh]").forEach(own => {
+    own.hidden = false;
+    own.onclick = () => {
+      const card = own.closest(".card");
+      own.disabled = true;
+      loadingCard(card);
+      update([card.dataset.id], false).finally(() => { own.disabled = false; });
+    };
+  });
+}
 bindProviderLogin(document);
+bindCardRefresh();
 button.onclick = () => busy(() => get("/skeleton").then(html => {
   swap(html);
   return update([...document.querySelectorAll(".card[data-id]")].map(card => card.dataset.id), true);
@@ -129,10 +148,7 @@ if (root.dataset.empty) {
   // with the page's longer budget.
   const late = [...document.querySelectorAll(".card[data-timeout]")];
   if (late.length) {
-    late.forEach(card => {
-      card.querySelectorAll(".row, .note").forEach(el => el.remove());
-      card.querySelector(".now").insertAdjacentHTML("beforebegin", SKELETON);
-    });
+    late.forEach(loadingCard);
     busy(() => update(late.map(card => card.dataset.id), false));
   }
 }
