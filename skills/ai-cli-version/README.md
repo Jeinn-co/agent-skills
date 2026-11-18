@@ -6,8 +6,10 @@ version you have and when you installed it, the latest version and when it was r
 The HTML report supports English and Traditional Chinese. Use the globe button beside
 the theme picker; it starts with your browser language and remembers your choice.
 
-The version check is always read-only. When an update is available, the agent offers two
-choices: `y` updates every outdated CLI, while `Esc` skips all updates.
+The version check is always read-only. When an update is available, you update from the
+HTML report's **Update** / **Update all** buttons; the agent does not ask in chat. Only
+when there is no served page (Markdown output, or the local server cannot start) does it
+offer `y` (update every outdated CLI) or `Esc` (skip all).
 
 Works in Claude Code, Codex CLI, Grok Build, and anything else that reads the `SKILL.md`
 convention. Nothing here depends on a particular host.
@@ -97,9 +99,9 @@ Type the skill name as a slash command:
     /ai-cli-version
 
 Or just ask — "is my CLI up to date?", "check for updates", "when was this Codex released?". It reads
-live every time; there is no cache or flag. If one or more versions are outdated, it
-shows the report and waits for an explicit `y` before running their update commands.
-Choose `Esc` to leave every CLI unchanged.
+live every time; there is no cache or flag. If one or more versions are outdated, update
+them from the report page's buttons. Without a served page the agent instead waits for an
+explicit `y` before running their update commands; `Esc` leaves every CLI unchanged.
 
 To run it outside an agent, change into the installed `ai-cli-version` directory — for
 example `~/.claude/skills/ai-cli-version` — then use the launcher for your platform:
@@ -157,7 +159,10 @@ background (`run.py --serve`, Python standard library only) and opens
   - The page sends only the tool name. The server re-checks that tool first, does
     nothing if it is already current, and runs the same updater as its `update_cmd`
     without a shell (on Windows with `System32` first on PATH, so the Codex installer
-    finds Windows' own `tar`). In the agent, updating still waits for `y` / `Esc`.
+    finds Windows' own `tar`). With the page served, the agent never asks `y` / `Esc`.
+  - Codex's row also counts its background app-server daemon, which `codex update`
+    leaves behind (an old daemon is refused newer models). When it lags, the row shows
+    `daemon <version>` and its update runs `codex app-server daemon update` too.
 - `Updated MM-DD HH:MM:SS` is when the report on screen was written.
 - **Auto / Light / Dark** picks the colours; Auto follows the OS, and the choice is kept
   in that browser.
@@ -193,17 +198,16 @@ comes from a third-party mirror; Muse Code's and Antigravity's are always `?` be
 their update sources publish no date. The page ends with a link to
 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
-In chat the agent shows only the summary, a link to the page and, when something is
-outdated, the update prompt:
+In chat the agent shows only the summary and a link to the page; updates are chosen on
+the page:
 
 > **→ 2 updates available:** Claude Code, Muse Code.
 >
 > **Report:** Open the HTML report
->
-> **Update the 2 outdated CLIs now?** `[y]` Update all · `[Esc]` Skip
 
-When every checked CLI is current, the summary reads **All up to date** and there is no
-prompt. `setup` can switch the output to Markdown: the agent then renders the same table
+When every checked CLI is current, the summary reads **All up to date**. The chat prompt
+`**Update the 2 outdated CLIs now?** [y] Update all · [Esc] Skip` appears only when the
+page cannot be served. `setup` can switch the output to Markdown: the agent then renders the same table
 in chat and opens no page.
 
 The launcher prints these lines itself (`### SUMMARY`), so the agent only copies them

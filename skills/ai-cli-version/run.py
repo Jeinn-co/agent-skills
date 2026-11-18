@@ -182,10 +182,11 @@ def claude_channel():
         return "latest"
 
 
-def emit(name, installed, installed_at, latest, released, released_note, channel, update_cmd):
+def emit(name, installed, installed_at, latest, released, released_note, channel, update_cmd,
+         daemon=None, stale=False):
     if installed is None or latest is None:
         state = "unknown"
-    elif installed < latest:
+    elif installed < latest or stale:
         state = "update available"
     elif installed > latest:
         state = "ahead of channel"
@@ -201,7 +202,7 @@ def emit(name, installed, installed_at, latest, released, released_note, channel
         f"channel={channel}",
         f"status={state}",
         f"update_cmd={update_cmd}",
-    ]))
+    ] + ([f"daemon={fmt(daemon)}"] if daemon else [])))
 
 
 def check_claude():
@@ -225,6 +226,16 @@ def check_claude():
         print(f"claude\tcheck failed ({exc})")
 
 
+CODEX_DAEMON_UPDATE = "codex app-server daemon update"
+
+
+def codex_daemon():
+    """Version of Codex's background app-server package, None when it is not installed.
+    `codex update` never updates it, and an old daemon is refused newer models."""
+    current = os.path.join(CODEX_DIR, "packages", "app-server-daemon", "current")
+    return parse_version(os.path.basename(os.path.realpath(current))) if os.path.exists(current) else None
+
+
 def check_codex():
     cmd = argv("codex", "--version")
     if cmd is None:
@@ -238,7 +249,14 @@ def check_codex():
             first_match(os.path.join(CODEX_DIR, "packages", "standalone", "releases", f"{fmt(installed)}-*"))
         ) or package_dir_time("codex")
         released = local_from_iso(times.get(fmt(latest)))
-        emit("codex", installed, installed_at, latest, released, "npm publish", "latest", "codex update")
+        # The daemon has its own updater: it is stale when older than the CLI after updating.
+        daemon = codex_daemon()
+        target = max([v for v in (installed, latest) if v], default=None)
+        stale = bool(daemon and target and daemon < target)
+        steps = (["codex update"] if installed and latest and installed < latest else []) + (
+            [CODEX_DAEMON_UPDATE] if stale else [])
+        emit("codex", installed, installed_at, latest, released, "npm publish", "latest",
+             "; ".join(steps) or "codex update", daemon=daemon, stale=stale)
     except Exception as exc:  # noqa: BLE001
         print(f"codex\tcheck failed ({exc})")
 
@@ -495,15 +513,25 @@ def serve_page(page, empty=False):
 UPDATE_TIMEOUT = 300
 
 
-def update_plan(name):
-    """(argv, extra env) for `name`'s updater: what its update_cmd runs, without a shell,
-    so no quoting rules or shell PATH apply. None as argv when it is not installed."""
+def update_plan(name, update_cmd=""):
+    """[(argv, extra env)] for `name`'s updaters, in order: what its update_cmd runs,
+    without a shell, so no quoting rules or shell PATH apply. None as argv when it is
+    not installed."""
     if name == "muse":
-        return argv("muse", "--version"), {"MUSE_SYNC_UPDATE": "1"}
+        return [(argv("muse", "--version"), {"MUSE_SYNC_UPDATE": "1"})]
     if name == "agy":
         cli = os.path.join(HOME, ".gemini", "bin", "agy.exe" if os.name == "nt" else "agy")
-        return ([cli, "update"] if os.path.isfile(cli) else None), {}
-    return argv(name, "update"), {}
+        return [([cli, "update"] if os.path.isfile(cli) else None, {})]
+    if name == "codex":  # `codex update` and/or the daemon's updater, as the check chose
+        steps = [cmd.split() for cmd in update_cmd.split(";") if cmd.strip()]
+        allowed = (["codex", "update"], CODEX_DAEMON_UPDATE.split())
+        return [(argv(*step), {}) for step in steps if step in allowed] or [(argv("codex", "update"), {})]
+    return [(argv(name, "update"), {})]
+
+
+def update_cmd_of(row):
+    return next((part[len("update_cmd="):] for part in row.strip().split("\t")
+                 if part.startswith("update_cmd=")), "")
 
 
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
@@ -518,9 +546,18 @@ def run_update(name, on_line=lambda line: None):
         return {"ok": True, "output": "already up to date"}
     if "status=update available" not in row:
         return {"ok": False, "error": row.strip().split("\t")[-1][:300]}
-    args, extra = update_plan(name)
-    if not args:
-        return {"ok": False, "error": "not installed"}
+    result = {"ok": False, "error": "not installed"}
+    for args, extra in update_plan(name, update_cmd_of(row)):
+        if not args:
+            return {"ok": False, "error": "not installed"}
+        result = run_step(args, extra, on_line)
+        if not result["ok"]:  # a later step must not run after a failed one
+            return result
+    return result
+
+
+def run_step(args, extra, on_line):
+    """Run one updater command, streaming its lines to on_line."""
     env = dict(os.environ, **extra)
     if os.name == "nt":
         # Windows' own tar first: Git's GNU tar on PATH makes the Codex installer fail.
@@ -927,23 +964,28 @@ def main():
             print(text, end="", flush=True)
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import html_report
+    if output_format() != "html":
+        print("### SUMMARY")
+        print(chr(10).join(html_report.summary(lines)), flush=True)
+        return
+    import webbrowser
+    write_page(html_report.render(lines), lines)
+    # Prefer the local server, whose page has Update and Refresh buttons; fall back to the file.
+    note = ""
+    holder = take_over(ping())
+    served = holder == PING or (holder is None and start_server())
+    if served:
+        shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
+    else:
+        shown = PAGE
+        opened = webbrowser.open("file:///" + PAGE.replace(os.sep, "/").lstrip("/"))
+        note = ("  (Refresh unavailable: port %d is held by %s; stop it)"
+                % (SERVE_PORT, holder.decode("utf-8", "replace")) if holder else
+                "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
+    # The served page decides updates with its own buttons, so the chat asks only without it.
     print("### SUMMARY")
-    print(chr(10).join(html_report.summary(lines)), flush=True)
-    if output_format() == "html":
-        import webbrowser
-        write_page(html_report.render(lines), lines)
-        # Prefer the local server, whose page has a Refresh button; fall back to the file.
-        note = ""
-        holder = take_over(ping())
-        if holder == PING or (holder is None and start_server()):
-            shown, opened = SERVE_URL, webbrowser.open(SERVE_URL)
-        else:
-            shown = PAGE
-            opened = webbrowser.open("file:///" + PAGE.replace(os.sep, "/").lstrip("/"))
-            note = ("  (Refresh unavailable: port %d is held by %s; stop it)"
-                    % (SERVE_PORT, holder.decode("utf-8", "replace")) if holder else
-                    "  (Refresh unavailable: could not start a server on port %d)" % SERVE_PORT)
-        print("### HTML %s%s%s" % (shown, note, "" if opened else "  (could not open a browser)"))
+    print(chr(10).join(html_report.summary(lines, prompt=not served)), flush=True)
+    print("### HTML %s%s%s" % (shown, note, "" if opened else "  (could not open a browser)"))
 
 
 if __name__ == "__main__":

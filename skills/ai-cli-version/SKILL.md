@@ -1,10 +1,10 @@
 ---
 name: ai-cli-version
-description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then optionally update outdated CLIs after a y/Esc choice. `setup` chooses which CLIs to check. It automatically updates itself from GitHub before continuing. Use when the user runs /ai-cli-version or /check-uu (with or without `setup`), or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
+description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Antigravity (Gemini) CLIs are up to date, then update outdated CLIs from the HTML report's Update buttons (a y/Esc chat choice only for Markdown output or when the page cannot be served). `setup` chooses which CLIs to check. It automatically updates itself from GitHub before continuing. Use when the user runs /ai-cli-version or /check-uu (with or without `setup`), or asks to check for updates, whether a CLI has a newer version, when a version was released or installed, "is my CLI up to date", or "when was this released", including equivalent requests in any language.
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, codeload.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.17.4"
+  version: "1.18.0"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -63,7 +63,9 @@ Run the launcher with no arguments. Each tool has a 20-second budget; never exte
   2. `**Report:** [Open the HTML report](<target>)`: the URL as printed, or
      `file:///<path with forward slashes>` for a path. Add a short note for each
      parenthesised note on that line (`Refresh unavailable: …`, `could not open a browser`);
-  3. the remaining `### SUMMARY` lines, the y/Esc update prompt, when there are any.
+  3. the remaining `### SUMMARY` lines, the y/Esc update prompt, when there are any. The
+     launcher prints it only when the page could not be served; a served page decides
+     updates with its own **Update** / **Update all** buttons, so never ask in chat then.
 - **Markdown output** (no `### HTML` line, setup saved `md`): read
   `references/markdown-report.md` and render the report it describes.
 
@@ -75,13 +77,19 @@ Linux (untested), report failures as-is and say the platform is untested.
 ## Optional update
 
 The prompt is the `### SUMMARY` lines after its blank line; it appears only when a row has
-`status=update available`. Show it (translated if needed, keys exactly `y` and `Esc`) and stop.
+`status=update available` and there is no served page (Markdown output, or `Refresh
+unavailable`). Show it (translated if needed, keys exactly `y` and `Esc`) and stop. With a
+served page and no prompt, do not ask about updates and do not run any updater: the user
+updates from the page.
 
 - `/ai-cli-version` authorizes the check, not an update. Do not run any updater in the
   same turn as the initial report.
 - A subsequent exact `y` or `Y` authorizes every `update_cmd` from the immediately
   preceding report whose status was `update available`. Run those commands separately,
   so one failure does not prevent the remaining updates.
+- An `update_cmd` with `;` holds several commands (Codex: `codex update` and/or
+  `codex app-server daemon update`, whose background daemon `codex update` leaves
+  behind). Run them in order and stop at the first failure.
 - On Windows, run each `update_cmd` with a PowerShell tool, not Git Bash or another MSYS
   shell. Those shells put Git's GNU `tar` ahead of `System32\tar.exe` on PATH, so the
   Codex installer extracts nothing and fails with `did not contain the expected package

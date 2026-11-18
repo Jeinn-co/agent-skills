@@ -50,8 +50,9 @@ def parse(lines):
     return version, skipped, rows
 
 
-def summary(lines):
-    """The chat lines: the → summary, any `Not checked` line, and the y/Esc prompt."""
+def summary(lines, prompt=True):
+    """The chat lines: the → summary, any `Not checked` line, and the y/Esc prompt
+    (left out when the served page's own Update buttons decide)."""
     _, skipped, rows = parse(lines)
     outdated = [NAMES[r["name"]] for r in rows if r.get("status") == "update available"]
     failed = [NAMES[r["name"]] for r in rows if r.get("note") not in (None, "not installed")]
@@ -63,7 +64,7 @@ def summary(lines):
         out.append("_Check failed: %s_" % ", ".join(failed))
     if skipped:
         out.append("_Not checked (setup): %s_" % ", ".join(skipped))
-    if n:
+    if n and prompt:
         out.append("")
         out.append("**Update the %s now?**" % ("1 outdated CLI" if n == 1 else "%d outdated CLIs" % n))
         out.append("`[y]` Update all · `[Esc]` Skip")
@@ -108,7 +109,11 @@ def row(r, loading=False):
         badge = '<span class="badge muted">%s</span>' % esc(status)
     # data-tool marks rows the served page gives an Update button.
     marker = row_id + (' data-tool="%s"' % esc(r["name"]) if status == "update available" else "")
-    return ("<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span></td>"
+    # Codex's background daemon updates separately; show it only when it lags the CLI.
+    daemon = r.get("daemon")
+    lag = (' <div class="sub">daemon %s</div>' % esc(daemon)
+           if daemon and daemon != r.get("installed") else "")
+    return ("<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span>" + lag + "</td>"
             "<td><b>%s</b> <span class=\"sub\">%s %s</span></td><td>%s"
             "<div class=\"sub\">%s %s</div></td></tr>"
             % (marker, label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")),

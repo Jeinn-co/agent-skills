@@ -7,8 +7,9 @@
 
 HTML 報表支援英文與繁體中文。點主題選單旁的地球按鈕切換語言；預設依瀏覽器語言，並記住你的選擇。
 
-版本檢查永遠是唯讀的。有任一 CLI 不是最新版時，agent 會提供兩個選項：按 `y` 更新全部
-過期 CLI，按 `Esc` 全部跳過。
+版本檢查永遠是唯讀的。有任一 CLI 不是最新版時，在 HTML 報表上按 **Update** / **Update all**
+更新，agent 不會在對話框裡詢問。只有沒有本機網頁可用（Markdown 輸出，或本機服務起不來）時，
+才會提供 `y`（更新全部過期 CLI）或 `Esc`（全部跳過）。
 
 可在 Claude Code、Codex CLI、Grok Build，以及任何讀 `SKILL.md` 慣例的 agent 使用，
 不綁定特定 host。
@@ -90,8 +91,8 @@ npx skills update ai-cli-version -p -y    # project 安裝
     /ai-cli-version
 
 或直接問 ——「CLI 是最新版嗎？」、「檢查更新」、「這版 Codex 什麼時候發佈的？」。每次都即時查詢，
-沒有快取也沒有參數。有一個以上版本過期時，它會先顯示報表，並等你明確輸入 `y` 才執行更新；
-輸入 `Esc` 則不變更任何 CLI。
+沒有快取也沒有參數。有一個以上版本過期時，在報表網頁上按按鈕更新。沒有本機網頁時，
+agent 才會等你明確輸入 `y` 再執行更新；輸入 `Esc` 則不變更任何 CLI。
 
 在 agent 外面執行時，先切到已安裝的 `ai-cli-version` 目錄 —— 例如
 `~/.claude/skills/ai-cli-version` —— 再用對應平台的啟動方式：
@@ -135,7 +136,10 @@ Python 標準函式庫），改開 `http://127.0.0.1:47822/`，不再開檔案�
     或錯誤訊息加 **Retry** 按鈕），報表其他部分不動。
   - 頁面只送工具名稱。服務會先重新檢查該工具，已是最新就不動作，否則用跟 `update_cmd`
     相同的更新程式執行，而且不經過 shell（Windows 上會把 `System32` 放在 PATH 最前面，
-    讓 Codex 安裝程式用到 Windows 自己的 `tar`）。在 agent 裡更新仍然要等 `y` / `Esc`。
+    讓 Codex 安裝程式用到 Windows 自己的 `tar`）。有本機網頁時，agent 不會再問 `y` / `Esc`。
+  - Codex 那一列也會檢查背景的 app-server daemon；`codex update` 不會更新它，舊版 daemon
+    會被拒用新模型。daemon 落後時該列顯示 `daemon <版本>`，更新時也會執行
+    `codex app-server daemon update`。
 - `Updated MM-DD HH:MM:SS` 是畫面上這份報表寫入的時間。
 - **Auto / Light / Dark** 切換配色；Auto 跟著系統，選擇會記在該瀏覽器。
 - 服務只聽 127.0.0.1，拒絕其他主機名稱與其他網站嵌入，只有帶自訂 header 的請求才會檢查或更新。
@@ -164,15 +168,14 @@ HTML 報表（Tailwind Slate 配色、深淺色模式），由 Python 產生、�
 `*` 註腳；Muse Code 和 Antigravity 的更新來源不帶日期，發佈時間一律是 `?`。頁面最後附
 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/) 的連結。
 
-對話框裡只顯示摘要、報表連結，有 CLI 過期時再加上更新選項：
+對話框裡只顯示摘要和報表連結，要不要更新在網頁上決定：
 
 > **→ 2 updates available:** Claude Code, Muse Code.
 >
 > **Report:** Open the HTML report
->
-> **現在更新 2 個過期的 CLI？** `[y]` 全部更新 · `[Esc]` 跳過
 
-全部都是最新版時，摘要顯示 **All up to date**，不出現選項。`setup` 可以把輸出改成
+全部都是最新版時，摘要顯示 **All up to date**。對話框的更新選項
+`**現在更新 2 個過期的 CLI？** [y] 全部更新 · [Esc] 跳過` 只在網頁無法提供時出現。`setup` 可以把輸出改成
 Markdown，agent 會直接在對話框裡顯示同一張表，不開網頁。
 
 這幾行由 launcher 自己印出（`### SUMMARY`），agent 只照抄，載入的 `SKILL.md` 也很短。

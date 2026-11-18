@@ -82,6 +82,48 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(self.summary("claude\tinstalled=1\tstatus=up to date\nagy\tnot installed\n"),
                          ["> **All up to date.**"])
 
+    def test_served_page_decides_so_chat_has_no_prompt(self):
+        spec = importlib.util.spec_from_file_location("ai_cli_version_html", SCRIPT.parent / "html_report.py")
+        html_report = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(html_report)
+        self.assertEqual(html_report.summary(["codex\tinstalled=1\tstatus=update available"], prompt=False),
+                         ["> **→ 1 update available:** Codex."])
+
+
+class CodexDaemonTests(unittest.TestCase):
+    def check(self, installed, latest, daemon):
+        run = load()
+        out = io.StringIO()
+        with mock.patch.object(run, "argv", return_value=["codex", "--version"]), \
+                mock.patch.object(run, "run", return_value="codex-cli " + installed), \
+                mock.patch.object(run, "npm_package", return_value=({"latest": latest}, {})), \
+                mock.patch.object(run, "codex_daemon", return_value=run.parse_version(daemon)), \
+                contextlib.redirect_stdout(out):
+            run.check_codex()
+        return out.getvalue().strip()
+
+    def test_stale_daemon_alone_is_an_update(self):
+        line = self.check("0.170.0", "0.170.0", "0.160.1")
+        self.assertIn("status=update available", line)
+        self.assertIn("update_cmd=codex app-server daemon update", line)
+        self.assertIn("daemon=0.160.1", line)
+
+    def test_outdated_cli_updates_cli_then_daemon(self):
+        line = self.check("0.160.1", "0.170.0", "0.160.1")
+        self.assertIn("update_cmd=codex update; codex app-server daemon update", line)
+
+    def test_current_daemon_changes_nothing(self):
+        line = self.check("0.170.0", "0.170.0", "0.170.0")
+        self.assertIn("status=up to date", line)
+        self.assertIn("update_cmd=codex update", line)
+
+    def test_update_plan_runs_only_known_codex_steps_in_order(self):
+        run = load()
+        with mock.patch.object(run, "argv", side_effect=lambda *a: list(a)):
+            plan = run.update_plan("codex", "codex update; codex app-server daemon update; rm -rf x")
+        self.assertEqual([args for args, _ in plan],
+                         [["codex", "update"], ["codex", "app-server", "daemon", "update"]])
+
 
 @unittest.skipIf(os.name == "nt", "POSIX fake executables are used")
 class AntigravityCheckTests(unittest.TestCase):
