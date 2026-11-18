@@ -113,10 +113,10 @@ def row(r, loading=False):
     daemon = r.get("daemon")
     lag = (' <div class="sub">daemon %s</div>' % esc(daemon)
            if daemon and daemon != r.get("installed") else "")
-    return ("<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span>" + lag + "</td>"
+    return ("<tr%s><td>%s</td><td><b>%s</b> <span class=\"sub\">%s</span>%s</td>"
             "<td><b>%s</b> <span class=\"sub\">%s %s</span></td><td>%s"
             "<div class=\"sub\">%s %s</div></td></tr>"
-            % (marker, label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")),
+            % (marker, label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")), lag,
                esc(r.get("latest", "?")), bi('released'), esc(released), badge, bi('channel'), esc(r.get("channel", "?"))))
 
 

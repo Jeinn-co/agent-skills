@@ -117,6 +117,15 @@ class CodexDaemonTests(unittest.TestCase):
         self.assertIn("status=up to date", line)
         self.assertIn("update_cmd=codex update", line)
 
+    def test_rows_render_with_and_without_a_lagging_daemon(self):
+        spec = importlib.util.spec_from_file_location("ai_cli_version_html", SCRIPT.parent / "html_report.py")
+        html_report = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(html_report)
+        page = html_report.render([
+            "claude\tinstalled=1.0.0\tlatest=1.0.0\tstatus=up to date",
+            "codex\tinstalled=0.170.0\tlatest=0.170.0\tstatus=update available\tdaemon=0.160.1"])
+        self.assertIn("daemon 0.160.1", page)
+
     def test_update_plan_runs_only_known_codex_steps_in_order(self):
         run = load()
         with mock.patch.object(run, "argv", side_effect=lambda *a: list(a)):
