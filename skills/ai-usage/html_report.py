@@ -16,7 +16,8 @@ from report_i18n import ReportI18n
 
 I18N = ReportI18n(SKILL_DIR, "ai-usage-lang")
 
-from guidance_data import DAILY_CHOICES, EXCLUDED_GEMINI_PICKS, GEMINI_MODELS, OPTIONAL_GEMINI_EFFORT, ROLE_ASSIGNMENTS
+import guidance_data
+from guidance_data import CLI_DEFAULTS, DAILY_CHOICES, EXCLUDED_GEMINI_PICKS, GEMINI_MODELS, ROLE_ASSIGNMENTS
 
 NAMES = {"CLAUDE": "Claude", "CHATGPT": "ChatGPT", "GROK": "Grok", "MUSE": "Muse",
          "GEMINI": "Gemini"}
@@ -426,10 +427,14 @@ def render(raw, now=None, loading=False):
                if data["skipped"] else "")
     page = I18N.template(PAGE)
     choices = {provider: esc(model + " / " + effort) for provider, (model, effort) in DAILY_CHOICES.items()}
-    page = page.replace("@@my_usage_choices@@", bi("my_usage_choices", **choices))
+    names = {"claude": "Claude Code", "codex": "Codex", "gemini": "Antigravity"}
+    defaults = " · ".join("%s %s" % (names.get(cli, cli), esc(model + " / " + effort))
+                          for cli, (model, effort) in CLI_DEFAULTS.items())
+    page = page.replace("@@my_usage_choices@@", bi("my_usage_choices", **choices)
+                        + ("<br>" + bi("cli_defaults", list=defaults) if defaults else ""))
     security = next(role["models"]["gemini"] for role in ROLE_ASSIGNMENTS if role["role"] == "Security")
     policy = bi("role_policy", daily=choices["gemini"], security=esc(" / ".join(security)),
-                optional=esc(OPTIONAL_GEMINI_EFFORT),
+                optional=esc(guidance_data.OPTIONAL_GEMINI_EFFORT),
                 excluded=esc(", ".join(GEMINI_MODELS[model]["name"] for model in sorted(EXCLUDED_GEMINI_PICKS))))
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", cards), ("bench", bench_rows(data, loading)), ("roles", role_rows()),

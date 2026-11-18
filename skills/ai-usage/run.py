@@ -265,6 +265,7 @@ def saved_page():
     raw = RAW.read_text(encoding="utf-8")
     raw = re.sub(r"(?m)^### ai-usage [^\n]+", "### ai-usage " + portable.VERSION, raw, count=1)
     captured_at = datetime.datetime.fromtimestamp(RAW.stat().st_mtime)
+    html_report.guidance_data.refresh_live()
     return html_report.render(raw, now=captured_at)
 
 
@@ -397,6 +398,7 @@ if "--serve" in sys.argv:
     def skeleton():
         """The report with every active provider's card and the bench table loading."""
         raw = head() + "".join("### %s\n" % header for header, _, _ in active())
+        html_report.guidance_data.refresh_live()  # each page load shows the current Notion choices
         return html_report.render(raw, loading=True)
 
     def written_ms():
@@ -568,6 +570,7 @@ try:
         print("### CURSORBENCH")
         print(bench.result(), end="")
     import html_report
+    html_report.guidance_data.refresh_live()
     print()
     print("### ADVICE")
     for line in html_report.advice(_captured.getvalue()):

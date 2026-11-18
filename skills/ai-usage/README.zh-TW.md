@@ -325,11 +325,13 @@ CLI 登入失效時，本機伺服器的報表會顯示 **Sign in to Claude** �
 
 ## 報表設定
 
-修改 `data/personal-choices.json` 即可同步變更中英文「我的用法」裡的 Claude、
-Codex 與 Gemini 常用選擇。開發專案時修改原始的 `shared/personal-choices.json`，
-再以 `scripts/sync_shared.py` 分發。HTML 模板不再存放個人的模型或 effort 值。
+「我的用法」（常用選擇與各 CLI 預設）和派工角色表都來自擁有者的 s-agent Notion 設定頁。
+AI Model Compare 每 8 小時讀一次該頁並發布 `data/personal-choices.json`；每次報告讀這個
+線上檔，讀不到或驗證失敗就用內建的 `data/personal-choices.json`。要改選擇請改 Notion 頁，
+不必改這個 skill。開發專案時，原始副本是 `shared/personal-choices.json`，以
+`scripts/sync_shared.py` 分發。HTML 模板不再存放個人的模型或 effort 值。
 
-`guidance_data.py` 從該 JSON 讀取個人常用與角色選擇。模型資料從 `data/gemini-models.json`
+`guidance_data.py` 從該 JSON 讀取個人常用、CLI 預設與角色選擇。模型資料從 `data/gemini-models.json`
 讀取，此檔案由專案的共用目錄分發；`cursorbench.py` 從同一份模型目錄取得 Gemini
 允許的 effort。新增模型不需修改 HTML 模板或 s-agent 的 Python 程式。
 

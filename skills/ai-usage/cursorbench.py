@@ -33,6 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
+import guidance_data
 from guidance_data import GEMINI_MODELS, EXCLUDED_GEMINI_PICKS
 
 portable.stdout_utf8()
@@ -159,6 +160,7 @@ def _aa_latency(v):
 
 
 def main():
+    guidance_data.refresh_live()  # excluded Gemini picks follow the published Notion choices
     wanted = []
     for arg in sys.argv[1:]:
         cli, _, rest = arg.partition("=")

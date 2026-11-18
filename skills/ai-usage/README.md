@@ -403,12 +403,15 @@ are account-wide.
 
 ## Report configuration
 
-Edit `data/personal-choices.json` to change the Claude, Codex and Gemini choices
-shown under My usage in both languages. For repository development, edit the
-canonical `shared/personal-choices.json` and distribute it with `scripts/sync_shared.py`.
+My usage (daily choices and each CLI's default) and the delegated-role table come from
+the owner's s-agent Notion config page. AI Model Compare reads that page every 8 hours
+and publishes `data/personal-choices.json`; each report reads the published file, and
+keeps the bundled `data/personal-choices.json` when it cannot load or validate it. To
+change the choices, edit the Notion page, not this skill. For repository development,
+the canonical copy is `shared/personal-choices.json`, distributed with `scripts/sync_shared.py`.
 The HTML template contains no personal model or effort values.
 
-`guidance_data.py` loads personal daily and role choices from that JSON. Model facts
+`guidance_data.py` loads personal daily, CLI default and role choices from that JSON. Model facts
 come from `data/gemini-models.json`, distributed from the repository's shared
 catalog. `cursorbench.py` derives supported Gemini efforts from that catalog.
 Adding a model does not require editing the HTML template or s-agent's Python code.
