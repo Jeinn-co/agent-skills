@@ -62,7 +62,7 @@ border:1px solid var(--accent);border-radius:4px;background:transparent;color:va
 background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}}
-.card hr{border:0;border-top:1px dashed var(--line);margin:18px 0 14px}
+.card hr,.panel hr{border:0;border-top:1px dashed var(--line);margin:18px 0 14px}
 .now{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}
 .panel{margin-top:20px}.grid+.panel{margin-top:40px}.panel h2{margin:0 0 6px}
@@ -91,6 +91,8 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <div class="grid">@@cards@@</div>
 <section class="panel"><h2>@@i18n_my_usage@@</h2>
 <p class="lead">@@my_usage_choices@@</p>
+<hr>
+<p class="lead">@@i18n_plan_split@@</p>
 <p class="links">@@i18n_official_guidance@@<a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 
 </section>
