@@ -291,9 +291,8 @@ same records through the shared formatter. Probes run standalone without this fl
 print human-readable notes only. A legacy raw report without metadata is displayed
 statically; its timezone-free date string is never used to reconstruct an instant.
 
-Current vendor use cases: Antigravity recommends Orchestrator for day-to-day
-feature work, debugging and refactoring (Neon, Carbon or Argon plans and reviews;
-Hydrogen implements). Neon sits between Carbon and Hydrogen, balancing depth and
+Current vendor use cases: Antigravity's Orchestrator pairs a planner (Neon, Carbon or
+Argon) with Hydrogen, which implements and hands back to the planner when it hits friction. Neon sits between Carbon and Hydrogen, balancing depth and
 speed for complex coding and production workflows. Standalone Hydrogen covers everyday coding and agent execution;
 Carbon covers difficult architecture, debugging and security audits; Argon covers
 advanced long-horizon tasks. The Hydrogen launch article describes paid Pro/Ultra
