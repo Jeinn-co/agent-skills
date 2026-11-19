@@ -39,5 +39,5 @@
   "reviewer_description": "{{role}}：獨立審查與測試",
   "devops_description": "{{role}}：環境與維運",
   "security_description": "{{role}}：程式碼、相依套件與設定的安全掃描",
-  "role_policy": "日常工作使用 {{daily}}；high 不足時可明確指定單次派工使用 {{optional}}。安全工作使用 {{security}}，以安全性與正確性優先。因成本排除 {{excluded}}。"
+  "role_policy": "日常工作使用 {{daily}}。安全工作使用 {{security}}，以安全性與正確性優先。因成本排除 {{excluded}}。"
 }

@@ -231,7 +231,7 @@ def agy_model_id(label):
     m = re.fullmatch(r"(.+?)\s*\(([^)]+)\)", label.strip())
     name, effort = (m.group(1), m.group(2)) if m else (label.strip(), None)
     effort = effort and effort.strip().lower()
-    effort = {"extra high": "xhigh", "extra-high": "xhigh"}.get(effort, effort)
+    effort = {"extra": "xhigh", "extra high": "xhigh", "extra-high": "xhigh"}.get(effort, effort)
     return re.sub(r"\s+", "-", name.strip().lower()), effort
 
 

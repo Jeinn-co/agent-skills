@@ -20,15 +20,13 @@ class LiveChoicesTests(unittest.TestCase):
         import guidance_data
         self.data = guidance_data
         saved = (dict(guidance_data.DAILY_CHOICES), list(guidance_data.ROLE_ASSIGNMENTS),
-                 set(guidance_data.EXCLUDED_GEMINI_PICKS),
-                 guidance_data.OPTIONAL_GEMINI_EFFORT)
+                 set(guidance_data.EXCLUDED_GEMINI_PICKS))
 
         def restore():
-            daily, roles, excluded, optional = saved
+            daily, roles, excluded = saved
             guidance_data.DAILY_CHOICES.clear(); guidance_data.DAILY_CHOICES.update(daily)
             guidance_data.ROLE_ASSIGNMENTS[:] = roles
             guidance_data.EXCLUDED_GEMINI_PICKS.clear(); guidance_data.EXCLUDED_GEMINI_PICKS.update(excluded)
-            guidance_data.OPTIONAL_GEMINI_EFFORT = optional
         self.addCleanup(restore)
 
     def serve(self, body):
@@ -68,8 +66,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIn('Claude Code mainly Opus 5.5 / high', usage)
         self.assertIn('Codex GPT-6.2-Sol / high', usage)
         self.assertIn('Claude Code 主要用 Opus 5.5 / high', usage)
-        self.assertIn('Codex GPT-6.2-Sol / high.<br>Gemini uses Gemini 4 Hydrogen / high.', usage)
-        self.assertIn('Codex 用 GPT-6.2-Sol / high。<br>Gemini 用 Gemini 4 Hydrogen / high。', usage)
+        self.assertIn('Codex GPT-6.2-Sol / high.<br>Gemini uses Gemini 4 Neon / high.', usage)
+        self.assertIn('Codex 用 GPT-6.2-Sol / high。<br>Gemini 用 Gemini 4 Neon / high。', usage)
         self.assertNotIn('xhigh', usage)
 
     def test_qualified_claude_pick_never_uses_fable(self):
@@ -148,8 +146,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIsNone(cursorbench.pick([argon], 'agy'))
         # Displayed Gemini roles follow My usage roleOverrides, not s-agent's Argon dispatch.
         for role in html_report.ROLE_ASSIGNMENTS:
-            expected = 'Gemini 4 Carbon' if role['role'] == 'Security' else 'Gemini 4 Hydrogen'
-            effort = {'Executor': 'medium', 'Security': 'high'}.get(role['role'], 'high ~ xhigh')
+            expected = {'Security': 'Gemini 4 Carbon', 'Executor': 'Gemini 4 Hydrogen'}.get(role['role'], 'Gemini 4 Neon')
+            effort = 'medium' if role['role'] == 'Executor' else 'high'
             self.assertEqual(role['models']['gemini'], (expected, effort))
         page = html_report.render('')
         self.assertNotIn('本機選型草案', page)
@@ -158,10 +156,10 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertNotIn('安全工作使用 Carbon / high', choice)
         self.assertIn('Gemini selection', roles)
         self.assertIn('Gemini 選型', roles)
-        self.assertEqual(page.count('日常工作使用 Gemini 4 Hydrogen / high；high 不足時可明確指定單次派工使用 xhigh。安全工作使用 Gemini 4 Carbon / high，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
-        self.assertIn('日常工作使用 Gemini 4 Hydrogen / high', roles.split('<table', 1)[0])
+        self.assertEqual(page.count('日常工作使用 Gemini 4 Neon / high。安全工作使用 Gemini 4 Carbon / high，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
+        self.assertIn('日常工作使用 Gemini 4 Neon / high', roles.split('<table', 1)[0])
         self.assertNotIn('Upgrade to xhigh', roles)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / high ~ xhigh</td>'), 4)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / high</td>'), 4)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / medium</td>'), 1)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Carbon / high</td>'), 1)
 

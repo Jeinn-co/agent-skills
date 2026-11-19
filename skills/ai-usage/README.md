@@ -232,9 +232,11 @@ Read top to bottom:
    separate from the actual s-agent defaults in Notion. Report generation does
    not change CLI settings or fetch/sync Notion.
    Security uses Opus 5.5 / max, GPT-6 Astra / max and Gemini 4 Carbon / high.
-   Executor uses Gemini 4 Hydrogen / high (Notion snapshot, 2026-11-13).
-   The current Antigravity table lists Hydrogen for Free, Plus, Pro, Ultra and Enterprise (rechecked 2026-11-13).
-   Carbon requires Ultra or Enterprise; Argon supports Pro (†), Ultra or Enterprise; † includes paid Pro or trials with eligible premium devices.
+   Daily Gemini work and the planner, designer, reviewer and devops roles use Gemini 4 Neon / high;
+   Executor uses Gemini 4 Hydrogen / medium (Notion snapshot, 2026-11-20).
+   The current Antigravity table (rechecked 2026-11-20) excludes Free and Plus from every Gemini 4 model.
+   Neon and Argon support Pro (†), Ultra or Enterprise; Hydrogen supports Pro (\*\*), Ultra or Enterprise; Carbon requires Ultra or Enterprise.
+   † includes paid Pro or trials with eligible premium devices; \*\* is paid Pro only, not trials.
    Paid Gemini API access is separate. The report does not verify account access.
 5. **Score 50+ (Artificial Analysis)** — a third-party benchmark for reference, not official
    guidance. One row per CLI. *Now* is the model + effort you

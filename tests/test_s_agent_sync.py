@@ -215,7 +215,7 @@ class SyncTests(unittest.TestCase):
                 self.assertEqual(shared['gemini'], self.policy['roles']['executor']['gemini'])
         baseline = self.snapshot()
         for model in sync.GEMINI_EFFORTS:
-            invalid = 'minimal' if model == 'gemini-4-hydrogen' else 'xhigh'
+            invalid = 'minimal' if 'xhigh' in sync.GEMINI_EFFORTS[model] else 'xhigh'
             self.policy['roles']['executor']['gemini'] = {'model': model, 'effort': invalid}
             # Even a mistaken runtime catalog must not bypass known model constraints.
             self.catalog['gemini'][model] = [invalid]

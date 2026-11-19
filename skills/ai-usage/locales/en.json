@@ -39,5 +39,5 @@
   "reviewer_description": "{{role}}: independent review and testing",
   "devops_description": "{{role}}: environments and operations",
   "security_description": "{{role}}: scans code, dependencies and configuration",
-  "role_policy": "Routine work uses {{daily}}. Request {{optional}} explicitly for one handoff when high is insufficient. Security uses {{security}}, prioritizing safety and correctness. {{excluded}} is excluded because of cost."
+  "role_policy": "Routine work uses {{daily}}. Security uses {{security}}, prioritizing safety and correctness. {{excluded}} is excluded because of cost."
 }

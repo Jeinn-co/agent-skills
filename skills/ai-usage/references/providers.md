@@ -151,21 +151,23 @@ Dead ends (checked 2026-10-02):
 3. **`--output-format json`** on a real turn — carries token counts, not the model id.
 4. **IDE conversation files** under `~/.gemini/antigravity/conversations/*.pb` — encrypted.
 
-### Gemini models (official guidance rechecked 2026-11-13)
+### Gemini models (official guidance rechecked 2026-11-20)
 
-`cursorbench.py` maps `gemini-4-hydrogen` to `Gemini 4 Hydrogen` in AI Model
-Compare's `data/aa.json`. Hydrogen accepts low, medium, high (default), xhigh;
-minimal is rejected. Carbon and Argon accept low, medium (default), high;
+`cursorbench.py` maps `gemini-4-hydrogen` to `Gemini 4 Hydrogen` and `gemini-4-neon`
+to `Gemini 4 Neon` in AI Model Compare's `data/aa.json`. Hydrogen and Neon accept
+low, medium, high (default), xhigh; minimal is rejected. Carbon and Argon accept low, medium (default), high;
 3.8 Flash accepts low, medium, high. Missing model/effort scores display `not listed`,
 never another model's score. `data/gemini-models.json` publishes the known model
 metadata independently of measured rows, and `aa.json` carries that catalog too.
 No score, cost per benchmark task or CP is inferred from token prices alone.
 
-Antigravity access: the current official table lists Hydrogen for Free, Plus, Pro,
-Ultra and Enterprise; Carbon requires Ultra or Enterprise; Argon permits Pro (†),
-Ultra, Enterprise. † includes paid Pro or trials with eligible premium devices. These are plan qualifications, not verification of
-this account. Source: https://antigravity.google/docs/models and
-https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/.
+Antigravity access: the current official table excludes Free and Plus from every
+Gemini 4 model. Neon and Argon permit Pro (†), Ultra, Enterprise; Hydrogen permits
+Pro (\*\*), Ultra, Enterprise; Carbon requires Ultra or Enterprise. † includes paid
+Pro or trials with eligible premium devices; \*\* is paid Pro only, not trials. These
+are plan qualifications, not verification of this account; `agy models` lists what
+the signed-in account can run. Source: https://antigravity.google/docs/models and
+https://antigravity.google/blog/gemini-4-neon-in-google-antigravity/.
 Antigravity announced the removal of Claude Sonnet 4.6, Claude Opus 4.6 and
 GPT-OSS-120b on 2026-11-18. Local sessions may still name them; report that as
 observed history, not current availability.
@@ -290,8 +292,9 @@ print human-readable notes only. A legacy raw report without metadata is display
 statically; its timezone-free date string is never used to reconstruct an instant.
 
 Current vendor use cases: Antigravity recommends Orchestrator for day-to-day
-feature work, debugging and refactoring (Carbon/Argon plans and reviews; Hydrogen
-implements). Standalone Hydrogen covers everyday coding and agent execution;
+feature work, debugging and refactoring (Neon, Carbon or Argon plans and reviews;
+Hydrogen implements). Neon sits between Carbon and Hydrogen, balancing depth and
+speed for complex coding and production workflows. Standalone Hydrogen covers everyday coding and agent execution;
 Carbon covers difficult architecture, debugging and security audits; Argon covers
 advanced long-horizon tasks. The Hydrogen launch article describes paid Pro/Ultra
 rollout; current access follows the model eligibility table. Personal s-agent role

@@ -45,8 +45,7 @@ The controlled language-button label is the exception: it contains no runtime va
 
 `personal-choices.json` owns daily and role display choices; `guidance_data.py`
 loads its distributed copy. The report's role choices are display preferences;
-Notion still owns the actual s-agent dispatch defaults. An optional xhigh handoff
-does not modify those defaults.
+Notion still owns the actual s-agent dispatch defaults.
 
 The complete Gemini catalog retains model IDs, supported efforts, defaults,
 bilingual use cases, pricing and subscription information. To distribute both it

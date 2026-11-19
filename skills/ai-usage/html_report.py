@@ -441,7 +441,6 @@ def render(raw, now=None, loading=False):
     page = page.replace("@@my_usage_choices@@", bi("my_usage_choices", **choices))
     security = next(role["models"]["gemini"] for role in ROLE_ASSIGNMENTS if role["role"] == "Security")
     policy = bi("role_policy", daily=choices["gemini"], security=esc(" / ".join(security)),
-                optional=esc(guidance_data.OPTIONAL_GEMINI_EFFORT),
                 excluded=esc(", ".join(GEMINI_MODELS[model]["name"] for model in sorted(EXCLUDED_GEMINI_PICKS))))
     for key, value in (("time", esc(now.strftime("%m-%d %H:%M"))), ("version", esc(data["version"])),
                        ("cards", cards), ("bench", bench_rows(data, loading)), ("roles", role_rows()),
