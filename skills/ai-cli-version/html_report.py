@@ -98,6 +98,7 @@ def row(r, loading=False):
                 % (row_id, late, label, kind, bi('not_installed') if kind == "muted" else esc(r["note"]), kind,
                    bi('not_installed') if kind == "muted" else bi('check_failed')))
     released = r.get("released", "?")
+    release_label = "github_release" if r["name"] == "agy" and released != "?" else "released"
     if r["name"] == "grok" and released != "?":
         released = "≤ " + released + " *"
     status = r.get("status", "?")
@@ -117,7 +118,7 @@ def row(r, loading=False):
             "<td><b>%s</b> <span class=\"sub\">%s %s</span></td><td>%s"
             "<div class=\"sub\">%s %s</div></td></tr>"
             % (marker, label, esc(r.get("installed", "?")), esc(r.get("installed_at", "?")), lag,
-               esc(r.get("latest", "?")), bi('released'), esc(released), badge, bi('channel'), esc(r.get("channel", "?"))))
+               esc(r.get("latest", "?")), bi(release_label), esc(released), badge, bi('channel'), esc(r.get("channel", "?"))))
 
 
 def row_html(lines):

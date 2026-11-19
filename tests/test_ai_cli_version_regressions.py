@@ -148,8 +148,9 @@ class AntigravityCheckTests(unittest.TestCase):
                 cli.chmod(cli.stat().st_mode | stat.S_IXUSR)
             fetch = (mock.patch.object(run, "get_text", side_effect=page) if isinstance(page, Exception)
                      else mock.patch.object(run, "get_text", return_value=page))
+            release = mock.patch.object(run, "get_json", side_effect=OSError("release unavailable"))
             out = io.StringIO()
-            with mock.patch.object(run, "HOME", home), fetch, contextlib.redirect_stdout(out):
+            with mock.patch.object(run, "HOME", home), fetch, release, contextlib.redirect_stdout(out):
                 run.check_agy()
             return out.getvalue().strip()
 

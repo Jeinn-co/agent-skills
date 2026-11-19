@@ -1,5 +1,6 @@
 {
   "released": "released",
+  "github_release": "GitHub release",
   "channel": "channel",
   "checking_versions": "Checking versions…",
   "grok_release_note": "* Grok release time is approximate (third-party mirror); official: x.ai/build/changelog",

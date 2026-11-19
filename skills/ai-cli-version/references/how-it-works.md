@@ -7,7 +7,7 @@ Only the **latest** version and the **currently installed** version — no histo
 | Claude Code | `claude --version` | `~/.local/share/claude/versions/<installed>` | npm `@anthropic-ai/claude-code`, dist-tag = `autoUpdatesChannel` in `settings.json` under `$CLAUDE_CONFIG_DIR` or `~/.claude` (default `latest`) | npm publish time |
 | Codex | `codex --version` | `$CODEX_HOME` (default `~/.codex`) `/packages/standalone/releases/<installed>-*` | npm `@openai/codex`, dist-tag `latest` | npm publish time |
 | Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<installed>-*` | same call | **approximate** — see below |
-| Antigravity CLI | `~/.gemini/bin/agy --version` | the `agy` binary itself | the CLI's auto-updater: `Stable Version` on `https://antigravity-cli-auto-updater-974169037036.us-central1.run.app` | **not available** — see below |
+| Antigravity CLI | `~/.gemini/bin/agy --version` | the `agy` binary itself | the CLI's auto-updater: `Stable Version` on `https://antigravity-cli-auto-updater-974169037036.us-central1.run.app` | official GitHub release for that version |
 | Muse Code | `muse --version` with `MUSE_NO_AUTO_UPDATE=1` | `muse-bin-<installed>*` next to the `muse` launcher | `https://api.meta.ai/muse-code/channels/<channel>`, channel = `$MUSE_CHANNEL`, else `.muse-channel` next to the launcher (default `muse-stable`) | **not available** — see below |
 
 - `claude update` and `codex update` install immediately and have no check-only flag, so
@@ -36,8 +36,10 @@ Only the **latest** version and the **currently installed** version — no histo
 
 - **Antigravity CLI is `~/.gemini/bin/agy`, never the `agy` on PATH.** The Antigravity IDE
   installs an editor launcher with the same name; running it opens a window. The update
-  command is the full path, `~/.gemini/bin/agy update`. Its auto-updater lists versions
-  without dates, so `released=?` always; the note says how far the rollout has gone.
+  command is the full path, `~/.gemini/bin/agy update`. The auto-updater provides the stable
+  version and rollout progress. The timestamp is `published_at` from the matching
+  [official GitHub release](https://github.com/google-antigravity/antigravity-cli/releases).
+  If the timestamp is unavailable, `released=?`.
   The CLI also updates itself when it starts, so the check runs `agy --version` with
   `AGY_CLI_DISABLE_AUTO_UPDATE=1` to stay read-only.
 

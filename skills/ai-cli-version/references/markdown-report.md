@@ -18,7 +18,7 @@ clickable. Sample:
 | Codex | 0.153.4 · 09/07 11:03 | 0.154.0 · released 09/10 06:40 | **update** → `codex update` |
 | Grok Build | 1.0.34 · 09/17 09:28 | 1.0.34 · released ≤ 09/17 03:32\* | up to date · channel stable |
 | Muse Code | 1.3.0-R3401.1 · 09/24 11:08 | 1.3.0-R3401.1 · released ? | up to date · channel muse-stable |
-| Antigravity | 1.2.14 · 09/30 10:57 | 1.2.14 · released ? | up to date · channel stable |
+| Antigravity | 1.5.12 · 11/19 05:57 | 1.5.12 · GitHub release 11/19 08:26 | up to date · channel stable |
 
 _\* Grok release time is approximate (third-party mirror); official: x.ai/build/changelog_
 
@@ -77,7 +77,7 @@ Rules:
   reason in the Installed cell and `—` in the others; never drop a row, and never fill in a version or time from memory.
 - Show `?` for an unknown time; do not guess.
 - Grok's release time always gets `≤` and the footnote.
-- Muse's and Antigravity's release times are always `?`; do not fill them in from anywhere else.
+- Show Muse's release time as `?`. For Antigravity, label a known `released` timestamp `GitHub release`; otherwise show `released ?`.
 - Label the `agy` row `Antigravity` (it is the Gemini CLI) and print its update command
   exactly as `update_cmd` gives it — a full path, never a bare `agy update`.
 - Keep icons to a minimum: no emoji or status marks. Status reads `up to date · channel <channel>`, ``**update** → `<update_cmd>` ``, `check failed (...)` or `not installed`. Update rows end with the update command in inline code.

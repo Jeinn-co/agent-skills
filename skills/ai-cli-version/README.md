@@ -194,8 +194,8 @@ A real run, updating Claude Code after pressing **Update** on its row:
 Each row shows the version you have and when you installed it, the latest version and
 when it was released, a status badge (`up to date`, or `update` with its command) and
 the update channel. Grok Build's release time carries `≤` and the `*` footnote because it
-comes from a third-party mirror; Muse Code's and Antigravity's are always `?` because
-their update sources publish no date. The page ends with a link to
+comes from a third-party mirror. Antigravity displays the official GitHub release time
+when available. Muse Code's release time is always `?`. The page ends with a link to
 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/).
 
 In chat the agent shows only the summary and a link to the page; updates are chosen on
@@ -255,7 +255,7 @@ always check-only and continues to print raw report data without accepting input
 | Codex | `codex --version` | `$CODEX_HOME/packages/standalone/releases/<installed>-*` | npm registry, `@openai/codex` `latest` | npm publish time |
 | Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<installed>-*` | same call | GitHub release of `timoteuszelle/x.ai-grok` (approximate) |
 | Muse Code | `muse --version` | `muse-bin-<installed>*` next to the `muse` launcher | `https://api.meta.ai/muse-code/channels/<channel>` (public, the file the launcher reads) | not available (`?`) |
-| Antigravity (Gemini) | `~/.gemini/bin/agy --version` | the `agy` binary | `Stable Version` on the CLI's own auto-updater (`antigravity-cli-auto-updater-….run.app`) | not available (`?`) |
+| Antigravity (Gemini) | `~/.gemini/bin/agy --version` | the `agy` binary | `Stable Version` on the CLI's own auto-updater (`antigravity-cli-auto-updater-….run.app`) | official GitHub release for that version, or `?` |
 
 `settings.json` is read from `$CLAUDE_CONFIG_DIR`, else `~/.claude`. `$CODEX_HOME`
 defaults to `~/.codex`. If the installed-at path does not exist — npm or Homebrew
@@ -284,8 +284,9 @@ the `.muse-channel` file next to the launcher, else `muse-stable`.
 **Antigravity runs `~/.gemini/bin/agy`, never the `agy` on PATH.** The Antigravity IDE
 installs an editor launcher with the same name, and running that opens a window. The
 update command is therefore the full path, `~/.gemini/bin/agy update`. The auto-updater
-lists versions without dates, so the release time always shows `?`; the note says how far
-the current version has rolled out. The CLI also updates itself when it starts, so the
+provides the stable version and rollout progress. The report uses `published_at` from the
+matching [official GitHub release](https://github.com/google-antigravity/antigravity-cli/releases)
+and shows `?` if that timestamp is unavailable. The CLI also updates itself when it starts, so the
 check runs `agy --version` with `AGY_CLI_DISABLE_AUTO_UPDATE=1` to stay read-only.
 
 **Native builds are assumed to track npm.** The native installers of Claude Code and Codex

@@ -165,7 +165,7 @@ HTML 報表（Tailwind Slate 配色、深淺色模式），由 Python 產生、�
 
 每一列顯示你裝的版本與安裝時間、最新版本與發佈時間、狀態標籤（`up to date`，或 `update`
 加上更新指令），以及更新 channel。Grok Build 的發佈時間來自第三方鏡像，所以加上 `≤` 和
-`*` 註腳；Muse Code 和 Antigravity 的更新來源不帶日期，發佈時間一律是 `?`。頁面最後附
+`*` 註腳。Antigravity 有官方 GitHub 發布時間時就會顯示，Muse Code 的發布時間一律是 `?`。頁面最後附
 [AI Model Compare](https://jeinn-co.github.io/ai-model-compare/) 的連結。
 
 對話框裡只顯示摘要和報表連結，要不要更新在網頁上決定：
@@ -212,7 +212,7 @@ setup 先顯示目前設定，問**保留**或**修改**。選**修改**後，�
 | Codex | `codex --version` | `$CODEX_HOME/packages/standalone/releases/<本機版本>-*` | npm registry，`@openai/codex` 的 `latest` | npm 發佈時間 |
 | Grok Build | `grok update --check --json` | `~/.grok/downloads/grok-<本機版本>-*` | 同一個指令 | `timoteuszelle/x.ai-grok` 的 GitHub release（近似值） |
 | Muse Code | `muse --version` | `muse` launcher 旁邊的 `muse-bin-<本機版本>*` | `https://api.meta.ai/muse-code/channels/<channel>`（公開，就是 launcher 讀的那個檔） | 無（`?`） |
-| Antigravity（Gemini） | `~/.gemini/bin/agy --version` | `agy` 執行檔本身 | CLI 自己的 auto-updater（`antigravity-cli-auto-updater-….run.app`）上的 `Stable Version` | 無（`?`） |
+| Antigravity（Gemini） | `~/.gemini/bin/agy --version` | `agy` 執行檔本身 | CLI 自己的 auto-updater（`antigravity-cli-auto-updater-….run.app`）上的 `Stable Version` | 同版本的官方 GitHub 發布時間，查不到時顯示 `?` |
 
 `settings.json` 從 `$CLAUDE_CONFIG_DIR` 讀，沒設就讀 `~/.claude`。`$CODEX_HOME` 預設是
 `~/.codex`。如果安裝時間的路徑不存在 —— 例如 npm 或 Homebrew 安裝，或是 macOS/Linux 的
@@ -237,8 +237,9 @@ Grok Build 新版時會發 GitHub release，所以官方發佈時間*不晚於*�
 
 **Antigravity 跑的是 `~/.gemini/bin/agy`，絕不是 PATH 上的 `agy`。** Antigravity IDE
 會裝一個同名的編輯器啟動器，跑它會打開視窗，所以更新指令一律寫完整路徑
-`~/.gemini/bin/agy update`。auto-updater 只列版本、沒有日期，發佈時間一律顯示 `?`；
-註記會寫目前版本的推送進度。這個 CLI 啟動時也會自己更新，所以檢查時用
+`~/.gemini/bin/agy update`。auto-updater 提供穩定版和推送進度。報表讀取同版本的
+[官方 GitHub 發布紀錄](https://github.com/google-antigravity/antigravity-cli/releases)中的
+`published_at`，查不到時顯示 `?`。這個 CLI 啟動時也會自己更新，所以檢查時用
 `AGY_CLI_DISABLE_AUTO_UPDATE=1` 執行 `agy --version`，保持唯讀。
 
 **假設原生版跟 npm 同步。** Claude Code 和 Codex 的原生安裝版不是透過 npm 發佈的。這個

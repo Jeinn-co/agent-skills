@@ -80,11 +80,11 @@ def run(cmd, env=None):
     return out
 
 
-def get_json(url, headers=None):
+def get_json(url, headers=None, *, timeout=None):
     # gzip: the full npm document for @openai/codex is ~18 MB raw, ~1.6 MB compressed.
     request = urllib.request.Request(url, headers={"User-Agent": "ai-cli-version",
                                                    "Accept-Encoding": "gzip", **(headers or {})})
-    with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+    with urllib.request.urlopen(request, timeout=TIMEOUT if timeout is None else timeout) as response:
         body = response.read()
         if response.headers.get("Content-Encoding") == "gzip":
             body = gzip.decompress(body)
@@ -336,11 +336,13 @@ def check_muse():
 
 # The Antigravity CLI's own auto-updater. Its root answers in plain text, e.g.
 # "Antigravity CLI auto updater is running! Stable Version: 1.2.14. Rolled out to 100%".
-# `/releases` lists versions without dates, so there is no release time.
+# The updater lists versions without dates. GitHub publishes each tagged release.
 AGY_UPDATER = "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app"
+AGY_RELEASES = "https://api.github.com/repos/google-antigravity/antigravity-cli/releases/tags/"
 
 
 def check_agy():
+    started = time.monotonic()
     # ~/.gemini/bin/agy, never `agy` on PATH: the Antigravity IDE installs an editor
     # launcher with the same name, and running that opens a window.
     cli = os.path.join(HOME, ".gemini", "bin", "agy.exe" if os.name == "nt" else "agy")
@@ -358,11 +360,20 @@ def check_agy():
             raise RuntimeError("updater page names no stable version")
         latest = parse_version(match.group(1))
         rollout = re.search(r"Rolled out to\s*(\d+%)", page)
-        note = "not published: the updater lists versions without dates"
+        released = None
+        # Leave time to emit the version result if GitHub is slow or unavailable.
+        lookup_timeout = min(3, TIMEOUT - (time.monotonic() - started) - 1)
+        if lookup_timeout > 0:
+            try:
+                release = get_json(AGY_RELEASES + fmt(latest), timeout=lookup_timeout)
+                released = local_from_iso(release.get("published_at"))
+            except Exception:  # noqa: BLE001
+                pass
+        note = "official GitHub release" if released else "GitHub release time unavailable"
         if rollout:
             note += "; rolled out to " + rollout.group(1)
         update = '"%s" update' % cli if " " in cli else "%s update" % cli
-        emit("agy", installed, install_time(cli), latest, None, note, "stable", update)
+        emit("agy", installed, install_time(cli), latest, released, note, "stable", update)
     except Exception as exc:  # noqa: BLE001
         print(f"agy\tcheck failed ({exc})")
 
