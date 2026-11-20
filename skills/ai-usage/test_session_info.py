@@ -4,9 +4,68 @@ import json
 import os
 from pathlib import Path
 import runpy
+import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch
+
+
+def _pb_bytes(field_number, payload):
+    tag = (field_number << 3) | 2
+    out = bytearray()
+    for value in (tag, len(payload)):
+        while value >= 0x80:
+            out.append((value & 0x7F) | 0x80)
+            value >>= 7
+        out.append(value)
+    return bytes(out) + payload
+
+
+class AgySessionTests(unittest.TestCase):
+    def read(self, folder):
+        output = io.StringIO()
+        with patch("pathlib.Path.home", return_value=Path(folder)), \
+                patch("sys.argv", ["session_info.py", "agy"]), contextlib.redirect_stdout(output):
+            runpy.run_path(str(Path(__file__).with_name("session_info.py")))
+        return output.getvalue()
+
+    def write_db(self, path, selected=None, base_model=None):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        con = sqlite3.connect(path)
+        con.execute("CREATE TABLE gen_metadata (idx INTEGER PRIMARY KEY, data BLOB)")
+        blob = b""
+        if base_model:
+            blob += _pb_bytes(1, _pb_bytes(19, base_model.encode()))
+        if selected:
+            blob += _pb_bytes(3, _pb_bytes(28, selected.encode()))
+        con.execute("INSERT INTO gen_metadata VALUES (1, ?)", (blob,))
+        con.commit()
+        con.close()
+
+    def test_reads_model_and_effort_from_ide_conversation_db(self):
+        with tempfile.TemporaryDirectory() as folder:
+            db = Path(folder) / ".gemini/antigravity/conversations/c1.db"
+            self.write_db(db, selected="gemini-4-hydrogen-high", base_model="gemini-4-hydrogen")
+            text = self.read(folder)
+            self.assertIn("model   gemini-4-hydrogen", text)
+            self.assertIn("effort  high", text)
+
+    def test_orchestrator_uses_underlying_model_and_unknown_prints_question_mark(self):
+        with tempfile.TemporaryDirectory() as folder:
+            db = Path(folder) / ".gemini/antigravity/conversations/c1.db"
+            self.write_db(db, selected="gemini-pro-orchestrator-neon", base_model="gemini-4-neon")
+            text = self.read(folder)
+            self.assertIn("model   gemini-4-neon", text)
+            self.assertIn("effort  ?", text)
+
+        with tempfile.TemporaryDirectory() as folder:
+            db = Path(folder) / ".gemini/antigravity/conversations/empty.db"
+            db.parent.mkdir(parents=True)
+            db.write_bytes(b"")
+            text = self.read(folder)
+            self.assertIn("model   ?", text)
+            self.assertIn("effort  ?", text)
+            self.assertNotIn("gemini-3.8-flash", text)
 
 
 class ClaudeSessionTests(unittest.TestCase):

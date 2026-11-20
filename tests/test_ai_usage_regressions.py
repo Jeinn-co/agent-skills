@@ -435,7 +435,7 @@ for line in sys.stdin:
         result = self.run_probe("muse_usage.py", "muse", self._muse_serve_cli(None))
 
         self.assertEqual(result.returncode, 1, result.stdout)
-        self.assertIn("usage call failed (no usage observed", result.stdout)
+        self.assertIn("usage call failed (no usage data returned", result.stdout)
         self.assertNotIn("0.0% used", result.stdout)
 
 
@@ -476,10 +476,14 @@ class GeminiAgyTests(unittest.TestCase):
 
     USAGE = r'''
 import os, sys
-assert sys.argv[1:3] == ["-p", "/usage"], sys.argv
-assert os.environ.get("AGY_CLI_DISABLE_AUTO_UPDATE") == "1"
-print("Gemini Models\tWeekly Limit Remaining\t88%\t2099-10-08T20:09:18Z")
-print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z")
+if sys.argv[1:3] == ["-p", "/usage"]:
+    assert os.environ.get("AGY_CLI_DISABLE_AUTO_UPDATE") == "1"
+    print("Gemini Models\tWeekly Limit Remaining\t88%\t2099-10-08T20:09:18Z")
+    print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z")
+elif sys.argv[1:] == ["models"]:
+    print("gemini-4-neon-high\n")
+else:
+    raise AssertionError(sys.argv)
 '''
 
     def test_prints_used_from_remaining_per_pool(self):
@@ -491,7 +495,39 @@ print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z
         self.assertTrue(any(l.startswith("gemini") and "12.0% used" in l and "window weekly" in l
                             for l in lines), result.stdout)
         self.assertTrue(any(l.startswith("cl+gpt") and "0.0% used" in l for l in lines), result.stdout)
-        self.assertNotIn("5h", result.stdout)
+        self.assertNotIn("window 5h", result.stdout)
+
+    def test_pro_and_ultra_order_5h_before_weekly_and_detect_plan(self):
+        pro_script = r'''
+import sys
+if sys.argv[1:3] == ["-p", "/usage"]:
+    print("Gemini Models\tWeekly Limit Remaining\t97%\t2099-10-08T20:09:18Z")
+    print("Gemini Models\tFive Hour Limit Remaining\t94%\t2099-10-08T20:09:18Z")
+    print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z")
+    print("Claude and GPT models\tFive Hour Limit Remaining\t100%\t2099-10-08T20:09:18Z")
+elif sys.argv[1:] == ["models"]:
+    print("gemini-4-neon-high              Gemini 4 Neon (High)")
+    print("gemini-4-hydrogen-high          Gemini 4 Hydrogen (High)")
+'''
+        pro = self.run_agy(pro_script)
+        self.assertEqual(pro.returncode, 0, pro.stderr)
+        lines = pro.stdout.splitlines()
+        self.assertEqual(lines[0], "plan: pro")
+        self.assertTrue(lines[1].startswith("gemini") and "window 5h" in lines[1], lines)
+        self.assertTrue(lines[2].startswith("gemini") and "window weekly" in lines[2], lines)
+        self.assertTrue(lines[3].startswith("cl+gpt") and "window 5h" in lines[3], lines)
+        self.assertTrue(lines[4].startswith("cl+gpt") and "window weekly" in lines[4], lines)
+
+        ultra_script = pro_script + '    print("gemini-4-carbon-high            Gemini 4 Carbon (High)")\n'
+        ultra = self.run_agy(ultra_script)
+        self.assertEqual(ultra.returncode, 0, ultra.stderr)
+        self.assertEqual(ultra.stdout.splitlines()[0], "plan: ultra")
+
+        broken_models = pro_script.split("elif")[0] + 'elif sys.argv[1:] == ["models"]:\n    raise SystemExit(1)\n'
+        fallback = self.run_agy(broken_models)
+        self.assertEqual(fallback.returncode, 0, fallback.stderr)
+        self.assertEqual(fallback.stdout.splitlines()[0], "plan: ?")
+        self.assertIn("6.0% used  window 5h", fallback.stdout)
 
     def test_fails_visibly_when_usage_is_not_parsed(self):
         result = self.run_agy('print("error: not signed in")\n')
@@ -769,3 +805,55 @@ class AdviceTests(unittest.TestCase):
 
     def test_no_usage_block_no_advice(self):
         self.assertEqual(self.advice("### CLAUDE\nnot installed\n"), [])
+
+    def test_pro_gemini_is_eligible_and_5h_does_not_trigger_week_warning(self):
+        lines = self.advice("""\
+            ### CHATGPT
+            plan: plus
+            outer   40.0% used  window 168h  resets 10-30 01:11 (6d14h)  bar x
+            ### GEMINI
+            plan: pro
+            gemini  90.0% used  window 5h  pool Gemini Models  resets 2026-10-23T14:00:00+08:00 (0d4h)  bar x
+            gemini  10.0% used  window weekly  pool Gemini Models  resets 2026-10-30T10:00:00+08:00 (7d0h)  bar x
+            cl+gpt   0.0% used  window 5h  pool Claude and GPT models  resets 2026-10-23T14:00:00+08:00 (0d4h)  bar x
+            """)
+        self.assertEqual(lines, ["> **→ Use ChatGPT right now:** 60% left in its tightest window."])
+
+        lines2 = self.advice("""\
+            ### CHATGPT
+            plan: plus
+            outer   40.0% used  window 168h  resets 10-30 01:11 (6d14h)  bar x
+            ### GEMINI
+            plan: pro
+            gemini   5.0% used  window 5h  pool Gemini Models  resets 2026-10-23T14:00:00+08:00 (0d4h)  bar x
+            gemini   3.0% used  window weekly  pool Gemini Models  resets 2026-10-30T10:00:00+08:00 (7d0h)  bar x
+            """)
+        self.assertEqual(lines2, ["> **→ Use Gemini right now:** 95% left in its tightest window."])
+
+    def test_gemini_card_groups_pools_with_hr_and_orders_5h_before_week(self):
+        import datetime
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("ai_usage_html", SKILL / "html_report.py")
+        html_report = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(html_report)
+        now = datetime.datetime(2026, 11, 20, 22, 0).astimezone()
+        card = html_report.card_html(textwrap.dedent("""\
+            ### GEMINI
+            plan: pro
+            gemini   3.0% used  window weekly  pool Gemini Models  resets 2026-11-27T21:53:08+08:00 (6d23h)  bar x
+            gemini   5.0% used  window 5h  pool Gemini Models  resets 2026-11-21T02:53:08+08:00 (0d4h)  bar x
+            cl+gpt   0.0% used  window weekly  pool Claude and GPT models  resets 2026-11-27T22:39:09+08:00 (6d23h)  bar x
+            cl+gpt   0.0% used  window 5h  pool Claude and GPT models  resets 2026-11-21T03:39:09+08:00 (0d4h)  bar x
+            """), now=now)
+        self.assertIn('<span class="plan">pro</span>', card)
+        self.assertIn('<div class="pool">Gemini Models</div>', card)
+        self.assertIn('<div class="pool">Claude / GPT</div>', card)
+        self.assertEqual(card.count('<hr>'), 1)
+        self.assertLess(card.index('Gemini Models'), card.index('<hr>'))
+        self.assertLess(card.index('<hr>'), card.index('Claude / GPT'))
+        first_half, second_half = card.split('<hr>', 1)
+        self.assertLess(first_half.index('>5h<'), first_half.index('>week<'))
+        self.assertLess(second_half.index('>5h<'), second_half.index('>week<'))
+        self.assertNotIn('<div class="lbl">Claude / GPT', card)
+        self.assertEqual(card.count('<div class="lbl">5h</div>'), 2)
+        self.assertEqual(card.count('<span class="l-zh">週</span>'), 2)

@@ -66,8 +66,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIn('Claude Code mainly Opus 5.5 / high', usage)
         self.assertIn('Codex GPT-6.2-Sol / high', usage)
         self.assertIn('Claude Code 主要用 Opus 5.5 / high', usage)
-        self.assertIn('Codex GPT-6.2-Sol / high.<br>Gemini uses Gemini 4 Neon / high.', usage)
-        self.assertIn('Codex 用 GPT-6.2-Sol / high。<br>Gemini 用 Gemini 4 Neon / high。', usage)
+        self.assertIn('Codex GPT-6.2-Sol / high.<br>Gemini uses Gemini 4 Hydrogen / high.', usage)
+        self.assertIn('Codex 用 GPT-6.2-Sol / high。<br>Gemini 用 Gemini 4 Hydrogen / high。', usage)
         self.assertNotIn('xhigh', usage)
 
     def test_qualified_claude_pick_never_uses_fable(self):
@@ -87,7 +87,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertEqual(cursorbench.name('agy', 'gemini/gemini-4-hydrogen'), 'Gemini 4 Hydrogen')
         # Empty and null-score source rows must never invent an AA score or a pick.
         for rows in ([], [{'model': 'Gemini 4 Hydrogen', 'effort': 'High', 'score': None, 'cost': None}]):
-            with patch.object(cursorbench, 'published', return_value=rows):
+            with patch.object(cursorbench, 'published', return_value=rows), \
+                    patch.object(cursorbench.guidance_data, 'refresh_live', return_value=False):
                 self.assertEqual(cursorbench.aa_rows('Gemini 4 Hydrogen'), {})
                 self.assertIsNone(cursorbench.pick(rows, 'agy'))
                 for effort in cursorbench.GEMINI_EFFORTS['gemini-4-hydrogen']:
@@ -146,8 +147,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIsNone(cursorbench.pick([argon], 'agy'))
         # Displayed Gemini roles follow My usage roleOverrides, not s-agent's Argon dispatch.
         for role in html_report.ROLE_ASSIGNMENTS:
-            expected = {'Security': 'Gemini 4 Carbon', 'Executor': 'Gemini 4 Hydrogen'}.get(role['role'], 'Gemini 4 Neon')
-            effort = 'medium' if role['role'] == 'Executor' else 'high'
+            expected = {'Planner': 'Gemini 4 Neon', 'Reviewer': 'Gemini 4 Neon', 'Security': 'Gemini 4 Neon'}.get(role['role'], 'Gemini 4 Hydrogen')
+            effort = {'Executor': 'medium', 'Security': 'xhigh'}.get(role['role'], 'high')
             self.assertEqual(role['models']['gemini'], (expected, effort))
         page = html_report.render('')
         self.assertNotIn('本機選型草案', page)
@@ -156,12 +157,13 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertNotIn('安全工作使用 Carbon / high', choice)
         self.assertIn('Gemini selection', roles)
         self.assertIn('Gemini 選型', roles)
-        self.assertEqual(page.count('日常工作使用 Gemini 4 Neon / high。安全工作使用 Gemini 4 Carbon / high，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
-        self.assertIn('日常工作使用 Gemini 4 Neon / high', roles.split('<table', 1)[0])
+        self.assertEqual(page.count('日常工作使用 Gemini 4 Hydrogen / high。安全工作使用 Gemini 4 Neon / xhigh，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
+        self.assertIn('日常工作使用 Gemini 4 Hydrogen / high', roles.split('<table', 1)[0])
         self.assertNotIn('Upgrade to xhigh', roles)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / high</td>'), 4)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / high</td>'), 2)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / high</td>'), 2)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / medium</td>'), 1)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Carbon / high</td>'), 1)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / xhigh</td>'), 1)
 
     def test_only_fable_has_no_qualified_pick(self):
         rows = [{'model': 'Fable 5.2', 'effort': 'High', 'score': 60, 'cost': 4}]

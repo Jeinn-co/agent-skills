@@ -41,7 +41,8 @@ class SavedReportTests(unittest.TestCase):
                 'RAW': raw, 'portable': portable, 'datetime': dt, 're': re,
             })
             with patch('subprocess.run', side_effect=AssertionError('reload must not run a probe')), \
-                    patch('subprocess.Popen', side_effect=AssertionError('reload must not start a CLI')):
+                    patch('subprocess.Popen', side_effect=AssertionError('reload must not start a CLI')), \
+                    patch('html_report.guidance_data.refresh_live', return_value=False):
                 page = saved_page()
             self.assertIn('<code>claude-opus-5-5</code> / <strong>high</strong>', page)
             self.assertIn(dt.datetime.fromtimestamp(captured).strftime('%m-%d %H:%M'), page)

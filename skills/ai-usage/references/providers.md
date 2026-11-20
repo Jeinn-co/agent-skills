@@ -126,17 +126,18 @@ Dead ends, do not retry (checked 2026-09-24, Muse Code 1.3.0-R3401.1):
     Claude and GPT models<TAB>Weekly Limit Remaining<TAB>100%<TAB>2026-10-08T20:09:18Z
 
 Print mode routes the slash command (`/usage`, alias `/quota`) without a model call.
-`agy -p "/help"` lists the commands.
+`agy -p "/help"` lists the commands. Rows are grouped by pool with each pool's `5h`
+window ordered before its `weekly` window. When a `5h` window is present (Pro/Ultra
+only), `agy models` distinguishes `ultra` (`gemini-4-carbon`) from `pro`.
 
 **Two binaries are named `agy`.** The Antigravity IDE puts an editor launcher on PATH
 (`~/.antigravity/antigravity/bin/agy`, prints the VS Code style `--diff`/`--goto`
 options); the CLI agent is `~/.gemini/bin/agy`. The probe only ever runs the latter.
 
-Session model: conversations are `~/.gemini/antigravity/conversations/<id>.db` (older versions use `antigravity-cli`)
-(SQLite; the model is not stored readably). Each CLI run writes
-the matching `log/cli-YYYYMMDD_HHMMSS.log` under that same directory, which logs
-`selected model override to backend: label="Gemini 3.8 Flash (High)"`. Slash-command
-runs write a log too, so the log is matched to the newest conversation by start time.
+Session model: conversations are `~/.gemini/antigravity/conversations/<id>.db` (older versions use `antigravity-cli`);
+`gen_metadata` and `executor_metadata` protobuf blobs store the active model/effort id,
+falling back to `log/cli-YYYYMMDD_HHMMSS.log` (`selected model override to backend: label="..."`)
+when absent. Slash-command runs write a log too, so the log fallback matches by start time.
 
 **Signed out, agy opens a browser.** With an empty HOME, `agy -p "/usage"` printed
 `Authentication required. Please visit the URL to log in` and opened the Google sign-in
@@ -146,7 +147,7 @@ authenticated `v1internal:loadCodeAssist` call, which every signed-in run makes.
 environment variable") stops the self-update on start.
 
 Dead ends (checked 2026-10-02):
-1. **`agy models`** — lists model ids and labels, no quota.
+1. **`agy models`** — lists model ids and labels, no quota (used only to distinguish Pro vs Ultra when `/usage` has a `5h` row).
 2. **`/credits`** — paid G1 credits only; on a free account it errors `no credits info found`.
 3. **`--output-format json`** on a real turn — carries token counts, not the model id.
 4. **IDE conversation files** under `~/.gemini/antigravity/conversations/*.pb` — encrypted.

@@ -231,7 +231,7 @@ def advice(raw, now=None):
     lines, ranked = [], []
     for p in data["providers"]:
         for w in p["windows"]:
-            if w["label"] != "5h" and w["pct"] > 80:
+            if w["label"] != "5h" and w.get("duration") != FIVE_HOURS and w["pct"] > 80:
                 left = relative(w["reset"], now) if w["reset"] else ""
                 lines.append("> **Warning:** %s %s is %s used%s." % (
                     p["name"], w["label"], w["shown"], "; resets in " + left if left else ""))
@@ -278,6 +278,42 @@ SKELETON = ('<div class="skel-body"><div class="skel" style="width:85%"></div>'
 TIMED_OUT = "usage call timed out"
 
 
+GEMINI_POOLS = (("gemini", "Gemini Models"), ("cl+gpt", "Claude / GPT"))
+
+
+def _append_window(rows, w, now, label=None):
+    """Append one quota bar row and its time-remaining track."""
+    when = w["reset"]
+    shown = clock(when, now) if when else ""
+    rows.append(
+        '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
+        '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
+        '<div class="pct">%s</div><div class="reset">%s</div></div>'
+        % (hue(w["pct"]), window_label(label or w.get("display", w["label"])),
+           min(w["pct"], 100), esc(w["shown"]), esc(shown)))
+    left = remaining_minutes(when, now) if when else None
+    total = w.get("duration")
+    if left is not None and total is not None:
+        # Draw a scale only for a period explicitly reported or known by the provider.
+        share = max(0.0, min(100.0, left * 100.0 / total))
+        n = 7 if total == WEEK_MINUTES else 4 if total == 1440 else 5
+        unit = "d" if total == WEEK_MINUTES else "h"
+        step = 6 if total == 1440 else 1
+        # Scale labels read as time left at that tick: n at the left, 0 at the reset.
+        scale = "".join(
+            '<span class="%s" style="left:%.4f%%">%s</span>'
+            % ("first" if i == 0 else "last" if i == n else "", i * 100.0 / n,
+               "0" if i == n else "%d%s" % ((n - i) * step, unit))
+            for i in range(n + 1))
+        rows.append(
+            '<div class="row time"><div class="lbl"></div>'
+            '<div class="tbar" style="--n:%d"><div class="ticks"></div>'
+            '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
+            '<div class="scale">%s</div></div>'
+            '<div class="left">%s%s</div></div>'
+            % (n, share, scale, CLOCK, bi("remaining", duration=esc(left_text(left)[:-5]))))
+
+
 def card(p, now, loading=False):
     """One provider's <section>; `loading` draws the skeleton instead of its numbers."""
     rows = []
@@ -294,42 +330,28 @@ def card(p, now, loading=False):
                 moved.add(index)
         if moved:
             moved.update(i for i, note in enumerate(p["notes"]) if note.startswith("Limit resets:"))
-    for w in [] if loading else p["windows"]:
-        when = w["reset"]
-        shown = clock(when, now) if when else ""
-        if p["id"] == "CLAUDE" and w["label"] == "fable":
-            rows.append('<hr>')
-        rows.append(
-            '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
-            '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
-            '<div class="pct">%s</div><div class="reset">%s</div></div>'
-            % (hue(w["pct"]), window_label(w.get("display", w["label"])), min(w["pct"], 100),
-               esc(w["shown"]), esc(shown)))
-        left = remaining_minutes(when, now) if when else None
-        total = w.get("duration")
-        if left is not None and total is not None:
-            # Draw a scale only for a period explicitly reported or known by the provider.
-            share = max(0.0, min(100.0, left * 100.0 / total))
-            n = 7 if total == WEEK_MINUTES else 4 if total == 1440 else 5
-            unit = "d" if total == WEEK_MINUTES else "h"
-            step = 6 if total == 1440 else 1
-            # Scale labels read as time left at that tick: n at the left, 0 at the reset.
-            scale = "".join(
-                '<span class="%s" style="left:%.4f%%">%s</span>'
-                % ("first" if i == 0 else "last" if i == n else "", i * 100.0 / n,
-                   "0" if i == n else "%d%s" % ((n - i) * step, unit))
-                for i in range(n + 1))
-            rows.append(
-                '<div class="row time"><div class="lbl"></div>'
-                '<div class="tbar" style="--n:%d"><div class="ticks"></div>'
-                '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
-                '<div class="scale">%s</div></div>'
-                '<div class="left">%s%s</div></div>'
-                % (n, share, scale, CLOCK, bi("remaining", duration=esc(left_text(left)[:-5]))))
-        if w["label"] in under:
-            count, notes = under.pop(w["label"])
-            rows.append('<fieldset class="reset-credits"><legend>Limit resets: %d available</legend>%s</fieldset>'
-                        % (count, "".join(notes)))
+    if not loading and p["id"] == "GEMINI":
+        grouped = {}
+        for w in p["windows"]:
+            grouped.setdefault(w["label"], []).append(w)
+        known = dict(GEMINI_POOLS)
+        order = [key for key, _ in GEMINI_POOLS if key in grouped]
+        order.extend(key for key in grouped if key not in known)
+        for index, key in enumerate(order):
+            if index:
+                rows.append('<hr>')
+            rows.append('<div class="pool">%s</div>' % esc(known.get(key, key)))
+            for w in sorted(grouped[key], key=lambda item: 0 if item.get("duration") == FIVE_HOURS else 1):
+                _append_window(rows, w, now, label="5h" if w.get("duration") == FIVE_HOURS else "week")
+    else:
+        for w in [] if loading else p["windows"]:
+            if p["id"] == "CLAUDE" and w["label"] == "fable":
+                rows.append('<hr>')
+            _append_window(rows, w, now)
+            if w["label"] in under:
+                count, notes = under.pop(w["label"])
+                rows.append('<fieldset class="reset-credits"><legend>Limit resets: %d available</legend>%s</fieldset>'
+                            % (count, "".join(notes)))
     reset_group = False
     for index, note in enumerate([] if loading else p["notes"]):
         if index in moved:

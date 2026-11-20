@@ -223,6 +223,115 @@ def muse():
 
 AGY_DIRS = [HOME / ".gemini" / folder for folder in ("antigravity", "antigravity-cli")]
 AGY_LABEL = re.compile(r'selected model override to backend: label="([^"]+)"')
+AGY_EFFORT_SUFFIX = re.compile(r"(.+)-(minimal|low|medium|high|xhigh|max)$")
+
+
+def _pb_fields(data):
+    """Shallow protobuf wire scanner yielding (field_number, wire_type, value)."""
+    i = 0
+    while i < len(data):
+        tag = shift = 0
+        while i < len(data):
+            b = data[i]; i += 1
+            tag |= (b & 0x7F) << shift
+            if not (b & 0x80):
+                break
+            shift += 7
+        fn, wt = tag >> 3, tag & 7
+        if wt == 0:
+            v = s = 0
+            while i < len(data):
+                b = data[i]; i += 1
+                v |= (b & 0x7F) << s
+                if not (b & 0x80):
+                    break
+                s += 7
+            yield fn, wt, v
+        elif wt == 2:
+            length = s = 0
+            while i < len(data):
+                b = data[i]; i += 1
+                length |= (b & 0x7F) << s
+                if not (b & 0x80):
+                    break
+                s += 7
+            if i + length > len(data):
+                return
+            yield fn, wt, data[i:i + length]
+            i += length
+        elif wt == 1:
+            if i + 8 > len(data):
+                return
+            i += 8
+        elif wt == 5:
+            if i + 4 > len(data):
+                return
+            i += 4
+        else:
+            return
+
+
+def _pb_bytes(data, *path):
+    """First length-delimited byte slice matching a nested protobuf field path."""
+    if not path:
+        return data
+    target, rest = path[0], path[1:]
+    for fn, wt, val in _pb_fields(data):
+        if fn == target and wt == 2:
+            found = _pb_bytes(val, *rest)
+            if found is not None:
+                return found
+    return None
+
+
+def _split_agy_model(selected, base_model=None):
+    """Split `gemini-4-hydrogen-high` into ('gemini-4-hydrogen', 'high')."""
+    if selected:
+        matched = AGY_EFFORT_SUFFIX.fullmatch(selected.strip())
+        if matched:
+            return matched.group(1), matched.group(2)
+        if selected.startswith("gemini-pro-orchestrator-") and base_model:
+            return base_model, None
+        return selected.strip(), None
+    return base_model, None
+
+
+def agy_db_model(db_path):
+    """Read (model, effort) from the newest generation/executor record in an agy DB."""
+    try:
+        con = sqlite3.connect("file:%s?mode=ro" % db_path.as_posix(), uri=True)
+    except sqlite3.Error:
+        return None, None
+    try:
+        tables = {row[0] for row in con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+        selected = base_model = None
+        if "gen_metadata" in tables:
+            for (blob,) in con.execute("SELECT data FROM gen_metadata ORDER BY idx DESC"):
+                if not blob:
+                    continue
+                if selected is None:
+                    raw = _pb_bytes(blob, 3, 28)
+                    if raw:
+                        selected = raw.decode("utf-8", "replace")
+                if base_model is None:
+                    raw = _pb_bytes(blob, 1, 19)
+                    if raw:
+                        base_model = raw.decode("utf-8", "replace")
+                if selected or base_model:
+                    break
+        if selected is None and "executor_metadata" in tables:
+            row = con.execute(
+                "SELECT data FROM executor_metadata ORDER BY idx DESC LIMIT 1").fetchone()
+            if row and row[0]:
+                raw = _pb_bytes(row[0], 10, 1, 28)
+                if raw:
+                    selected = raw.decode("utf-8", "replace")
+        return _split_agy_model(selected, base_model)
+    except sqlite3.Error:
+        return None, None
+    finally:
+        con.close()
 
 
 def agy_model_id(label):
@@ -236,35 +345,45 @@ def agy_model_id(label):
 
 
 def agy():
-    databases = [folder / "conversation_summaries.db" for folder in AGY_DIRS]
-    databases.extend(path for folder in AGY_DIRS for path in (folder / "conversations").glob("*.db"))
+    conv_dbs = [path for folder in AGY_DIRS for path in (folder / "conversations").glob("*.db")]
+    databases = [folder / "conversation_summaries.db" for folder in AGY_DIRS] + conv_dbs
     hit = newest(databases)
     model = effort = None
-    logs = []
-    roots = (AGY_DIRS if not hit or hit[1].name == "conversation_summaries.db"
-             else [hit[1].parent.parent])
-    for folder in roots:
-        for p in [folder / "cli.log", *(folder / "log").glob("cli-*.log")]:
-            try:
-                modified = p.stat().st_mtime
-                started = (datetime.datetime.strptime(p.stem[4:], "%Y%m%d_%H%M%S").timestamp()
-                           if p.name != "cli.log" else modified)
-            except (OSError, ValueError):
-                continue
-            if not hit or started <= hit[0] + 1:
-                logs.append((started if hit else modified, p))
-    for _, path in sorted(logs, reverse=True):
-        try:
-            labels = AGY_LABEL.findall(path.read_text(encoding="utf-8", errors="replace"))
-        except OSError:
-            continue
-        if labels:
-            model, effort = agy_model_id(labels[-1])
-            if not hit:
-                hit = newest([path])
+    for _, db_path in sorted(
+        ((p.stat().st_mtime, p) for p in conv_dbs if p.exists()), reverse=True
+    ):
+        model, effort = agy_db_model(db_path)
+        if model:
+            if not hit or db_path.stat().st_mtime >= hit[0]:
+                hit = (db_path.stat().st_mtime, db_path)
             break
 
-    # Fallback to ~/.gemini/settings.json if model wasn't explicitly logged in cli.log
+    if not model:
+        logs = []
+        roots = (AGY_DIRS if not hit or hit[1].name == "conversation_summaries.db"
+                 else [hit[1].parent.parent])
+        for folder in roots:
+            for p in [folder / "cli.log", *(folder / "log").glob("cli-*.log")]:
+                try:
+                    modified = p.stat().st_mtime
+                    started = (datetime.datetime.strptime(p.stem[4:], "%Y%m%d_%H%M%S").timestamp()
+                               if p.name != "cli.log" else modified)
+                except (OSError, ValueError):
+                    continue
+                if not hit or started <= hit[0] + 1:
+                    logs.append((started if hit else modified, p))
+        for _, path in sorted(logs, reverse=True):
+            try:
+                labels = AGY_LABEL.findall(path.read_text(encoding="utf-8", errors="replace"))
+            except OSError:
+                continue
+            if labels:
+                model, effort = agy_model_id(labels[-1])
+                if not hit:
+                    hit = newest([path])
+                break
+
+    # Fallback to ~/.gemini/settings.json if model wasn't explicitly logged in DB or cli.log
     if not model:
         settings_file = HOME / ".gemini" / "settings.json"
         if settings_file.is_file():
@@ -277,9 +396,9 @@ def agy():
                 pass
 
     if hit:
-        report(hit[0], model or "gemini-3.8-flash", effort or "high")
+        report(hit[0], model, effort)
     elif model:
-        report(datetime.datetime.now().timestamp(), model, effort or "high")
+        report(datetime.datetime.now().timestamp(), model, effort)
     else:
         print("no local session")
 

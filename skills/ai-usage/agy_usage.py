@@ -8,7 +8,10 @@ It prints one tab-separated line per quota pool:
     Gemini Models<TAB>Weekly Limit Remaining<TAB>100%<TAB>2026-10-08T20:09:18Z
     Claude and GPT models<TAB>Weekly Limit Remaining<TAB>100%<TAB>2026-10-08T20:09:18Z
 
-The percent is what is LEFT; this prints it as used (100 - left) like the other probes.
+The percent is what is LEFT; this prints it as used (100 - left) like the other probes,
+with each pool's 5h window ordered before its weekly window. When a 5h limit is present
+(Pro/Ultra only), `agy models` distinguishes `ultra` (lists `gemini-4-carbon`) from
+`pro` without altering quota usage.
 
 The CLI is ~/.gemini/bin/agy, not the `agy` on PATH: the Antigravity IDE installs a
 launcher of the same name (`agy --help` prints the editor's options), so PATH is never
@@ -25,7 +28,7 @@ BROWSER is also pointed at a no-op on POSIX, in case agy honours it.
 
 AGY_CLI_DISABLE_AUTO_UPDATE=1 keeps the CLI from updating itself during the probe.
 """
-import datetime, os, re, subprocess, sys, tempfile
+import datetime, os, re, subprocess, sys, tempfile, time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -72,11 +75,12 @@ FAIL = "usage call failed"
 env = dict(os.environ, AGY_CLI_DISABLE_AUTO_UPDATE="1")
 if os.name != "nt":
     env["BROWSER"] = "true"
+deadline = time.monotonic() + portable.CALL_TIMEOUT
 
 try:
-    proc = subprocess.run([str(CLI), "-p", "/usage", "--print-timeout",
-                           "%gs" % portable.CALL_TIMEOUT],
-                          capture_output=True, timeout=portable.CALL_TIMEOUT,
+    timeout = portable.timeout_left(deadline, portable.CALL_TIMEOUT)
+    proc = subprocess.run([str(CLI), "-p", "/usage", "--print-timeout", "%gs" % timeout],
+                          capture_output=True, timeout=timeout,
                           stdin=subprocess.DEVNULL,
                           cwd=tempfile.gettempdir(), env=env, **portable.text_kwargs())
     text = proc.stdout
@@ -102,9 +106,26 @@ def reset_clock(value):
     return "%s (%s)" % (at.isoformat(timespec="seconds"), rel)
 
 
-# /usage names no plan, and /credits only reports paid G1 credits.
-print("plan: ?")
-found = False
+def detect_plan(has_5h):
+    """Pro/Ultra carry a 5h window; `agy models` distinguishes Ultra (Carbon) from Pro."""
+    if not has_5h:
+        return "?"
+    try:
+        timeout = portable.timeout_left(deadline, portable.CALL_TIMEOUT)
+        out = subprocess.run([str(CLI), "models"],
+                             capture_output=True, timeout=timeout,
+                             stdin=subprocess.DEVNULL,
+                             cwd=tempfile.gettempdir(), env=env, **portable.text_kwargs()).stdout
+    except Exception:
+        return "?"
+    if re.search(r"(?m)^gemini-4-carbon\b", out):
+        return "ultra"
+    if re.search(r"(?m)^gemini-4-(?:neon|argon|hydrogen)\b", out):
+        return "pro"
+    return "?"
+
+
+pools = {}
 for line in text.splitlines():
     cells = [c.strip() for c in line.split("\t")]
     if len(cells) < 4 or "remaining" not in cells[1].lower():
@@ -119,11 +140,17 @@ for line in text.splitlines():
     window = {"weekly limit remaining": "weekly", "five hour limit remaining": "5h"}.get(
         period, cells[1])
     label = POOL.get(cells[0].lower(), cells[0])
-    print("%-6s %5.1f%% used  window %s  pool %s  resets %s  %s"
-          % (label, used, window, cells[0], reset_clock(cells[3]), portable.format_bar(used)))
-    found = True
+    row = ("%-6s %5.1f%% used  window %s  pool %s  resets %s  %s"
+           % (label, used, window, cells[0], reset_clock(cells[3]), portable.format_bar(used)))
+    pools.setdefault(label, []).append((0 if window == "5h" else 1, row))
 
-if not found:
+if not pools:
     first = (text.strip().splitlines() or [(proc.stderr or "").strip() or "no output"])[0]
     print("%s (%s)" % (FAIL, first[:120]))
     sys.exit(1)
+
+has_5h = any(order == 0 for rows in pools.values() for order, _ in rows)
+print("plan: %s" % detect_plan(has_5h))
+for rows in pools.values():
+    for _, row in sorted(rows, key=lambda item: item[0]):
+        print(row)

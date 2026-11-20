@@ -63,6 +63,8 @@ background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 @keyframes shimmer{from{background-position:100% 0}to{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.skel{animation:none}}
 .card hr,.panel hr{border:0;border-top:1px dashed var(--line);margin:18px 0 14px}
+.pool{font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+.card>header+.pool,.card hr+.pool{margin-top:0}
 .now{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line);color:var(--muted);font-size:14px}
 code{font-family:ui-monospace,Consolas,monospace;color:var(--text)}
 .panel{margin-top:20px}.grid+.panel{margin-top:40px}.panel h2{margin:0 0 6px}
