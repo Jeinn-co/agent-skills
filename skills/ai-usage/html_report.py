@@ -383,14 +383,8 @@ def card(p, now, loading=False):
     timed_out = any(note.startswith(TIMED_OUT) for note in p["notes"])
     clis = {name: cli for cli, name in CLI_NAMES.items()}
     link = USAGE_PAGES.get(p["name"])
-    if link:
-        link = '<a class="usage" href="%s" target="_blank" rel="noopener">%s</a>' % (esc(link), bi('usage_page'))
-    elif p["name"] == "Gemini":
-        link = ('<button type="button" class="usage usage-btn" '
-                'onclick="document.getElementById(\'gemini-usage-dialog\').showModal()">%s</button>'
-                % bi('usage_page'))
-    else:
-        link = ""
+    link = ('<a class="usage" href="%s" target="_blank" rel="noopener">%s</a>'
+            % (esc(link), bi('usage_page')) if link else "")
     # The usage link sits at the right of the first reset block; cards without one keep it in the header.
     for i, row in enumerate(rows):
         if link and row.startswith('<fieldset class="reset-credits">'):
