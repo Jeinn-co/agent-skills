@@ -49,8 +49,8 @@
           "high"
         ],
         "gemini": [
-          "Gemini 4 Hydrogen",
-          "high"
+          "Gemini 4 Neon",
+          "medium"
         ]
       }
     },
@@ -103,8 +103,8 @@
           "high"
         ],
         "gemini": [
-          "Gemini 4 Hydrogen",
-          "high"
+          "Gemini 4 Neon",
+          "medium"
         ]
       }
     },
