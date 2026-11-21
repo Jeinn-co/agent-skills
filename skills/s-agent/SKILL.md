@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.5.5"
+  version: "1.5.6"
 ---
 
 # S-Agent
@@ -207,7 +207,7 @@ a family-alias model override, which would take precedence and lose the pin.
 | Role | Responsibility |
 |---|---|
 | `planner` | Turns a request into an executable plan: scope, acceptance criteria, steps and checks. |
-| `designer` | UI/UX, flows, accessibility and component states. |
+| `designer` | UI/UX, flows, accessibility and component states. Only Claude Code delegates UI/UX to Claude Design; all other platforms (Codex, Antigravity / Gemini) use `ui-ux-pro-max`. |
 | `executor` | Implements an approved plan step by step and verifies each step. |
 | `reviewer` | Independent review and testing: correctness, security, regressions and acceptance. |
 | `devops` | CI/CD, environments, logs and operational reliability. |

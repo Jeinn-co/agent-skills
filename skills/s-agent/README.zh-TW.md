@@ -117,7 +117,7 @@ Notion 預設，也不代表帳號具有使用權限。
 | 角色 | 責任 |
 |---|---|
 | `planner` | 可執行的 plan：範圍、驗收條件、步驟與檢查 |
-| `designer` | UI／UX、流程與無障礙 |
+| `designer` | UI／UX、流程與無障礙（只有 Claude Code 派 Claude Design，其餘平台一律用 `ui-ux-pro-max`） |
 | `executor` | 照已核准的 plan 逐步實作 |
 | `reviewer` | 獨立審查與測試 |
 | `devops` | CI/CD、環境、log 與可靠性 |

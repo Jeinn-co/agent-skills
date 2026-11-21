@@ -141,7 +141,7 @@ override Notion defaults or establish account access.
 | Role | Responsibility |
 |---|---|
 | `planner` | Executable plan: scope, acceptance criteria, steps and checks |
-| `designer` | UI/UX, flows and accessibility |
+| `designer` | UI/UX, flows and accessibility (Claude Code uses Claude Design; other platforms use `ui-ux-pro-max`) |
 | `executor` | Implements an approved plan step by step |
 | `reviewer` | Independent review and testing |
 | `devops` | CI/CD, environments, logs and reliability |
