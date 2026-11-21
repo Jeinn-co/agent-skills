@@ -67,8 +67,8 @@
           "medium"
         ],
         "gemini": [
-          "Gemini 4 Hydrogen",
-          "medium"
+          "Gemini 4 Neon",
+          "low"
         ]
       }
     },

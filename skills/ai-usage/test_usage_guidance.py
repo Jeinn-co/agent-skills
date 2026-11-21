@@ -147,8 +147,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIsNone(cursorbench.pick([argon], 'agy'))
         # Displayed Gemini roles follow My usage roleOverrides, not s-agent's Argon dispatch.
         for role in html_report.ROLE_ASSIGNMENTS:
-            expected = 'Gemini 4 Hydrogen' if role['role'] == 'Executor' else 'Gemini 4 Neon'
-            effort = {'Designer': 'medium', 'Executor': 'medium', 'DevOps': 'medium', 'Security': 'xhigh'}.get(role['role'], 'high')
+            expected = 'Gemini 4 Neon'
+            effort = {'Designer': 'medium', 'Executor': 'low', 'DevOps': 'medium', 'Security': 'xhigh'}.get(role['role'], 'high')
             self.assertEqual(role['models']['gemini'], (expected, effort))
         page = html_report.render('')
         self.assertNotIn('本機選型草案', page)
@@ -162,7 +162,7 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertNotIn('Upgrade to xhigh', roles)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / high</td>'), 2)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / medium</td>'), 2)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / medium</td>'), 1)
+        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / low</td>'), 1)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / xhigh</td>'), 1)
 
     def test_only_fable_has_no_qualified_pick(self):
