@@ -66,8 +66,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertIn('Claude Code mainly Opus 5.5 / high', usage)
         self.assertIn('Codex GPT-6.2-Sol / high', usage)
         self.assertIn('Claude Code 主要用 Opus 5.5 / high', usage)
-        self.assertIn('Codex GPT-6.2-Sol / high.<br>Gemini uses Gemini 4 Hydrogen / high.', usage)
-        self.assertIn('Codex 用 GPT-6.2-Sol / high。<br>Gemini 用 Gemini 4 Hydrogen / high。', usage)
+        self.assertIn('Codex GPT-6.2-Sol / high.<br>Gemini uses Gemini 4 Neon / medium.', usage)
+        self.assertIn('Codex 用 GPT-6.2-Sol / high。<br>Gemini 用 Gemini 4 Neon / medium。', usage)
         self.assertNotIn('xhigh', usage)
 
     def test_qualified_claude_pick_never_uses_fable(self):
@@ -157,8 +157,8 @@ class UsageGuidanceTests(unittest.TestCase):
         self.assertNotIn('安全工作使用 Carbon / high', choice)
         self.assertIn('Gemini selection', roles)
         self.assertIn('Gemini 選型', roles)
-        self.assertEqual(page.count('日常工作使用 Gemini 4 Hydrogen / high。安全工作使用 Gemini 4 Neon / xhigh，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
-        self.assertIn('日常工作使用 Gemini 4 Hydrogen / high', roles.split('<table', 1)[0])
+        self.assertEqual(page.count('日常工作使用 Gemini 4 Neon / medium。安全工作使用 Gemini 4 Neon / xhigh，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
+        self.assertIn('日常工作使用 Gemini 4 Neon / medium', roles.split('<table', 1)[0])
         self.assertNotIn('Upgrade to xhigh', roles)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / high</td>'), 2)
         self.assertEqual(roles.count('<td class="gemini">Gemini 4 Hydrogen / high</td>'), 2)
