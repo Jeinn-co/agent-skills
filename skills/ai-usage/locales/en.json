@@ -5,7 +5,7 @@
   "usage_page": "Usage page",
   "my_usage": "My usage",
   "my_usage_choices": "Claude Code mainly {{claude}}.<br>Codex {{codex}}.<br>Gemini uses {{gemini}}.",
-  "plan_split": "Official plan / execute splits:<br><a href=\"https://code.claude.com/docs/en/model-config\" target=\"_blank\" rel=\"noopener\">Claude Code</a>: <code>opusplan</code> uses Opus in plan mode, then Sonnet to execute.<br><a href=\"https://developers.openai.com/codex/config-reference\" target=\"_blank\" rel=\"noopener\">Codex</a>: <code>plan_mode_reasoning_effort</code> raises effort in Plan mode; the model stays the same.<br><a href=\"https://antigravity.google/docs/models\" target=\"_blank\" rel=\"noopener\">Antigravity</a>: Orchestrator has Neon, Carbon or Argon plan and review; Hydrogen implements.",
+  "plan_split": "Official native subagent dispatch (fresh context by default; <code>reviewer</code> / <code>security</code> never fork):<br><a href=\"https://code.claude.com/docs/en/model-config\" target=\"_blank\" rel=\"noopener\">Claude Code</a>: <code>Agent</code>.<br><a href=\"https://developers.openai.com/codex/config-reference\" target=\"_blank\" rel=\"noopener\">Codex</a>: <code>spawn_agent</code> (<code>default_subagent_model</code> stays <code>gpt-6.2-sol</code>).<br><a href=\"https://antigravity.google/docs/models\" target=\"_blank\" rel=\"noopener\">Antigravity</a>: <code>invoke_subagent</code>.",
   "official_guidance": "Official model guidance, thinking levels and API prices: ",
   "delegated_roles": "Delegated roles",
   "gemini_selection": "Gemini selection",

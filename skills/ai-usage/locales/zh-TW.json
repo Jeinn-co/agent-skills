@@ -5,7 +5,7 @@
   "usage_page": "用量頁",
   "my_usage": "我的用法",
   "my_usage_choices": "Claude Code 主要用 {{claude}}。<br>Codex 用 {{codex}}。<br>Gemini 用 {{gemini}}。",
-  "plan_split": "官方的規劃／實作分工：<br><a href=\"https://code.claude.com/docs/en/model-config\" target=\"_blank\" rel=\"noopener\">Claude Code</a>：<code>opusplan</code>，plan mode 用 Opus，執行時換 Sonnet。<br><a href=\"https://developers.openai.com/codex/config-reference\" target=\"_blank\" rel=\"noopener\">Codex</a>：<code>plan_mode_reasoning_effort</code>，Plan mode 提高 effort，模型不變。<br><a href=\"https://antigravity.google/docs/models\" target=\"_blank\" rel=\"noopener\">Antigravity</a>：Orchestrator，由 Neon、Carbon 或 Argon 規劃與審查，Hydrogen 實作。",
+  "plan_split": "官方原生 Subagent 派發（預設全新獨立上下文，<code>reviewer</code>／<code>security</code> 永不 fork）：<br><a href=\"https://code.claude.com/docs/en/model-config\" target=\"_blank\" rel=\"noopener\">Claude Code</a>：<code>Agent</code>。<br><a href=\"https://developers.openai.com/codex/config-reference\" target=\"_blank\" rel=\"noopener\">Codex</a>：<code>spawn_agent</code>（<code>default_subagent_model</code> 維持 <code>gpt-6.2-sol</code>）。<br><a href=\"https://antigravity.google/docs/models\" target=\"_blank\" rel=\"noopener\">Antigravity</a>：<code>invoke_subagent</code>。",
   "official_guidance": "官方定位、思考等級與 API 價格：",
   "delegated_roles": "角色分派",
   "gemini_selection": "Gemini 選型",
