@@ -29,7 +29,8 @@ LOGOS = json.loads((SKILL_DIR / "data/logos.json").read_text(encoding="utf-8"))
 LABELS = {"short": "5h", "outer": "week"}
 USAGE_PAGES = {"Claude": "https://claude.ai/new#settings/usage",
                "ChatGPT": "https://chatgpt.com/settings/usage?tab=overview",
-               "Grok": "https://grok.com/?_s=home"}
+               "Grok": "https://grok.com/?_s=home",
+               "Gemini": "https://gemini.google.com/usage"}
 COMPARE = "https://jeinn-co.github.io/ai-model-compare/"
 
 WINDOW = re.compile(r"^(\S+)\s+(<1|[\d.]+)% used\s*(.*?)\s*bar \S+\s*$")
