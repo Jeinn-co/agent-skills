@@ -99,8 +99,7 @@ Notion 或讀取工具無法連線時，沿用有效本機角色，明確標示�
 完整型號與強度存於 `~/.agents/roles/<role>.toml`，原生角色說明存於
 `~/.gemini/config/agents/<role>.md`，模型層級設為 `inherit`。
 
-派工時以 `agy --agent <role> --model <model> --effort <effort> -p <handoff>`
-明確套用設定。原生 subagent 的層級本身無法證明完整型號與強度。
+在 Antigravity 預設優先使用官方內建 `invoke_subagent`（讀取 `~/.gemini/config/agents/<role>.md`，`model: inherit`）；僅在明確要求或高風險任務（如 `security` 需嚴格鎖定模型／強度）時，改用 `agy --agent <role> --model <model> --effort <effort> -p <handoff>` 派工。
 預設依目前主工具選平台：Gemini／Antigravity 使用 Notion 的 `gemini` 設定；
 跨平台派工需要使用者明確指定，不會更換主 agent 的模型。只分析、審查或規劃的
 CLI 派工明確加上 `--mode plan`，交接需附禁止編輯與專案測試限制。獨立 CLI session
@@ -126,6 +125,7 @@ Notion 預設，也不代表帳號具有使用權限。
 
 先用一個 subagent；僅在工作獨立時增加，最多三個且遵守 host 更低上限。
 清楚分配檔案責任，有依賴的工作依序執行，相關後續沿用 agent。
+一律優先使用各平台官方內建派工，預設開全新乾淨上下文；只有使用者當下明確要求時才可 fork 對話，且 `reviewer` 與 `security` 永遠禁止 fork。
 小事可由主 agent 直接做；不會從開啟的編輯器檔案自行發明任務。
 沒有分派工具時，不宣稱有 agent 執行。
 

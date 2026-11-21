@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.5.2"
+  version: "1.5.3"
 ---
 
 # S-Agent
@@ -170,8 +170,13 @@ There is no optional higher effort: do not auto-escalate or pass a range such as
 `high ~ xhigh`.
 
 Help shows the exact `[gemini]` model/effort and the native `inherit` tier separately.
-For the selected model/effort pair, launch the named role in a separate Antigravity CLI
-session using `agy --agent <role> --model <model> --effort <effort> -p <handoff>`
+By default in Antigravity, prefer the official built-in `invoke_subagent` tool with
+`~/.gemini/config/agents/<role>.md` (`inherit`, `pro`, or `flash` tier) so the
+subagent panel, `send_message`, and workspace isolation (`branch` / `share`) work
+natively. When strict exact `[gemini]` model/effort enforcement is required (for
+example high-risk `security` scans needing `gemini-4-neon` / `xhigh`, or when
+explicitly requested by the user), launch the named role in a separate Antigravity
+CLI session using `agy --agent <role> --model <model> --effort <effort> -p <handoff>`
 in the authorized workspace. Resolve `agy` from PATH, then `~/.gemini/bin/agy.exe`
 on Windows. Pass arguments as a list or use proper shell quoting. Preserve the
 current task's permission boundaries and supported execution mode. For analysis,
@@ -181,9 +186,6 @@ not automatically inherit the parent's permissions or sandbox: verify and enforc
 equivalent file/command scopes before launch. If that cannot be done, report the
 limitation and keep the work in the authorized host. Never add
 `--dangerously-skip-permissions`. Do not run an inference prompt just to check setup.
-Use native `invoke_subagent` only when the host confirms its effective model and
-effort match the configured pair; a `pro` or `inherit` tier alone is insufficient.
-A host that cannot launch the exact pair must report that limitation.
 
 ## Choose roles and dispatch
 
@@ -225,8 +227,12 @@ an agent ran. Installing the skill does not itself enable delegation.
 Keep handoffs small and self-contained. Include task/result, relevant evidence,
 file ownership, allowed changes, constraints and acceptance checks. For code edits,
 state that others share the tree: preserve their edits and respect ownership.
-Use fresh context for independent work when supported; load relevant skills on
-demand without unrequested installations.
+Prefer each host's official built-in delegation (`Agent` in Claude Code,
+`spawn_agent` in Codex, `invoke_subagent` in Antigravity). Always start roles
+(including spec/plan handoffs) with a fresh independent context by default; only
+fork the current conversation when the user explicitly asks to fork for that task,
+and never fork or carry primary conversation history for `reviewer` or `security`.
+Load relevant skills on demand without unrequested installations.
 
 Delegation does not expand authorization for external writes, messages, publishing,
 authentication or deployment. Preserve project rules, browser choice and test

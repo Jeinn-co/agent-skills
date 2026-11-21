@@ -115,9 +115,12 @@ catalog includes `gemini` when the policy does. Exact Gemini settings are stored
 in `~/.agents/roles/<role>.toml`; native role prompts are discovered from
 `~/.gemini/config/agents/<role>.md` with `model: inherit`.
 
-S-Agent launches the exact pair through `agy --agent <role> --model <model>
---effort <effort> -p <handoff>`. Native subagent tiers do not prove an exact model
-or effort. Account access requires a signed-in CLI and the appropriate plan.
+By default in Antigravity, S-Agent prefers the official built-in `invoke_subagent`
+tool with `~/.gemini/config/agents/<role>.md` (`model: inherit`). When strict exact
+`[gemini]` model/effort enforcement is required (such as high-risk `security` scans
+or when explicitly requested), it launches `agy --agent <role> --model <model>
+--effort <effort> -p <handoff>`. Account access requires a signed-in CLI and the
+appropriate plan.
 By default, use the current host platform: Gemini/Antigravity selects the Notion
 `gemini` settings; another provider requires an explicit user choice. Analysis-only
 CLI handoffs explicitly use `--mode plan` and carry no-edit and project test rules.
@@ -146,8 +149,11 @@ override Notion defaults or establish account access.
 
 Start with one subagent; use up to three only for independent work and within the
 host limit. Keep ownership clear, sequence dependent work and reuse agents for
-related follow-up. Small chores can stay with the main agent. No task is invented
-from an editor tab. No tool access means no claimed delegation.
+related follow-up. Prefer each host's official built-in delegation with fresh
+independent context by default; only fork conversation context when explicitly
+requested by the user, and never for `reviewer` or `security`. Small chores can
+stay with the main agent. No task is invented from an editor tab. No tool access
+means no claimed delegation.
 
 The current task and necessary follow-up define scope. Existing approval gates,
 browser preferences and test environments remain in force. A plan stays a plan;
