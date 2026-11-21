@@ -149,7 +149,11 @@ override Notion defaults or establish account access.
 
 Start with one subagent; use up to three only for independent work and within the
 host limit. Keep ownership clear, sequence dependent work and reuse agents for
-related follow-up. Prefer each host's official built-in delegation with fresh
+related follow-up. Prefer the host's built-in plan/execute split (`opusplan`,
+`plan_mode_reasoning_effort`, Antigravity Orchestrator) for routine single-stream work
+instead of always splitting `planner` + `executor`; reserve `s-agent` delegation for
+fresh isolated context (`reviewer`, `security`) or specialized role/model splits
+(`designer`, parallel slices). Prefer each host's official built-in delegation with fresh
 independent context by default; only fork conversation context when explicitly
 requested by the user, and never for `reviewer` or `security`. Small chores can
 stay with the main agent. No task is invented from an editor tab. No tool access

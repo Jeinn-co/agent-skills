@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.5.3"
+  version: "1.5.4"
 ---
 
 # S-Agent
@@ -192,7 +192,12 @@ limitation and keep the work in the authorized host. Never add
 Use the explicit task, otherwise the active user objective and relevant artifacts.
 An active editor file alone is not a task. If no actionable objective exists, ask
 one concise question. Preserve corrections, scope and unfinished work. A plan-only
-request stays a plan. A trivial chore may stay in the main agent.
+request stays a plan. A trivial chore may stay in the main agent. For routine
+single-stream planning and implementation, prefer the host's built-in plan/execute
+split (`opusplan` in Claude Code, `plan_mode_reasoning_effort` in Codex, Orchestrator
+in Antigravity) instead of splitting every task into `planner` + `executor` subagents;
+use `s-agent` delegation when fresh isolated context (`reviewer`, `security`) or
+specialized role/model selection (`designer`, independent parallel slices) adds value.
 
 If a selected role's loaded settings differ after sync, reload where supported;
 otherwise report that a new session is required rather than dispatching stale

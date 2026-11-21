@@ -125,6 +125,7 @@ Notion 預設，也不代表帳號具有使用權限。
 
 先用一個 subagent；僅在工作獨立時增加，最多三個且遵守 host 更低上限。
 清楚分配檔案責任，有依賴的工作依序執行，相關後續沿用 agent。
+日常單線規劃與修改優先用各平台內建 Plan／Execute 分工（`opusplan`、`plan_mode_reasoning_effort`、Antigravity Orchestrator），不必每次拆 `planner`＋`executor`；`s-agent` 保留給需要獨立乾淨上下文（`reviewer`、`security`）或專長換模（`designer`、平行分工）的任務。
 一律優先使用各平台官方內建派工，預設開全新乾淨上下文；只有使用者當下明確要求時才可 fork 對話，且 `reviewer` 與 `security` 永遠禁止 fork。
 小事可由主 agent 直接做；不會從開啟的編輯器檔案自行發明任務。
 沒有分派工具時，不宣稱有 agent 執行。
