@@ -40,5 +40,8 @@
   "reviewer_description": "{{role}}: independent review and testing",
   "devops_description": "{{role}}: environments and operations",
   "security_description": "{{role}}: scans code, dependencies and configuration",
-  "role_policy": "Routine work uses {{daily}}. Security uses {{security}}, prioritizing safety and correctness. {{excluded}} is excluded because of cost."
+  "role_policy": "Routine work uses {{daily}}. Security uses {{security}}, prioritizing safety and correctness. {{excluded}} is excluded because of cost.",
+  "gemini_usage_title": "How to check Gemini (Antigravity) quota",
+  "gemini_usage_body": "Antigravity has no standalone web usage page (<code>gemini.google.com/usage</code> only tracks the Gemini web app). Official ways to view 5h and weekly quotas:<ol><li><strong>Antigravity App / IDE</strong>: open <code>Settings</code> → <code>Models</code>.</li><li><strong>Antigravity CLI</strong>: run <code>agy -p &quot;/usage&quot;</code> (or enter <code>/usage</code> in interactive mode; this report reads the same source).</li></ol><p class=\"muted\">Manage paid Google AI Credits at <a href=\"https://one.google.com/ai/credits\" target=\"_blank\" rel=\"noopener\">one.google.com/ai/credits</a>; see the <a href=\"https://antigravity.google/docs/cli/commands/usage/\" target=\"_blank\" rel=\"noopener\">official /usage docs</a>.</p>",
+  "close": "Close"
 }

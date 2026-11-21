@@ -29,8 +29,7 @@ LOGOS = json.loads((SKILL_DIR / "data/logos.json").read_text(encoding="utf-8"))
 LABELS = {"short": "5h", "outer": "week"}
 USAGE_PAGES = {"Claude": "https://claude.ai/new#settings/usage",
                "ChatGPT": "https://chatgpt.com/settings/usage?tab=overview",
-               "Grok": "https://grok.com/?_s=home",
-               "Gemini": "https://gemini.google.com/usage"}
+               "Grok": "https://grok.com/?_s=home"}
 COMPARE = "https://jeinn-co.github.io/ai-model-compare/"
 
 WINDOW = re.compile(r"^(\S+)\s+(<1|[\d.]+)% used\s*(.*?)\s*bar \S+\s*$")
@@ -384,8 +383,14 @@ def card(p, now, loading=False):
     timed_out = any(note.startswith(TIMED_OUT) for note in p["notes"])
     clis = {name: cli for cli, name in CLI_NAMES.items()}
     link = USAGE_PAGES.get(p["name"])
-    link = ('<a class="usage" href="%s" target="_blank" rel="noopener">%s</a>'
-            % (esc(link), bi('usage_page')) if link else "")
+    if link:
+        link = '<a class="usage" href="%s" target="_blank" rel="noopener">%s</a>' % (esc(link), bi('usage_page'))
+    elif p["name"] == "Gemini":
+        link = ('<button type="button" class="usage usage-btn" '
+                'onclick="document.getElementById(\'gemini-usage-dialog\').showModal()">%s</button>'
+                % bi('usage_page'))
+    else:
+        link = ""
     # The usage link sits at the right of the first reset block; cards without one keep it in the header.
     for i, row in enumerate(rows):
         if link and row.startswith('<fieldset class="reset-credits">'):

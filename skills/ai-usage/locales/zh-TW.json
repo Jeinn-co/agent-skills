@@ -40,5 +40,8 @@
   "reviewer_description": "{{role}}：獨立審查與測試",
   "devops_description": "{{role}}：環境與維運",
   "security_description": "{{role}}：程式碼、相依套件與設定的安全掃描",
-  "role_policy": "日常工作使用 {{daily}}。安全工作使用 {{security}}，以安全性與正確性優先。因成本排除 {{excluded}}。"
+  "role_policy": "日常工作使用 {{daily}}。安全工作使用 {{security}}，以安全性與正確性優先。因成本排除 {{excluded}}。",
+  "gemini_usage_title": "如何查看 Gemini（Antigravity）額度",
+  "gemini_usage_body": "Antigravity 沒有獨立的網頁版用量頁（<code>gemini.google.com/usage</code> 只算 Gemini 網頁版額度）。查看 5H 與週額度有兩種官方方式：<ol><li><strong>Antigravity App／IDE</strong>：開啟 <code>Settings</code> → <code>Models</code>。</li><li><strong>Antigravity CLI</strong>：在終端機執行 <code>agy -p &quot;/usage&quot;</code>（或在互動模式輸入 <code>/usage</code>；本報表就是讀這個來源）。</li></ol><p class=\"muted\">加購點數（Google AI Credits）請至 <a href=\"https://one.google.com/ai/credits\" target=\"_blank\" rel=\"noopener\">one.google.com/ai/credits</a>；詳見 <a href=\"https://antigravity.google/docs/cli/commands/usage/\" target=\"_blank\" rel=\"noopener\">官方 /usage 文件</a>。</p>",
+  "close": "關閉"
 }
