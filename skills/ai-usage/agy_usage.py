@@ -89,7 +89,11 @@ except Exception as e:
     sys.exit(1)
 
 # The pool names are Google's and printed as-is; short labels keep the rows aligned.
-POOL = {"gemini models": "gemini", "claude and gpt models": "cl+gpt"}
+POOL = {
+    "gemini models": "gemini",
+    "claude and gpt models": "cl+gpt",
+    "gemini 4 argon": "argon",
+}
 
 
 def reset_clock(value):
@@ -128,18 +132,24 @@ def detect_plan(has_5h):
 pools = {}
 for line in text.splitlines():
     cells = [c.strip() for c in line.split("\t")]
-    if len(cells) < 4 or "remaining" not in cells[1].lower():
+    if len(cells) < 4:
+        continue
+    period = cells[1].lower()
+    if "remaining" not in period and "limit" not in period:
         continue
     m = re.match(r"(\d+(?:\.\d+)?)%", cells[2])
     if not m:
         continue
     used = max(0.0, min(100.0, 100.0 - float(m.group(1))))
-    period = cells[1].lower()
     # antigravity.google/docs/cli/commands/usage: each pool has a weekly and a five-hour
     # limit; docs/plans: the five-hour one is Pro/Ultra only. Checked 2026-11-09.
-    window = {"weekly limit remaining": "weekly", "five hour limit remaining": "5h"}.get(
-        period, cells[1])
-    label = POOL.get(cells[0].lower(), cells[0])
+    if "five hour" in period or "5h" in period:
+        window = "5h"
+    elif "weekly" in period:
+        window = "weekly"
+    else:
+        window = cells[1]
+    label = POOL.get(cells[0].lower(), re.sub(r"\s+", "-", cells[0].lower()))
     row = ("%-6s %5.1f%% used  window %s  pool %s  resets %s  %s"
            % (label, used, window, cells[0], reset_clock(cells[3]), portable.format_bar(used)))
     pools.setdefault(label, []).append((0 if window == "5h" else 1, row))

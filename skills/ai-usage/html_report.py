@@ -195,8 +195,8 @@ def parse(raw):
                 current["windows"].append({
                     "label": LABELS.get(label, label),
                     # A Pro/Ultra pool has a weekly and a 5h row; tag the 5h one so they differ.
-                    "display": {"gemini": "Gemini", "cl+gpt": "Claude / GPT"}.get(label, LABELS.get(label, label))
-                               + (" 5h" if label in ("gemini", "cl+gpt") and duration == FIVE_HOURS else ""),
+                    "display": {"gemini": "Gemini", "argon": "Gemini 4 Argon", "cl+gpt": "Claude / GPT"}.get(label, LABELS.get(label, label))
+                               + (" 5h" if label in ("gemini", "argon", "cl+gpt") and duration == FIVE_HOURS else ""),
                     "duration": duration,
                     "pct": 0.5 if pct == "<1" else float(pct),
                     "shown": "<1%" if pct == "<1" else "%d%%" % round(float(pct)),
@@ -278,7 +278,7 @@ SKELETON = ('<div class="skel-body"><div class="skel" style="width:85%"></div>'
 TIMED_OUT = "usage call timed out"
 
 
-GEMINI_POOLS = (("gemini", "Gemini Models"), ("cl+gpt", "Claude / GPT"))
+GEMINI_POOLS = (("gemini", "Gemini Models"), ("argon", "Gemini 4 Argon"), ("cl+gpt", "Claude / GPT"))
 
 
 def _append_window(rows, w, now, label=None):
