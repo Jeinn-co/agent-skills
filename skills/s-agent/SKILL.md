@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.5.7"
+  version: "1.5.8"
 ---
 
 # S-Agent
@@ -207,7 +207,7 @@ a family-alias model override, which would take precedence and lose the pin.
 | Role | Responsibility |
 |---|---|
 | `planner` | Turns a request into an executable plan: scope, acceptance criteria, steps and checks. |
-| `designer` | UI/UX, flows, accessibility and component states. Only Claude Code delegates UI/UX to Claude Design; all other platforms (Codex, Antigravity / Gemini) use `ui-ux-pro-max`. |
+| `designer` | UI/UX, flows, accessibility and component states. On Claude Code, do not dispatch a `designer` subagent; send directly to Claude Design (the Artifact `Design` type for websites, landing pages and UI mockups): first call Artifact `quickstart` (`intent: "design"`), then create the artifact with the returned Design `type_url`. On Codex and Antigravity (Gemini), dispatch `designer` as usual and use `ui-ux-pro-max`. |
 | `executor` | Implements an approved plan step by step and verifies each step. |
 | `reviewer` | Independent review and testing: correctness, security, regressions and acceptance. |
 | `devops` | CI/CD, environments, logs and operational reliability. |
@@ -220,7 +220,9 @@ explicitly independent review. General work can stay in the main agent or use a
 suitable available helper without inventing another configured role.
 
 Announce the selected role, purpose and actual model/effort, then call the real
-host delegation tool. Do not stop at a proposed roster. If no delegation tool is
+host delegation tool (exception: on Claude Code, `designer` tasks do not spawn a
+`designer` subagent — invoke Artifact `quickstart` with `intent: "design"`, then
+create the artifact with the returned Design `type_url`). Do not stop at a proposed roster. If no delegation tool is
 available, say so and complete feasible work in the main agent without pretending
 an agent ran. Installing the skill does not itself enable delegation.
 

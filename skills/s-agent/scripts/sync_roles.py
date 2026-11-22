@@ -15,7 +15,7 @@ import uuid
 
 ROLES = {
     'planner': 'Turn a request into an executable plan: scope, acceptance criteria, steps and checks.',
-    'designer': 'Design usable flows, accessible interactions, layouts and states. On Claude Code use Claude Design; on other platforms use ui-ux-pro-max when installed.',
+    'designer': 'Design usable flows, accessible interactions, layouts and states. On Claude Code, do not dispatch a designer subagent; send directly to Claude Design by calling Artifact quickstart with intent "design" and creating the artifact with the returned Design type_url. On Codex and Antigravity, use ui-ux-pro-max when installed.',
     'executor': 'Implement an approved plan step by step and verify each step.',
     'reviewer': 'Independently review and test changes: correctness, security, regressions and acceptance.',
     'devops': 'Investigate CI/CD, environments, deployment configuration and reliability.',
