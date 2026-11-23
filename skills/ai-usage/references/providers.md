@@ -3,13 +3,13 @@
 All five services compute usage server-side. Each probe reads the result through
 its provider's CLI or usage endpoint.
 
-## Claude — optional browser source, OAuth usage endpoint, CLI fallback
+## Claude — OAuth usage endpoint, CLI fallback, optional browser source
 
-See [claude-browser.md](claude-browser.md) to read the already signed-in browser Usage
-page. Fresh browser observations bypass CLI auth and contain no cookies or tokens.
-The source and check time are visible; snapshots expire after 5 minutes.
+If OAuth and CLI `/usage` both fail, see [claude-browser.md](claude-browser.md)
+to read the signed-in Usage page. Browser observations contain no cookies or
+tokens and expire after 5 minutes. The report shows the source and check time.
 
-Without a browser observation, one read-only GET to
+The direct probe makes a read-only GET to
 `https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1` returns both the
 quota windows (`five_hour`, `seven_day`) and the banked reset grants (`cedar_ember`).
 The token comes from `CLAUDE_CODE_OAUTH_TOKEN`, the macOS keychain item

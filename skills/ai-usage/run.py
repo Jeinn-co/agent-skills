@@ -31,7 +31,8 @@ HERE = Path(__file__).resolve().parent
 # agy -p "/usage"   -> Antigravity CLI quota pools (Gemini) -- live, see agy_usage.py
 # session_info.py <cli>  -> newest local session file     -- model/effort/permission
 # cursorbench.py cli=model:effort ...  -> Artificial Analysis rows and picks for those models
-PROBES = (("CLAUDE", "claude_usage.py", "claude"),
+CLAUDE_SCRIPT = "claude_usage.py"
+PROBES = (("CLAUDE", CLAUDE_SCRIPT, "claude"),
           ("CHATGPT", "codex_usage.py", "codex"),
           ("GROK", "grok_usage.py", "grok"),
           ("MUSE", "muse_usage.py", "muse"),
@@ -282,6 +283,19 @@ def child_env(timeout):
     return dict(os.environ, AI_USAGE_TIMEOUT="%g" % timeout, AI_USAGE_METADATA="1")
 
 
+def valid_window(line):
+    from html_report import WINDOW
+    match = WINDOW.match(line.strip())
+    try:
+        return bool(match and 0 <= (0.5 if match[2] == "<1" else float(match[2])) <= 100)
+    except ValueError:
+        return False
+
+
+def has_quota(report):
+    return any(valid_window(line) for line in report.splitlines())
+
+
 def usage(script, timeout=portable.CALL_TIMEOUT):
     try:
         result = portable.run_bounded(
@@ -291,24 +305,14 @@ def usage(script, timeout=portable.CALL_TIMEOUT):
         out = result.stdout
     except subprocess.TimeoutExpired as error:
         # Optional details must not erase complete, validated usage already received.
-        import html_report
         output = error.output or ""
         if isinstance(output, bytes):
             output = output.decode("utf-8", "replace")
         complete = [line for line in output.splitlines(keepends=True) if line.endswith("\n")]
-        windows = []
-        for line in complete:
-            match = html_report.WINDOW.match(line.strip())
-            if match:
-                try:
-                    used = 0.5 if match.group(2) == "<1" else float(match.group(2))
-                    if 0 <= used <= 100:
-                        windows.append(line)
-                except ValueError:
-                    pass
+        windows = [line for line in complete if valid_window(line)]
         if windows:
             plan = next((line for line in complete if line.startswith("plan:")), "")
-            detail = ("Limit resets: unavailable (timed out)" if script == "claude_usage.py" else
+            detail = ("Limit resets: unavailable (timed out)" if script == CLAUDE_SCRIPT else
                       "Additional details unavailable (lookup timed out)")
             return plan + "".join(windows) + detail + "\n"
         return "usage call timed out after %gs; skipped\n" % timeout
@@ -316,6 +320,23 @@ def usage(script, timeout=portable.CALL_TIMEOUT):
         # Setup hid the Claude/GPT pool: drop its row before cards and advice see it.
         out = "".join(line for line in out.splitlines(True) if not line.startswith("cl+gpt "))
     return out
+
+
+def report_usage(script, timeout=portable.CALL_TIMEOUT, *, claude_result=None):
+    direct = claude_result if script == CLAUDE_SCRIPT and claude_result is not None else usage(script, timeout)
+    if script == CLAUDE_SCRIPT and not has_quota(direct):
+        from claude_browser import current_report
+        browser = current_report(metadata=True)
+        if browser is not None:
+            return "\n".join(browser) + "\n"
+    return direct
+
+
+if len(sys.argv) == 3 and sys.argv[1] == "--probe-claude":
+    direct = usage(CLAUDE_SCRIPT)
+    Path(sys.argv[2]).write_text(direct, encoding="utf-8")
+    print("claude=" + ("direct" if has_quota(direct) else "browser-fallback"))
+    sys.exit(0)
 
 
 def session(cli):
@@ -465,7 +486,7 @@ if "--serve" in sys.argv:
                 header, script, cli = probe
                 with ThreadPoolExecutor(max_workers=1) as pool:
                     info = pool.submit(session, cli)
-                    raw = "### %s\n%s%s" % (header, usage(script, PAGE_TIMEOUT), info.result())
+                    raw = "### %s\n%s%s" % (header, report_usage(script, PAGE_TIMEOUT), info.result())
                 self.send_json({"raw": raw, "html": html_report.card_html(raw)})
             elif path == "/bench":  # needs every provider's model, which is read locally
                 probes = active()
@@ -524,6 +545,8 @@ if "--serve" in sys.argv:
 
 # The report is always the HTML page; AI_USAGE_NO_PAGE=1 (tests) prints the text only.
 HTML = not os.environ.get("AI_USAGE_NO_PAGE")
+claude_result = (Path(sys.argv[2]).read_text(encoding="utf-8")
+                 if len(sys.argv) == 3 and sys.argv[1] == "--claude-result" else None)
 # Keep a copy of everything printed so html_report can build the advice and the page.
 import io
 _real_stdout = sys.stdout
@@ -549,7 +572,7 @@ try:
     probes = active()
     with ThreadPoolExecutor(max_workers=2 * len(probes)) as pool:
         # Start every CLI and local session read before waiting for any result.
-        calls = [pool.submit(usage, script) for _, script, _ in probes]
+        calls = [pool.submit(report_usage, script, claude_result=claude_result) for _, script, _ in probes]
         sessions = [pool.submit(session, cli) for _, _, cli in probes]
         infos = [future.result() for future in sessions]
         # Benchmark needs model/effort, not usage: overlap its network calls too.

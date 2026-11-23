@@ -3,7 +3,7 @@ name: ai-usage
 description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, banked reset counts and expiry dates for Claude and ChatGPT, the model / effort of each CLI's newest session, and that model's Artificial Analysis score, cost and CP. `setup` chooses which providers to report. It automatically updates itself from GitHub before continuing. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 metadata:
   author: Jeinn
-  version: "1.33.14"
+  version: "1.33.15"
 ---
 
 
@@ -55,15 +55,12 @@ not run the report.
 ## Report
 
 Read the selection with `--show-providers`. When Claude is selected, follow
-[references/claude-browser.md](references/claude-browser.md)
-to read its Usage page using an available connected-browser tool. Respect the user's
-browser choice; no particular connector or browser is assumed to exist. A fresh browser observation
-takes priority over CLI auth. Refresh this observation on every `/uu` invocation;
-clear the previous observation before attempting a new capture, as documented there.
-never reuse an earlier report as a new observation. When no browser tool exists, skip
-this optional adapter without asking the user to install one. If browser access is unavailable,
-the launcher still tries the CLI. Only when both sources fail should the report
-point the user to the Usage page to sign in; never demand CLI login while the web login works.
+[references/claude-browser.md](references/claude-browser.md) to try OAuth and
+Claude Code's `/usage` first. Open the Usage page only if the direct probe returns
+`claude=browser-fallback` and a connected browser is available. Respect the user's
+browser choice. If the Usage page asks for sign-in, ask the user to sign in to
+[Claude](https://claude.ai/new#settings/usage) themselves and rerun `/uu`.
+Continue reporting the other providers.
 
 On Windows Antigravity, start `python "<skill-dir>/run.py" --serve --no-open`
 with `IsDaemon=true` whenever the command tool exposes it. Do this after Step 0
@@ -74,7 +71,8 @@ use the same Python installation for the report. If the mode is unavailable or
 startup fails, continue with the report. The launcher can fall back to a static
 HTML file.
 
-Run the launcher (no arguments; `fresh` only means do not reuse an earlier answer).
+Run the launcher with `--claude-result <result-file>` if the Claude probe ran.
+Otherwise run with no arguments. `fresh` only means do not reuse an earlier answer.
 Each provider has a 20-second budget; never extend it. Claude quota and reset
 lookups share one deadline; reset details only use the remaining time. If optional
 details time out, retain complete validated quota windows and report resets unavailable.
@@ -95,13 +93,15 @@ page refreshes usage. Static HTML files use the terminal-command fallback instea
   3. `**Report:** [Open the HTML report](<target>)`: the URL as printed, or
      `file:///<path with forward slashes>` for a path. Add a short note for each
      parenthesised note on that line (`Refresh unavailable: …`, `could not open a browser`).
+  4. If the Claude Usage page was signed out, tell the user to sign in to Claude
+     themselves and rerun `/uu`.
 
 Do not suggest installing a missing CLI unless asked. `references/providers.md`
 explains where each number comes from. Banked resets are read-only: never redeem a
-reset. Claude prefers a fresh browser observation; otherwise one OAuth usage
-request reads both quota windows and reset grants using existing CLI credentials.
-This read never refreshes or writes credentials. If the request fails, the probe
-falls back to CLI `/usage`. ChatGPT uses `account/rateLimits/read`, including reset details.
+reset. Claude uses existing CLI credentials for the read-only OAuth usage request.
+It tries CLI `/usage` if OAuth fails and uses a fresh browser observation only if
+neither direct path yields valid usage. ChatGPT uses `account/rateLimits/read`,
+including reset details.
 Original expiry epochs are carried in internal `reset-expiry` JSON records for HTML;
 these records are hidden from normal terminal output. Legacy text-only
 reports display static expiry text without guessing an instant from a local date.

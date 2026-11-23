@@ -23,7 +23,7 @@ def timestamp(value):
     return when
 
 
-def report(data, now=None):
+def report(data, now=None, *, metadata=None):
     now = now or dt.datetime.now(dt.timezone.utc)
     if not isinstance(data, dict) or data.get("sourceUrl") not in URLS:
         raise ValueError("Claude Usage page required")
@@ -77,7 +77,7 @@ def report(data, now=None):
             resets = {"availableCount": max(0, resets["availableCount"] - len(fable)),
                       "credits": [r for r in details if r not in fable]}
         lines.extend(line.replace("Usage limit resets:", "Limit resets:")
-                     for line in codex_lines(resets, now))
+                     for line in codex_lines(resets, now, metadata=metadata))
     name = data.get("browserName", "Browser")
     if name not in ("Browser", "Chrome", "Chromium", "Edge", "Firefox", "Safari"):
         name = "Browser"
@@ -86,11 +86,11 @@ def report(data, now=None):
     return lines
 
 
-def current_report():
+def current_report(*, metadata=None):
     try:
         if SNAPSHOT.stat().st_size > 65536:
             return None
-        return report(json.loads(SNAPSHOT.read_text(encoding="utf-8")))
+        return report(json.loads(SNAPSHOT.read_text(encoding="utf-8")), metadata=metadata)
     except (OSError, ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
         return None
 

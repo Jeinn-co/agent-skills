@@ -47,10 +47,12 @@ def integer(value):
     return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
 
-def reset_note(prefix, value, now):
+def reset_note(prefix, value, now, *, metadata=None):
     note = prefix + expiry(value, now)
     lines = [note]
-    if os.environ.get("AI_USAGE_METADATA") == "1" and value is not None:
+    if metadata is None:
+        metadata = os.environ.get("AI_USAGE_METADATA") == "1"
+    if metadata and value is not None:
         try:
             # Keep the exact instant separate from the deliberately compact display text.
             stamp = int(expiry_time(value).timestamp() * 1000)
@@ -60,7 +62,7 @@ def reset_note(prefix, value, now):
     return lines
 
 
-def codex_lines(data, now=None):
+def codex_lines(data, now=None, *, metadata=None):
     now = now or dt.datetime.now(dt.timezone.utc)
     if not isinstance(data, dict) or not integer(data.get("availableCount")):
         return ["Usage limit resets: unavailable (CLI returned no valid count)"]
@@ -73,7 +75,7 @@ def codex_lines(data, now=None):
         return lines
     available = [r for r in rows if isinstance(r, dict) and r.get("status") == "available"]
     for i, row in enumerate(available, 1):
-        lines.extend(reset_note("Reset %d: " % i, row.get("expiresAt"), now))
+        lines.extend(reset_note("Reset %d: " % i, row.get("expiresAt"), now, metadata=metadata))
     if len(available) < count:
         lines.append("Reset details: %d of %d returned" % (len(available), count))
     return lines

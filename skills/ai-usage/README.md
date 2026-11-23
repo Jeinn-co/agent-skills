@@ -37,8 +37,8 @@ that opens the store instead of running anything.
 | Gemini | `~/.gemini/bin/agy` (Antigravity CLI) | run it once and follow the Google sign-in |
 
 **You do not need all five.** Install one and you get one row; the others print
-`not installed` and nothing else breaks. The skill never prompts for a login, never
-opens a login browser automatically. Usage comes from authenticated CLIs or an
+`not installed` and nothing else breaks. The skill leaves sign-in to the user.
+Usage comes from authenticated CLIs or an
 optional browser observation. For Claude quota and reset grants, the skill reads an
 existing CLI access token from its environment, Keychain or credential file and sends
 it only to the official api.anthropic.com HTTPS endpoint; without one it falls back to
@@ -256,11 +256,12 @@ choice yet, the page follows the browser's language.
 It uses each provider's existing CLI login, so running it inside Codex also reads
 your Claude, Grok, Muse and Gemini accounts.
 
-**Usage numbers are live.** When a connected-browser tool is available, `/uu` reads Claude
-Usage there and labels the source and check time. Browser observations expire after
-5 minutes; rerun `/uu` to read the browser again (HTML Refresh cannot drive the connected browser).
-Otherwise Claude uses its existing OAuth login to query Anthropic, and the other
-usage windows come from the provider CLIs:
+**Usage numbers are live.** Claude first tries the existing OAuth login and then
+the CLI's `/usage`. If both fail, `/uu` can read the signed-in Claude Usage page
+with a connected browser and label the source and check time. If the page asks
+for sign-in, sign in yourself and rerun `/uu`. Browser observations expire after
+5 minutes. HTML Refresh retries the direct sources and can reuse a still-fresh
+observation. The other providers use their CLIs:
 
 | Provider | How |
 |---|---|

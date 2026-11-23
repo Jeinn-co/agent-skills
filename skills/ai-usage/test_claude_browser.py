@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 import runpy
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -84,15 +86,37 @@ class ClaudeBrowserTests(unittest.TestCase):
                 claude_browser.SNAPSHOT.write_text(text)
                 self.assertIsNone(claude_browser.current_report())
 
-    def test_valid_browser_source_bypasses_cli_and_its_login(self):
-        output = io.StringIO()
-        with patch("claude_browser.current_report", return_value=claude_browser.report(self.data())), \
-                patch("portable.argv") as argv, contextlib.redirect_stdout(output):
-            with self.assertRaises(SystemExit) as result:
-                runpy.run_path(str(Path(__file__).with_name("claude_usage.py")))
-            self.assertEqual(result.exception.code, 0)
-            argv.assert_not_called()
-        self.assertIn("78.0% used", output.getvalue())
+    def test_launcher_reuses_direct_probe_and_only_reads_browser_on_failure(self):
+        launcher = str(Path(__file__).with_name("run.py"))
+        browser = claude_browser.report(self.data())
+        for direct, status in (("5h 0.0% used bar ░\n", "direct"),
+                               ("could not parse; raw first line: Total cost\n", "browser-fallback")):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
+                result = str(Path(directory) / "claude.txt")
+                with patch.object(sys, "argv", [launcher, "--probe-claude", result]), \
+                        patch("portable.run_bounded", return_value=subprocess.CompletedProcess([], 0, direct)), \
+                        patch("claude_browser.current_report") as observation, \
+                        contextlib.redirect_stdout(io.StringIO()) as probe_output:
+                    with self.assertRaises(SystemExit) as exit_code:
+                        runpy.run_path(launcher)
+                    self.assertEqual(exit_code.exception.code, 0)
+                    self.assertIn("claude=" + status, probe_output.getvalue())
+                    observation.assert_not_called()
+                with patch.object(sys, "argv", [launcher, "--claude-result", result]), \
+                        patch.dict(os.environ, {"AI_USAGE_NO_PAGE": "1"}), \
+                        patch("portable.run_bounded", return_value=subprocess.CompletedProcess([], 0, "")) as calls, \
+                        patch("html_report.guidance_data.refresh_live"), \
+                        patch("claude_browser.current_report", return_value=browser) as observation, \
+                        contextlib.redirect_stdout(io.StringIO()) as report_output:
+                    runpy.run_path(launcher)
+                    self.assertFalse(any(Path(call.args[0][2]).name == "claude_usage.py"
+                                         for call in calls.call_args_list))
+                    if status == "direct":
+                        observation.assert_not_called()
+                        self.assertIn(direct.strip(), report_output.getvalue())
+                    else:
+                        observation.assert_called_once_with(metadata=True)
+                        self.assertIn("Source: Chrome", report_output.getvalue())
 
     def test_visible_browser_reset_expiry_and_validation(self):
         data = self.data()

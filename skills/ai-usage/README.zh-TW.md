@@ -197,10 +197,10 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
 
 它使用各 provider 現有的 CLI 登入資訊，在 Codex 裡面跑也能取得 Claude、Grok、Muse 和 Gemini 的數字。
 
-**用量數字是即時的。** 有可用的瀏覽器整合工具時，Claude 可讀取已登入的 Usage 頁，標明來源與擷取時間；
-快照 5 分鐘後失效。每次 `/uu` 會重讀瀏覽器，HTML Refresh 本身無法操作已連線瀏覽器。
-沒有可用網頁資料時，Claude 用現有 OAuth 登入查詢 Anthropic，其他用量視窗直接問各家
-自己的 CLI：
+**用量數字是即時的。** Claude 先用現有 OAuth 登入查詢，再嘗試 CLI 的 `/usage`。
+兩種方式都無法取得用量時，`/uu` 才透過可用的瀏覽器工具讀取已登入的 Usage 頁，並標明來源與擷取時間。
+如果網頁要求登入，請自行登入 Claude 再重跑 `/uu`。快照 5 分鐘後失效，HTML Refresh 會先重查直連來源，
+失敗時可沿用仍有效的快照。其他用量視窗直接問各家的 CLI：
 
 | Provider | 方法 |
 |---|---|

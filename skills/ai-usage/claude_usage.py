@@ -14,16 +14,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import portable
-from claude_browser import current_report
 import limit_resets
 
 portable.stdout_utf8()
 deadline = time.monotonic() + portable.CALL_TIMEOUT
-
-browser = current_report()
-if browser is not None:
-    print("\n".join(browser))
-    sys.exit(0)
 
 if portable.argv("claude") is None:
     print("claude CLI not installed")
