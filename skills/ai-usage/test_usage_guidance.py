@@ -63,11 +63,11 @@ class UsageGuidanceTests(unittest.TestCase):
     def test_my_usage_paragraph_keeps_daily_choices_separate_from_roles(self):
         page = html_report.render("")
         usage = page.split('<h2><span class="l-en">My usage</span>', 1)[1].split('</section>', 1)[0]
-        self.assertIn('Claude Code mainly Opus 5.5 / high', usage)
-        self.assertIn('Codex GPT-6.2-Sol / high', usage)
-        self.assertIn('Claude Code 主要用 Opus 5.5 / high', usage)
-        self.assertIn('Codex GPT-6.2-Sol / high.<br>Gemini uses Gemini 4 Neon / medium.', usage)
-        self.assertIn('Codex 用 GPT-6.2-Sol / high。<br>Gemini 用 Gemini 4 Neon / medium。', usage)
+        self.assertIn('Claude Code mainly Opus 5.5 / medium', usage)
+        self.assertIn('Codex GPT-6.2-Sol / medium', usage)
+        self.assertIn('Claude Code 主要用 Opus 5.5 / medium', usage)
+        self.assertIn('Codex GPT-6.2-Sol / medium.<br>Gemini uses Gemini 4 Hydrogen / medium.', usage)
+        self.assertIn('Codex 用 GPT-6.2-Sol / medium。<br>Gemini 用 Gemini 4 Hydrogen / medium。', usage)
         self.assertNotIn('xhigh', usage)
 
     def test_qualified_claude_pick_never_uses_fable(self):
