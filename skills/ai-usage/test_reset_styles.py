@@ -24,6 +24,16 @@ class ResetStyleTests(unittest.TestCase):
                       "Reset details: unavailable", "Unrelated · notice"):
             self.assertNotIn("data-reset-expires", html_report.note_html(value))
 
+    def test_gemini_week_uses_the_provider_reset_instant(self):
+        instant = dt.datetime.fromisoformat("2026-11-30T11:45:46+08:00")
+        now = instant - dt.timedelta(days=6, hours=23, minutes=54)
+        page = html_report.card_html(
+            "### GEMINI\nargon 14.0% used window weekly resets 2026-11-30T11:45:46+08:00 (6d23h) bar █\n",
+            now=now)
+        self.assertIn('data-window-reset="%d" data-window-minutes="10080"' %
+                      (instant.timestamp() * 1000), page)
+        self.assertIn("6d23h54m left", page)
+
     @unittest.skipUnless(shutil.which("node"), "Node is required for the timer self-check")
     def test_timer_thresholds_and_clock_advance(self):
         driver = """const vm = require('node:vm');
@@ -38,7 +48,12 @@ const make = minutes => {
   return note;
 };
 const notes = [301, 300, 180, 60, 59, 0, -1, 0.5, 1440, 31, 30, 29].map(make);
-const context = {document: {documentElement: {dataset: {}}, querySelectorAll: () => notes},
+const quota = {dataset: {windowReset: now + 10078 * 60000, windowMinutes: 10080},
+  fill: {style: {}}, remaining: {}, querySelector(key) {
+    return key === '.tfill' ? this.fill : this.remaining;
+  }};
+const context = {document: {documentElement: {dataset: {}},
+  querySelectorAll: selector => selector === '[data-window-reset]' ? [quota] : notes},
   navigator: {language: 'en'}, localStorage: {getItem: () => null, setItem: () => {}}, Date: {now: () => now},
   setInterval: (fn, ms) => {tick = fn; interval = ms;}};
 context.window = context;
@@ -46,9 +61,15 @@ vm.runInNewContext(fs.readFileSync(0, 'utf8'), context);
 const read = () => notes.map(n => ({expiring: n.expiring, urgent: n.urgent,
   hue: n.style['--reset-hue'], text: n.remaining.textContent}));
 const initial = read();
+const quotaStart = {width: quota.fill.style.width, text: quota.remaining.textContent};
 now += 242 * 60000;
 tick();
-console.log(JSON.stringify({initial, later: read(), interval}));
+const later = read();
+const quotaLater = {width: quota.fill.style.width, text: quota.remaining.textContent};
+now += 10080 * 60000;
+tick();
+console.log(JSON.stringify({initial, later, interval, quotaStart, quotaLater,
+  quotaExpired: {width: quota.fill.style.width, text: quota.remaining.textContent}}));
 """
         result = subprocess.run([shutil.which("node"), "-e", driver],
                                 input=html_report.LANG_HEAD + '\n' + html_report.EXPIRY_SCRIPT, text=True,
@@ -69,6 +90,10 @@ console.log(JSON.stringify({initial, later: read(), interval}));
         self.assertEqual(data["later"][0]["hue"], 0)
         self.assertEqual(data["later"][0]["text"], "59 minutes left")
         self.assertFalse(data["later"][0]["urgent"])
+        self.assertEqual(data["quotaStart"]["text"], "6d23h58m left")
+        self.assertEqual(data["quotaLater"]["text"], "6d19h56m left")
+        self.assertLess(float(data["quotaLater"]["width"][:-1]), float(data["quotaStart"]["width"][:-1]))
+        self.assertEqual(data["quotaExpired"], {"width": "0%", "text": "0m left"})
 
     def test_warning_colors_have_small_text_contrast(self):
         def luminance(rgb):

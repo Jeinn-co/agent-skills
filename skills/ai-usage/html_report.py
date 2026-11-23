@@ -1,7 +1,7 @@
 """Render the launcher's raw report as one self-contained HTML page (`/ai-usage html`).
 
 Input is exactly the text run.py prints; nothing is re-fetched. A local timer updates
-reset expiry reminders without external requests, so the report works offline.
+quota countdowns and reset expiry reminders, so the report works offline.
 """
 import datetime
 import html
@@ -13,6 +13,7 @@ from pathlib import Path
 SKILL_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SKILL_DIR))
 from report_i18n import ReportI18n
+from portable import report_timezone
 
 I18N = ReportI18n(SKILL_DIR, "ai-usage-lang")
 
@@ -96,27 +97,23 @@ WEEK_MINUTES = 7 * 24 * 60
 FIVE_HOURS = 5 * 60
 
 
-def remaining_minutes(reset, now):
-    """Minutes until the reset clock; falls back to the probe's coarse `(XdYh)`."""
+def quota_reset_time(reset, now, timezone=None):
+    """Recover the reset instant from an ISO timestamp or a provider's local clock."""
     text = re.sub(r"\s*\(.*\)$", "", reset).strip().replace(" at ", ", ")
     try:
-        when = datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
+        return datetime.datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
         pass
-    else:
-        return max(0, int((when.astimezone() - now.astimezone()).total_seconds() // 60))
+    if timezone is not None:
+        now = now.astimezone(timezone)
     for fmt in ("%b %d, %I:%M%p", "%b %d, %I%p", "%m-%d %H:%M"):
         try:
-            when = datetime.datetime.strptime(text, fmt).replace(year=now.year)
+            when = datetime.datetime.strptime(text, fmt).replace(year=now.year, tzinfo=now.tzinfo)
         except ValueError:
             continue
         if when < now - datetime.timedelta(days=180):
             when = when.replace(year=now.year + 1)
-        return max(0, int((when - now).total_seconds() // 60))
-    found = re.search(r"\((\d+)d(\d+)h\)", reset)
-    if found:
-        return int(found.group(1)) * 1440 + int(found.group(2)) * 60
-    return None
+        return when
 
 
 bi = I18N.bi
@@ -135,14 +132,14 @@ def window_label(label):
     return bi('week') if label == "week" else esc(label)
 
 
-def left_text(minutes):
+def left_duration(minutes):
     days, rest = divmod(minutes, 1440)
     hours, mins = divmod(rest, 60)
     if days:
-        return "%dd%dh left" % (days, hours)
+        return "%dd%dh%02dm" % (days, hours, mins)
     if hours:
-        return "%dh%02dm left" % (hours, mins)
-    return "%dm left" % mins
+        return "%dh%02dm" % (hours, mins)
+    return "%dm" % mins
 
 
 def parse(raw):
@@ -281,7 +278,7 @@ TIMED_OUT = "usage call timed out"
 GEMINI_POOLS = (("gemini", "Gemini Models"), ("argon", "Gemini 4 Argon"), ("cl+gpt", "Claude / GPT"))
 
 
-def _append_window(rows, w, now, label=None):
+def _append_window(rows, w, now, label=None, *, timezone=None):
     """Append one quota bar row and its time-remaining track."""
     when = w["reset"]
     shown = clock(when, now) if when else ""
@@ -291,11 +288,18 @@ def _append_window(rows, w, now, label=None):
         '<div class="pct">%s</div><div class="reset">%s</div></div>'
         % (hue(w["pct"]), window_label(label or w.get("display", w["label"])),
            min(w["pct"], 100), esc(w["shown"]), esc(shown)))
-    left = remaining_minutes(when, now) if when else None
+    reset_at = quota_reset_time(when, now, timezone) if when else None
+    if reset_at is not None:
+        left = max(0, (reset_at.timestamp() - now.timestamp()) / 60)
+    else:
+        coarse = re.search(r"\((\d+)d(\d+)h\)", when)
+        left = int(coarse[1]) * 1440 + int(coarse[2]) * 60 if coarse else None
     total = w.get("duration")
     if left is not None and total is not None:
         # Draw a scale only for a period explicitly reported or known by the provider.
         share = max(0.0, min(100.0, left * 100.0 / total))
+        timing = (' data-window-reset="%d" data-window-minutes="%d"' % (int(reset_at.timestamp() * 1000), total)
+                  if reset_at is not None else "")
         n = 7 if total == WEEK_MINUTES else 4 if total == 1440 else 5
         unit = "d" if total == WEEK_MINUTES else "h"
         step = 6 if total == 1440 else 1
@@ -306,12 +310,12 @@ def _append_window(rows, w, now, label=None):
                "0" if i == n else "%d%s" % ((n - i) * step, unit))
             for i in range(n + 1))
         rows.append(
-            '<div class="row time"><div class="lbl"></div>'
+            '<div class="row time"%s><div class="lbl"></div>'
             '<div class="tbar" style="--n:%d"><div class="ticks"></div>'
             '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
             '<div class="scale">%s</div></div>'
-            '<div class="left">%s%s</div></div>'
-            % (n, share, scale, CLOCK, bi("remaining", duration=esc(left_text(left)[:-5]))))
+            '<div class="left">%s<span data-window-remaining>%s</span></div></div>'
+            % (timing, n, share, scale, CLOCK, bi("remaining", duration=left_duration(int(left)))))
 
 
 def card(p, now, loading=False):
@@ -344,10 +348,11 @@ def card(p, now, loading=False):
             for w in sorted(grouped[key], key=lambda item: 0 if item.get("duration") == FIVE_HOURS else 1):
                 _append_window(rows, w, now, label="5h" if w.get("duration") == FIVE_HOURS else "week")
     else:
+        timezone = report_timezone() if p["id"] == "CLAUDE" and not loading else None
         for w in [] if loading else p["windows"]:
             if p["id"] == "CLAUDE" and w["label"] == "fable":
                 rows.append('<hr>')
-            _append_window(rows, w, now)
+            _append_window(rows, w, now, timezone=timezone)
             if w["label"] in under:
                 count, notes = under.pop(w["label"])
                 rows.append('<fieldset class="reset-credits"><legend>Limit resets: %d available</legend>%s</fieldset>'

@@ -1,6 +1,18 @@
 function updateResetExpiry() {
+  const now = Date.now();
+  document.querySelectorAll('[data-window-reset]').forEach(row => {
+    const left = Math.max(0, (Number(row.dataset.windowReset) - now) / 60000);
+    const total = Number(row.dataset.windowMinutes);
+    if (!Number.isFinite(left) || !(total > 0)) return;
+    row.querySelector('.tfill').style.width = Math.min(100, left * 100 / total) + '%';
+    const minutes = Math.floor(left);
+    const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60);
+    const mins = String(minutes % 60).padStart(days || hours ? 2 : 1, '0');
+    const duration = (days ? days + 'd' : '') + (days || hours ? hours + 'h' : '') + mins + 'm';
+    row.querySelector('[data-window-remaining]').textContent = reportT('remaining', {duration});
+  });
   document.querySelectorAll('[data-reset-expires]').forEach(note => {
-    const left = (Number(note.dataset.resetExpires) - Date.now()) / 60000;
+    const left = (Number(note.dataset.resetExpires) - now) / 60000;
     if (!Number.isFinite(left)) return;
     note.toggleAttribute('data-expiring', left <= 300);
     note.toggleAttribute('data-urgent', left <= 30);
