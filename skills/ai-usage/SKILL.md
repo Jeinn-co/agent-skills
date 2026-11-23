@@ -3,7 +3,7 @@ name: ai-usage
 description: Check AI subscription usage limits across Claude, ChatGPT, Grok, Muse and Gemini (Antigravity CLI) in one unified report — percent used, how much is left, when each window resets, banked reset counts and expiry dates for Claude and ChatGPT, the model / effort of each CLI's newest session, and that model's Artificial Analysis score, cost and CP. `setup` chooses which providers to report. It automatically updates itself from GitHub before continuing. Use when the user runs /ai-usage or /uu (with or without `setup`), or asks about usage, limits, remaining quota, reset times, rate limits, "am I out of Claude", "how much ChatGPT left", Muse usage, Gemini usage or Antigravity quota, including equivalent requests in any language.
 metadata:
   author: Jeinn
-  version: "1.33.12"
+  version: "1.33.13"
 ---
 
 
@@ -64,6 +64,15 @@ never reuse an earlier report as a new observation. When no browser tool exists,
 this optional adapter without asking the user to install one. If browser access is unavailable,
 the launcher still tries the CLI. Only when both sources fail should the report
 point the user to the Usage page to sign in; never demand CLI login while the web login works.
+
+On Windows Antigravity, start `python "<skill-dir>/run.py" --serve --no-open`
+with `IsDaemon=true` whenever the command tool exposes it. Do this after Step 0
+and before running the report, including on first use. On another Windows host,
+use its long-running command mode if it reaps child processes when commands end
+or a previous run lost its server. Wait for `serving` or `already serving` and
+use the same Python installation for the report. If the mode is unavailable or
+startup fails, continue with the report. The launcher can fall back to a static
+HTML file.
 
 Run the launcher (no arguments; `fresh` only means do not reuse an earlier answer).
 Each provider has a 20-second budget; never extend it. Claude quota and reset

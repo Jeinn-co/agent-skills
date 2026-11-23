@@ -4,7 +4,7 @@ description: Check whether the Claude Code, Codex, Grok Build, Muse Code and Ant
 compatibility: Requires Python 3.9+, permission to launch subprocesses, and internet access to registry.npmjs.org, api.github.com, raw.githubusercontent.com, codeload.github.com, api.meta.ai and the Antigravity CLI auto-updater (run.app). Each tool shown needs its CLI installed; missing tools are reported as not installed. npm and Node.js are not required. Tested on Windows and macOS; Linux is not yet tested.
 metadata:
   author: Jeinn
-  version: "1.18.3"
+  version: "1.18.4"
 ---
 
 # /ai-cli-version — CLI version and update check
@@ -52,6 +52,15 @@ provider CLI updates, login flows, Notion configuration changes or task dispatch
 follow it after Step 0; do not check or update provider CLIs during setup.
 
 ## Report
+
+On Windows Antigravity, use `IsDaemon=true` whenever the command tool exposes it,
+including on first use. On another Windows host, use its long-running command
+mode if it reaps child processes when commands end or a previous run lost its
+server. After Step 0, check `--show-tools`. If it prints `output=html`, start
+`python "<skill-dir>/run.py" --serve --no-open` in that mode before running the
+report. Wait for `serving` or `already serving` and use the same Python
+installation for the report. If the mode is unavailable or startup fails,
+continue with the report. The launcher can fall back to a static HTML file.
 
 Run the launcher with no arguments. Each tool has a 20-second budget; never extend it.
 

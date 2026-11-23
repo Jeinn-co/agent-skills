@@ -662,14 +662,9 @@ def start_server():
         if os.name == "nt":
             # CREATE_NO_WINDOW (not DETACHED_PROCESS): the server keeps a hidden console
             # its CLI children share; with no console each child opens its own window.
-            # CREATE_BREAKAWAY_FROM_JOB so a host that runs commands in a job object does
-            # not kill it when the command ends.
-            try:
-                subprocess.Popen(args, creationflags=0x08000000 | 0x01000000, **quiet)
-            except OSError:
-                # The job forbids breakaway. The server then stays in it and may stop
-                # when the host's command ends; the next run just starts it again.
-                subprocess.Popen(args, creationflags=0x08000000, **quiet)
+            # If breakaway fails, use the static report. A child left in the host's
+            # job can answer /ping and still be killed when the command ends.
+            subprocess.Popen(args, creationflags=0x08000000 | 0x01000000, **quiet)
         else:
             subprocess.Popen(args, start_new_session=True, **quiet)
     except OSError:
