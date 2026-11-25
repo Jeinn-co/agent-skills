@@ -10,6 +10,7 @@
   "key_share_tip": "<strong>How to save quota when using it:</strong> Start a fresh session (or <code>/compact</code>) when switching tasks, and avoid changing models or thinking effort mid-conversation.",
   "my_usage": "My usage",
   "my_usage_choices": "Claude Code mainly {{claude}}.<br>Codex {{codex}}.<br>Gemini uses {{gemini}}.",
+  "my_usage_note": "Not every daily task gets delegated to a subagent—plenty of routine work is already hard, so daily drivers cannot be too weak. If a model feels passive or keeps stalling mid-task, raise effort first; if that is still not enough, step up the model.",
   "plan_split": "Official native subagent dispatch (fresh context by default; <code>reviewer</code> / <code>security</code> never fork):<br><a href=\"https://code.claude.com/docs/en/sub-agents\" target=\"_blank\" rel=\"noopener\">Claude Code</a>: <code>Agent</code> runs subagents in isolated context and returns summaries.<br><a href=\"https://developers.openai.com/codex/config-reference\" target=\"_blank\" rel=\"noopener\">Codex</a>: <code>spawn_agent</code> dispatches parallel subagents (<code>default_subagent_model</code> stays <code>gpt-6.2-sol</code>).<br><a href=\"https://antigravity.google/docs/subagents\" target=\"_blank\" rel=\"noopener\">Antigravity</a>: <code>invoke_subagent</code> runs subagents in the background with a clean context.",
   "official_guidance": "Official model guidance, thinking levels and API prices: ",
   "delegated_roles": "Delegated roles",

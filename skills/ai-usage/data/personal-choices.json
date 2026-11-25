@@ -9,12 +9,12 @@
       "provider": "codex",
       "model": "GPT-6.2 Sol",
       "label": "GPT-6.2-Sol",
-      "effort": "medium"
+      "effort": "high"
     },
     {
       "provider": "gemini",
-      "model": "Gemini 4 Neon",
-      "effort": "medium"
+      "model": "Gemini 4 Hydrogen",
+      "effort": "high"
     }
   ],
   "roles": {
@@ -49,8 +49,8 @@
           "high"
         ],
         "gemini": [
-          "Gemini 4 Neon",
-          "medium"
+          "Gemini 4 Hydrogen",
+          "high"
         ]
       }
     },
@@ -67,8 +67,8 @@
           "medium"
         ],
         "gemini": [
-          "Gemini 4 Neon",
-          "low"
+          "Gemini 4 Hydrogen",
+          "medium"
         ]
       }
     },
@@ -103,8 +103,8 @@
           "high"
         ],
         "gemini": [
-          "Gemini 4 Neon",
-          "medium"
+          "Gemini 4 Hydrogen",
+          "high"
         ]
       }
     },
