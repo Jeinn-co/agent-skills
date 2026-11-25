@@ -72,6 +72,15 @@ background-size:300% 100%;animation:shimmer 1.4s linear infinite}
 .now strong{color:var(--text);font-weight:600}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;padding:1px 6px;border-radius:4px;background:var(--code-bg);border:1px solid var(--line-soft);color:var(--text)}
 .panel{margin-top:20px}.grid+.panel{margin-top:32px}.panel h2{display:block;margin:0 0 8px}
+.key-share{--share:217,119,6;border-color:rgba(var(--share),.45);background:linear-gradient(180deg,rgba(var(--share),.11),rgba(var(--share),.03) 120px),var(--card);box-shadow:inset 5px 0 0 rgb(var(--share)),var(--shadow)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .key-share{--share:245,158,11;background:linear-gradient(180deg,rgba(var(--share),.16),rgba(var(--share),.05) 120px),var(--card)}}
+:root[data-theme=dark] .key-share{--share:245,158,11;background:linear-gradient(180deg,rgba(var(--share),.16),rgba(var(--share),.05) 120px),var(--card)}
+.key-share-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 12px}
+.key-share-head h2{margin:0;color:rgb(var(--share));font-size:18px;font-weight:700}
+.key-share-tag{font-size:12px;font-weight:600;color:rgb(var(--share));background:rgba(var(--share),.14);border:1px solid rgba(var(--share),.32);border-radius:999px;padding:2px 10px;line-height:1.4}
+.key-share ul{margin:0;padding:0 0 0 18px;display:grid;gap:8px}
+.key-share li{font-size:14.5px;line-height:1.6}
+.key-share li strong{color:var(--text)}
 .std{color:var(--muted);font-size:14px;margin:0 0 16px;max-width:76ch}
 .lead{font-size:15px;margin:0}.lead+.foot{max-width:none;border-top:1px dashed var(--line);padding-top:14px;margin-top:18px}
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;margin:0 calc(-1 * var(--pad));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -96,6 +105,13 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 </style></head><body><main>
 <div class="top"><h1>AI Usage</h1>@@language_button@@</div><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
+<section class="panel key-share"><div class="key-share-head"><h2>@@i18n_key_share_title@@</h2><span class="key-share-tag">@@i18n_key_share_tag@@</span></div>
+<ul>
+<li>@@i18n_key_share_what@@</li>
+<li>@@i18n_key_share_why@@</li>
+<li>@@i18n_key_share_tip@@</li>
+</ul>
+</section>
 <section class="panel"><h2>@@i18n_my_usage@@</h2>
 <p class="lead">@@my_usage_choices@@</p>
 <hr>
