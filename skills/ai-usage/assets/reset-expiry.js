@@ -4,7 +4,14 @@ function updateResetExpiry() {
     const left = Math.max(0, (Number(row.dataset.windowReset) - now) / 60000);
     const total = Number(row.dataset.windowMinutes);
     if (!Number.isFinite(left) || !(total > 0)) return;
-    row.querySelector('.tfill').style.width = Math.min(100, left * 100 / total) + '%';
+    const share = Math.min(100, left * 100 / total), fill = row.querySelector('.tfill');
+    fill.style.width = share + '%';
+    // Time left: full = red, almost reset = green (html_report.hue). Usage bar above: html_report.pace_hue.
+    fill.style.setProperty('--th', Math.round(share <= 50 ? 142 - 104 * share / 50 : 38 - 38 * (share - 50) / 50));
+    const pct = Number(row.dataset.windowPct), bar = row.previousElementSibling;
+    const d = pct - (100 - share), ramp = x => Math.min(Math.max(x, 0), 1);
+    if (bar && Number.isFinite(pct))
+      bar.style.setProperty('--h', Math.round(142 - 104 * ramp((d + 12) / 4) - 38 * ramp((d - 8) / 4)));
     const minutes = Math.floor(left);
     const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60);
     const mins = String(minutes % 60).padStart(days || hours ? 2 : 1, '0');

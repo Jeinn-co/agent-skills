@@ -215,8 +215,13 @@ Read top to bottom:
 
 1. **One card per provider**, stacked — Claude, ChatGPT, Grok, Muse and Gemini, with
    inline SVG product marks (LobeHub Icons, MIT); no image requests are needed. Each
-   window has a colour bar that shifts from green (0%) through yellow (50%) to red (100%), the percent
-   used and the reset clock. Grok has one weekly window; Gemini has two weekly pools
+   window has a usage bar coloured by pace against the time already spent in the window
+   (green: more than 10 points behind it; amber: within ±10 points; red: more than 10 points
+   ahead, i.e. using it too fast; each boundary blends over 2 points; windows with no known
+   length keep the 0% green → 100% red gradient), the percent used and the reset clock. The
+   time-left track under it runs red when full to green as the reset nears. Colours use the
+   Tailwind status hues (green-500, amber-500, red-500). On the served page the bars run in
+   when a card is drawn; the saved HTML file stays still. Grok has one weekly window; Gemini has two weekly pools
    (`gemini` for Gemini models, `cl+gpt` for the Claude and GPT models Antigravity also
    offers); the others have a 5-hour window and a week.
 2. **Time-left bar** — under each usage bar, a thin bar whose full length is the window:

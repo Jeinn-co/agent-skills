@@ -10,3 +10,9 @@ fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linej
 .tools .lang{display:inline-flex;align-items:center;gap:6px}
 .ico{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .sel>.ico{position:absolute;left:14px;top:50%;margin-top:-7px;pointer-events:none}
+/* Served page only: bars run in when a card is drawn (load or refresh); the saved file stays still. */
+@media (prefers-reduced-motion:no-preference){
+.fill{animation:aiu-run 1.1s cubic-bezier(.22,1,.36,1)}
+.tfill{animation:aiu-run-time 1.1s cubic-bezier(.22,1,.36,1)}}
+@keyframes aiu-run{from{width:0;background-color:hsl(142 var(--fs) var(--fl))}}
+@keyframes aiu-run-time{from{width:0}}

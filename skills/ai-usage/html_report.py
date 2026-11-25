@@ -257,8 +257,17 @@ def advice(raw, now=None):
 
 
 def hue(pct):
-    # 0% green (120) -> 50% yellow (60) -> 100% red (0), continuous.
-    return round(120 * (1 - min(max(pct, 0), 100) / 100.0))
+    # Tailwind status hues: 0% green-500 (142) -> 50% amber-500 (38) -> 100% red-500 (0), continuous.
+    p = min(max(pct, 0), 100)
+    return round(142 - 104 * p / 50) if p <= 50 else round(38 - 38 * (p - 50) / 50)
+
+
+def pace_hue(pct, elapsed):
+    # Usage against time already spent in the window: red = over 10 points ahead (too fast),
+    # amber = within ±10 points, green = over 10 points behind (still early). Each ±10 boundary
+    # blends over 2 points either side instead of jumping. Mirrored in reset-expiry.js.
+    d = pct - elapsed
+    return round(142 - 104 * min(max((d + 12) / 4, 0), 1) - 38 * min(max((d - 8) / 4, 0), 1))
 
 
 def logo(cli):
@@ -282,12 +291,6 @@ def _append_window(rows, w, now, label=None, *, timezone=None):
     """Append one quota bar row and its time-remaining track."""
     when = w["reset"]
     shown = clock(when, now) if when else ""
-    rows.append(
-        '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
-        '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
-        '<div class="pct">%s</div><div class="reset">%s</div></div>'
-        % (hue(w["pct"]), window_label(label or w.get("display", w["label"])),
-           min(w["pct"], 100), esc(w["shown"]), esc(shown)))
     reset_at = quota_reset_time(when, now, timezone) if when else None
     if reset_at is not None:
         left = max(0, (reset_at.timestamp() - now.timestamp()) / 60)
@@ -295,10 +298,19 @@ def _append_window(rows, w, now, label=None, *, timezone=None):
         coarse = re.search(r"\((\d+)d(\d+)h\)", when)
         left = int(coarse[1]) * 1440 + int(coarse[2]) * 60 if coarse else None
     total = w.get("duration")
-    if left is not None and total is not None:
-        # Draw a scale only for a period explicitly reported or known by the provider.
-        share = max(0.0, min(100.0, left * 100.0 / total))
-        timing = (' data-window-reset="%d" data-window-minutes="%d"' % (int(reset_at.timestamp() * 1000), total)
+    # Draw a scale only for a period explicitly reported or known by the provider.
+    share = max(0.0, min(100.0, left * 100.0 / total)) if left is not None and total is not None else None
+    # With a known period the usage bar is coloured by pace; otherwise by percent alone.
+    rows.append(
+        '<div class="row" style="--h:%d"><div class="lbl">%s</div>'
+        '<div class="track"><div class="fill" style="width:%.1f%%"></div></div>'
+        '<div class="pct">%s</div><div class="reset">%s</div></div>'
+        % (hue(w["pct"]) if share is None else pace_hue(w["pct"], 100 - share),
+           window_label(label or w.get("display", w["label"])),
+           min(w["pct"], 100), esc(w["shown"]), esc(shown)))
+    if share is not None:
+        timing = (' data-window-reset="%d" data-window-minutes="%d" data-window-pct="%s"'
+                  % (int(reset_at.timestamp() * 1000), total, w["pct"])
                   if reset_at is not None else "")
         n = 7 if total == WEEK_MINUTES else 4 if total == 1440 else 5
         unit = "d" if total == WEEK_MINUTES else "h"
@@ -312,10 +324,10 @@ def _append_window(rows, w, now, label=None, *, timezone=None):
         rows.append(
             '<div class="row time"%s><div class="lbl"></div>'
             '<div class="tbar" style="--n:%d"><div class="ticks"></div>'
-            '<div class="track thin"><div class="tfill" style="width:%.1f%%"></div></div>'
+            '<div class="track thin"><div class="tfill" style="width:%.1f%%;--th:%d"></div></div>'
             '<div class="scale">%s</div></div>'
             '<div class="left">%s<span data-window-remaining>%s</span></div></div>'
-            % (timing, n, share, scale, CLOCK, bi("remaining", duration=left_duration(int(left)))))
+            % (timing, n, share, hue(share), scale, CLOCK, bi("remaining", duration=left_duration(int(left)))))
 
 
 def card(p, now, loading=False):
@@ -489,11 +501,12 @@ def render(raw, now=None, loading=False):
     return page
 
 
-# Tailwind CSS 3.4 Slate with blue; usage colour is an HSL hue from hue(), and its
+# Tailwind CSS 3.4 Slate with blue; usage colour is an HSL hue from pace_hue() (hue() when
+# the window length is unknown), and its
 # lightness (--tl) keeps every text colour at least 4.5:1
 # on its card. Dark is used when the OS is dark, unless `data-theme` on <html> forces one.
 DARK = ("color-scheme:dark;--bg:#1e293b;--card:#334155;--text:#f1f5f9;--muted:#cbd5e1;--line:#475569;"
-        "--track:#475569;--tick:#94a3b8;--fl:55%;--tl:78%;"
+        "--track:#475569;--tick:#94a3b8;--fs:60%;--fl:62%;--tl:78%;"
         "--accent:#93c5fd;--tint:.14")
 
 EXPIRY_SCRIPT = (Path(__file__).resolve().parent / 'assets/reset-expiry.js').read_text(encoding="utf-8")
