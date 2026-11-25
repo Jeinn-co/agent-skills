@@ -9,9 +9,9 @@ It prints one tab-separated line per quota pool:
     Claude and GPT models<TAB>Weekly Limit Remaining<TAB>100%<TAB>2026-10-08T20:09:18Z
 
 The percent is what is LEFT; this prints it as used (100 - left) like the other probes,
-with each pool's 5h window ordered before its weekly window. When a 5h limit is present
-(Pro/Ultra only), `agy models` distinguishes `ultra` (lists `gemini-4-carbon`) from
-`pro` without altering quota usage.
+with each pool's 5h window ordered before its weekly window. A 5h limit identifies
+`pro/ultra` (Free is weekly only); CLI output does not distinguish Pro from Ultra now
+that paid Pro also has Gemini 4 Carbon.
 
 The CLI is ~/.gemini/bin/agy, not the `agy` on PATH: the Antigravity IDE installs a
 launcher of the same name (`agy --help` prints the editor's options), so PATH is never
@@ -111,22 +111,8 @@ def reset_clock(value):
 
 
 def detect_plan(has_5h):
-    """Pro/Ultra carry a 5h window; `agy models` distinguishes Ultra (Carbon) from Pro."""
-    if not has_5h:
-        return "?"
-    try:
-        timeout = portable.timeout_left(deadline, portable.CALL_TIMEOUT)
-        out = subprocess.run([str(CLI), "models"],
-                             capture_output=True, timeout=timeout,
-                             stdin=subprocess.DEVNULL,
-                             cwd=tempfile.gettempdir(), env=env, **portable.text_kwargs()).stdout
-    except Exception:
-        return "?"
-    if re.search(r"(?m)^gemini-4-carbon\b", out):
-        return "ultra"
-    if re.search(r"(?m)^gemini-4-(?:neon|argon|hydrogen)\b", out):
-        return "pro"
-    return "?"
+    """Pro and Ultra both carry a 5h window and Carbon access; CLI does not expose the tier."""
+    return "pro/ultra" if has_5h else "?"
 
 
 pools = {}

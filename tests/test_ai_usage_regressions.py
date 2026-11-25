@@ -498,7 +498,7 @@ else:
         self.assertNotIn("window 5h", result.stdout)
 
     def test_pro_and_ultra_order_5h_before_weekly_and_detect_plan(self):
-        pro_script = r'''
+        paid_script = r'''
 import sys
 if sys.argv[1:3] == ["-p", "/usage"]:
     print("Gemini Models\tWeekly Limit Remaining\t97%\t2099-10-08T20:09:18Z")
@@ -506,28 +506,16 @@ if sys.argv[1:3] == ["-p", "/usage"]:
     print("Claude and GPT models\tWeekly Limit Remaining\t100%\t2099-10-08T20:09:18Z")
     print("Claude and GPT models\tFive Hour Limit Remaining\t100%\t2099-10-08T20:09:18Z")
 elif sys.argv[1:] == ["models"]:
-    print("gemini-4-neon-high              Gemini 4 Neon (High)")
-    print("gemini-4-hydrogen-high          Gemini 4 Hydrogen (High)")
+    raise SystemExit("agy models should not be called")
 '''
-        pro = self.run_agy(pro_script)
-        self.assertEqual(pro.returncode, 0, pro.stderr)
-        lines = pro.stdout.splitlines()
-        self.assertEqual(lines[0], "plan: pro")
+        paid = self.run_agy(paid_script)
+        self.assertEqual(paid.returncode, 0, paid.stderr)
+        lines = paid.stdout.splitlines()
+        self.assertEqual(lines[0], "plan: pro/ultra")
         self.assertTrue(lines[1].startswith("gemini") and "window 5h" in lines[1], lines)
         self.assertTrue(lines[2].startswith("gemini") and "window weekly" in lines[2], lines)
         self.assertTrue(lines[3].startswith("cl+gpt") and "window 5h" in lines[3], lines)
         self.assertTrue(lines[4].startswith("cl+gpt") and "window weekly" in lines[4], lines)
-
-        ultra_script = pro_script + '    print("gemini-4-carbon-high            Gemini 4 Carbon (High)")\n'
-        ultra = self.run_agy(ultra_script)
-        self.assertEqual(ultra.returncode, 0, ultra.stderr)
-        self.assertEqual(ultra.stdout.splitlines()[0], "plan: ultra")
-
-        broken_models = pro_script.split("elif")[0] + 'elif sys.argv[1:] == ["models"]:\n    raise SystemExit(1)\n'
-        fallback = self.run_agy(broken_models)
-        self.assertEqual(fallback.returncode, 0, fallback.stderr)
-        self.assertEqual(fallback.stdout.splitlines()[0], "plan: ?")
-        self.assertIn("6.0% used  window 5h", fallback.stdout)
 
     def test_fails_visibly_when_usage_is_not_parsed(self):
         result = self.run_agy('print("error: not signed in")\n')

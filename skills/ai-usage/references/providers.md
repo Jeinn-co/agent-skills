@@ -128,7 +128,8 @@ Dead ends, do not retry (checked 2026-09-24, Muse Code 1.3.0-R3401.1):
 Print mode routes the slash command (`/usage`, alias `/quota`) without a model call.
 `agy -p "/help"` lists the commands. Rows are grouped by pool with each pool's `5h`
 window ordered before its `weekly` window. When a `5h` window is present (Pro/Ultra
-only), `agy models` distinguishes `ultra` (`gemini-4-carbon`) from `pro`.
+only), the probe reports `pro/ultra` because paid Pro also has `gemini-4-carbon` and
+the CLI does not expose the subscription tier.
 
 **Two binaries are named `agy`.** The Antigravity IDE puts an editor launcher on PATH
 (`~/.antigravity/antigravity/bin/agy`, prints the VS Code style `--diff`/`--goto`
@@ -147,7 +148,7 @@ authenticated `v1internal:loadCodeAssist` call, which every signed-in run makes.
 environment variable") stops the self-update on start.
 
 Dead ends (checked 2026-10-02):
-1. **`agy models`** — lists model ids and labels, no quota (used only to distinguish Pro vs Ultra when `/usage` has a `5h` row).
+1. **`agy models`** — lists model ids and labels, no quota or subscription tier.
 2. **`/credits`** — paid G1 credits only; on a free account it errors `no credits info found`.
 3. **`--output-format json`** on a real turn — carries token counts, not the model id.
 4. **IDE conversation files** under `~/.gemini/antigravity/conversations/*.pb` — encrypted.
