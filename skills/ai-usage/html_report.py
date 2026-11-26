@@ -453,23 +453,18 @@ def bench_html(raw):
     return bench_rows(parse(raw))
 
 
-CLAUDE_DESIGN_URL = "https://claude.ai/design"
-
-
 def role_rows():
     """Render the existing role table from its data records."""
     rows = []
     for role in ROLE_ASSIGNMENTS:
         cells = []
         for brand in ("anth", "oai", "gemini"):
-            if role["role"] == "Designer" and brand == "anth":
-                # Claude Code uses claude.ai/design directly instead of dispatching a subagent.
-                cells.append(
-                    '<td class="%s">Claude Design<br>'
-                    '<a href="%s" target="_blank" rel="noopener">claude.ai/design</a></td>'
-                    % (brand, CLAUDE_DESIGN_URL))
-                continue
             model, effort = role["models"][brand]
+            if role["role"] == "Designer" and brand == "anth":
+                # Claude Code runs Designer work inline via the frontend-design skill.
+                cells.append('<td class="%s">%s / %s<br><code>frontend-design</code> skill</td>'
+                             % (brand, esc(model), esc(effort)))
+                continue
             cells.append('<td class="%s">%s / %s</td>' % (brand, esc(model), esc(effort)))
         label = '<b>%s</b>' % esc(role["role"])
         rows.append('<tr><td>%s</td>%s</tr>' % (

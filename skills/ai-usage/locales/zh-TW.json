@@ -7,11 +7,11 @@
   "key_share_tag": "2026-11-25 · Gemini 額度實測",
   "key_share_what": "<strong>發生什麼事：</strong>Google Antigravity 的 5h 與週額度不是按時間比率換算，重度跑 2～3 個 5h 視窗就可能吃光整週 100%；加上 <strong>Gemini 4 全系列（Neon／Carbon／Hydrogen／Argon）</strong> 都有 prompt cache 偶發歸零（<code>cache_read_tokens = 0</code>）問題，長對話一旦掉 cache 就會整段上下文重算。官方雖於 11/20–21 擴容 Neon cache pool 並重置配額，但 shard routing、中途切模型／effort 與閒置超時仍會觸發。",
   "key_share_why": "<strong>為何我少用 Gemini：</strong>同樣的長任務與多輪工具呼叫，在 Gemini 上更容易意外燒穿週額度；因此主力開發優先用 Claude Code／Codex，Gemini 只留給單點任務或高 CP 場景。",
-  "key_share_tip": "<strong>真要用時的省額度做法：</strong>換任務就開新對話（或 <code>/compact</code>），同一長對話內不要中途切模型或 thinking effort。",
+  "key_share_tip": "<strong>真要用時的省額度做法：</strong>換任務就開新對話（或 <code>/compact</code>），同一長對話內不要中途切模型或 thinking effort；額度緊時避免同時平行派發多個長上下文 subagent。",
   "my_usage": "我的用法",
   "my_usage_choices": "Claude Code 主要用 {{claude}}。<br>Codex 用 {{codex}}。<br>Gemini 用 {{gemini}}。",
-  "my_usage_note": "平常用有些任務本身就很有難度，不是全部都會送給 subagent，主力常用不能用太笨的；若覺得被動或容易停下來發呆，就是 effort 要升了，不夠再升 model。",
-  "plan_split": "官方原生 Subagent 派發（預設全新獨立上下文，<code>reviewer</code>／<code>security</code> 永不 fork）：<br><a href=\"https://code.claude.com/docs/en/sub-agents\" target=\"_blank\" rel=\"noopener\">Claude Code</a>：<code>Agent</code> 派發 subagent，在獨立上下文執行並只回傳摘要。<br><a href=\"https://developers.openai.com/codex/config-reference\" target=\"_blank\" rel=\"noopener\">Codex</a>：<code>spawn_agent</code> 派發 subagent 並行執行（<code>default_subagent_model</code> 維持 <code>gpt-6.2-sol</code>）。<br><a href=\"https://antigravity.google/docs/subagents\" target=\"_blank\" rel=\"noopener\">Antigravity</a>：<code>invoke_subagent</code> 派發 subagent，以乾淨上下文在背景執行。",
+  "my_usage_note": "預設在單一主線搭配 Skills 按需載入完成（維持 Prompt Cache 命中、避免交接失真）；主力模型不能用太笨的，卡住先查阻塞，仍被動或停下來發呆就升 effort、不夠再升 model。只在大量讀檔、可平行探索或需獨立視角時才派 subagent。",
+  "plan_split": "何時與如何派 Subagent（能用 Skill 在主線做完就不拆；派 subagent 不一定省額度。預設開全新獨立上下文；Claude 的 <code>fork</code> 可共用前綴快取，但僅限同模型與 5 分鐘快取壽命，<code>reviewer</code>／<code>security</code> 永不 fork）：<br><a href=\"https://code.claude.com/docs/en/sub-agents\" target=\"_blank\" rel=\"noopener\">Claude Code</a>：<code>Agent</code> 派發 subagent，在獨立上下文執行並只回傳摘要；<code>designer</code> 直接走 <code>frontend-design</code> skill。<br><a href=\"https://developers.openai.com/codex/config-reference\" target=\"_blank\" rel=\"noopener\">Codex</a>：<code>spawn_agent</code> 派發 subagent 並行執行（<code>default_subagent_model</code> 維持 <code>gpt-6.2-sol</code>）。<br><a href=\"https://antigravity.google/docs/subagents\" target=\"_blank\" rel=\"noopener\">Antigravity</a>：<code>invoke_subagent</code> 派發 subagent，以乾淨上下文在背景執行。",
   "official_guidance": "官方定位、思考等級與 API 價格：",
   "delegated_roles": "角色分派",
   "gemini_selection": "Gemini 選型",
@@ -46,5 +46,6 @@
   "reviewer_description": "{{role}}：獨立審查與測試",
   "devops_description": "{{role}}：環境與維運",
   "security_description": "{{role}}：程式碼、相依套件與設定的安全掃描",
-  "role_policy": "日常工作使用 {{daily}}。安全工作使用 {{security}}，以安全性與正確性優先。因成本排除 {{excluded}}。"
+  "role_policy": "日常工作使用 {{daily}}。安全工作使用 {{security}}，以安全性與正確性優先。因成本排除 {{excluded}}。",
+  "role_layer_note": "分層原則：<code>Planner</code>、<code>Executor</code> 與一般 <code>DevOps</code> 預設留在主線執行，大型獨立任務才外派；Claude Code 的 <code>Designer</code> 改走 <code>frontend-design</code> skill；<code>Reviewer</code> 與 <code>Security</code> 依授權外派獨立上下文。參考：<a href=\"https://claude.com/resources/articles/building-agents-when-to-fold-subagents-into-your-main-agent-loop\" target=\"_blank\" rel=\"noopener\">Anthropic：When to fold subagents</a>。"
 }
