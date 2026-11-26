@@ -1,5 +1,6 @@
 # S-Agent
 
+> **舊思維註記（2026-11-26）**：將任務拆給六個專職角色（`planner`／`designer`／`executor`／`devops` 等）的流水線屬於舊思維。現在預設以單一主線迴圈搭配按需載入的 Skills 完成開發與 UI/UX；`s-agent` 僅保留作為三平台模型設定同步器，或於需要無偏見 `reviewer`／`security` 獨立上下文時使用。
 > 英文版 [README.md](README.md) 為準，本檔為對照翻譯。
 
 針對 **Codex、Claude Code 與 Antigravity（Gemini）**，依目前工作選角與分派 subagent。

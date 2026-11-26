@@ -454,22 +454,42 @@ def bench_html(raw):
 
 
 def role_rows():
-    """Render the existing role table from its data records."""
+    """Render the consolidated workflow table (main-loop Skills vs isolated subagents)."""
+    by_role = {role["role"]: role["models"] for role in ROLE_ASSIGNMENTS}
+    claude_daily = "%s / %s" % tuple(esc(v) for v in DAILY_CHOICES["claude"])
+    codex_daily = "%s / %s" % tuple(esc(v) for v in DAILY_CHOICES["codex"])
+    gemini_daily = "%s / %s" % tuple(esc(v) for v in DAILY_CHOICES["gemini"])
+    reviewer = by_role["Reviewer"]
+    security = by_role["Security"]
+
+    entries = [
+        ("workflow_core_desc", "badge_main_loop",
+         "%s<br><code>Skills</code>" % claude_daily,
+         "%s<br><code>Skills</code>" % codex_daily,
+         "%s" % gemini_daily),
+        ("workflow_design_desc", "badge_main_loop",
+         "%s<br><code>frontend-design</code> + <code>web-design-guidelines</code>" % claude_daily,
+         "%s<br><code>impeccable</code> + <code>web-design-guidelines</code>" % codex_daily,
+         "%s<br><code>ui-ux-pro-max</code> + <code>web-design-guidelines</code>" % gemini_daily),
+        ("workflow_review_desc", "badge_isolated",
+         "%s / %s" % (esc(reviewer["anth"][0]), esc(reviewer["anth"][1])),
+         "%s / %s" % (esc(reviewer["oai"][0]), esc(reviewer["oai"][1])),
+         "%s / %s" % (esc(reviewer["gemini"][0]), esc(reviewer["gemini"][1]))),
+        ("workflow_security_desc", "badge_isolated",
+         "%s / %s" % (esc(security["anth"][0]), esc(security["anth"][1])),
+         "%s / %s" % (esc(security["oai"][0]), esc(security["oai"][1])),
+         "%s / %s" % (esc(security["gemini"][0]), esc(security["gemini"][1]))),
+    ]
     rows = []
-    for role in ROLE_ASSIGNMENTS:
-        cells = []
-        for brand in ("anth", "oai", "gemini"):
-            model, effort = role["models"][brand]
-            if role["role"] == "Designer" and brand == "anth":
-                # Claude Code runs Designer work inline via the frontend-design skill.
-                cells.append('<td class="%s">%s / %s<br><code>frontend-design</code> skill</td>'
-                             % (brand, esc(model), esc(effort)))
-                continue
-            cells.append('<td class="%s">%s / %s</td>' % (brand, esc(model), esc(effort)))
-        label = '<b>%s</b>' % esc(role["role"])
-        rows.append('<tr><td>%s</td>%s</tr>' % (
-            bi(role["description"], role=label), ''.join(cells)))
-    return ''.join(rows)
+    for desc_key, badge_key, anth, oai, gemini in entries:
+        desc = bi(desc_key, badge='<span class="plan">%s</span>' % bi(badge_key))
+        rows.append(
+            '<tr><td>%s</td>'
+            '<td class="anth" data-provider="Claude Code">%s</td>'
+            '<td class="oai" data-provider="Codex">%s</td>'
+            '<td class="gemini" data-provider="Gemini">%s</td></tr>'
+            % (desc, anth, oai, gemini))
+    return "".join(rows)
 
 
 def render(raw, now=None, loading=False):

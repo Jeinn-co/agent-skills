@@ -98,10 +98,15 @@ a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius
 .lang{font-size:13.5px;min-height:34px;padding:4px 14px}
 tr[class] td,td.anth,td.oai,td.gemini{background:rgba(var(--brand),var(--tint))}
 tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:calc(var(--pad) - 4px)}
-.usage-guide td{white-space:normal;vertical-align:top;line-height:1.5;min-width:150px}.usage-guide td:first-child{min-width:260px}
+.usage-guide td{white-space:normal;vertical-align:top;line-height:1.5;min-width:150px}.usage-guide td:first-child{min-width:240px}
+.usage-guide .plan{display:table;width:fit-content;margin-top:4px}.usage-guide code{display:inline-block;margin:1px 0}
+@media (max-width:640px){.usage-guide thead{display:none}.usage-guide,.usage-guide tbody,.usage-guide tr,.usage-guide td{display:block;width:100%}
+.usage-guide tr{padding:12px 0;border-bottom:1px solid var(--line)}.usage-guide tr:last-child{border-bottom:0}
+.usage-guide td{min-width:0;border-bottom:0;padding:4px var(--pad)}.usage-guide td:first-child{min-width:0;padding-top:2px;padding-bottom:8px}
+.usage-guide td[data-provider]{width:auto;margin:4px var(--pad);padding:8px 12px;border-radius:6px;border-left:3px solid rgb(var(--brand))}
+.usage-guide td[data-provider]::before{content:attr(data-provider);display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:2px}}
 @media (max-width:560px){.row{grid-template-columns:48px 1fr 44px}.reset{grid-column:2/4}.left{grid-column:2/4;margin-top:0}
-.row.time{row-gap:6px;margin-bottom:14px}.scale{font-size:11px}.card-refresh{min-height:36px;padding:4px 12px}.lang,.login{min-height:38px}.grid+.panel{margin-top:28px}th,td{padding:10px 12px}
-.usage-guide td:first-child{min-width:220px}}
+.row.time{row-gap:6px;margin-bottom:14px}.scale{font-size:11px}.card-refresh{min-height:36px;padding:4px 12px}.lang,.login{min-height:38px}.grid+.panel{margin-top:28px}th,td{padding:10px 12px}}
 </style></head><body><main>
 <div class="top"><h1>AI Usage</h1>@@language_button@@</div><p class="sub">@@time@@ · ai-usage @@version@@</p>
 <div class="grid">@@cards@@</div>
@@ -116,17 +121,12 @@ tr[class] td:first-child{border-left:4px solid rgb(var(--brand));padding-left:ca
 <p class="lead">@@my_usage_choices@@</p>
 <p class="foot">@@i18n_my_usage_note@@</p>
 <hr>
-<p class="lead">@@i18n_plan_split@@</p>
-<p class="links">@@i18n_official_guidance@@<a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
-
-</section>
-<section class="panel"><h2>@@i18n_delegated_roles@@</h2>
-<p class="std">@@i18n_gemini_selection@@<br>@@role_policy@@<br>@@i18n_role_layer_note@@</p>
+<p class="std">@@i18n_workflow_intro@@</p>
 <div class="tablewrap"><table class="usage-guide"><thead><tr><th>@@i18n_role_responsibility@@</th><th class="anth">Claude Code</th><th class="oai">Codex</th><th class="gemini">Gemini</th></tr></thead><tbody>
 @@roles@@
 </tbody></table></div>
-
-
+<p class="foot">@@i18n_plan_split@@<br>@@role_policy@@</p>
+<p class="links">@@i18n_official_guidance@@<a href="@@compare@@" target="_blank" rel="noopener">AI Model Compare</a></p>
 </section>
 <section class="panel"><h2>@@i18n_score_50_artificial_analysis@@</h2>
 <p class="std">@@i18n_prioritize_cp_among_qualifying_models@@</p>

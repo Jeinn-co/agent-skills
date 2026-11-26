@@ -1,5 +1,7 @@
 # S-Agent
 
+> **Legacy note (2026-11-26):** The 6-role delegation pipeline (`planner` / `designer` / `executor` / `devops`) reflects old thinking. Prefer a single main-agent loop with progressively loaded skills for routine dev and UI/UX; keep `s-agent` mainly for cross-host model/effort syncing or isolated `reviewer` / `security` checks.
+
 Choose subagents for the current task in **Codex, Claude Code and Antigravity (Gemini)**. Notion supplies
 the model and effort for each role; the main agent coordinates and verifies work.
 

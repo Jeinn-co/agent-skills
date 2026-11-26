@@ -30,8 +30,8 @@ def _pair(choice):
 def _parse(personal):
     """(daily, roles, excluded Gemini picks), validated."""
     daily = {choice["provider"]: _pair(choice) for choice in personal["daily"]}
-    if "gemini" not in daily:
-        raise ValueError("daily choices lack gemini")
+    if not {"claude", "codex", "gemini"}.issubset(daily):
+        raise ValueError("daily choices need claude, codex and gemini")
     roles = []
     for role in personal["roles"].values():
         models = {brand: tuple(choice) for brand, choice in role["models"].items()}
@@ -41,6 +41,8 @@ def _parse(personal):
         if not isinstance(role["role"], str) or not isinstance(role["description"], str):
             raise ValueError("every role needs a name and description key")
         roles.append({**role, "models": models})
+    if not {"Reviewer", "Security"}.issubset({role["role"] for role in roles}):
+        raise ValueError("roles need Reviewer and Security")
     return daily, roles, set(personal["excludedGeminiPicks"])
 
 

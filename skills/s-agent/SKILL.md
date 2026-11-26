@@ -3,10 +3,12 @@ name: s-agent
 description: Select and dispatch subagents for the current task in Codex, Claude Code or Antigravity (Gemini). Use /s-agent or $s-agent; automatically update the skill and sync changed Notion role settings when reachable, reuse local settings when unchanged or offline, and show current roles with -h.
 metadata:
   author: Jeinn
-  version: "1.5.9"
+  version: "1.5.10"
 ---
 
 # S-Agent
+
+> **Legacy note (2026-11-26 / 舊思維註記):** The 6-role delegation pipeline (`planner` / `designer` / `executor` / `devops`) reflects old multi-agent workflow thinking. Default to a single main-agent loop with progressively loaded skills; keep `s-agent` only for syncing cross-host model configs or dispatching isolated `reviewer` / `security` checks when explicitly needed.
 
 Support Codex, Claude Code and Antigravity (Gemini). The main agent coordinates, chooses the
 smallest useful team and owns the final result. Notion is the authoritative

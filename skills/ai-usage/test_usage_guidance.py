@@ -44,9 +44,20 @@ class LiveChoicesTests(unittest.TestCase):
         self.assertNotIn('CLI defaults', page)
 
     def test_invalid_or_unreachable_choices_keep_the_bundled_ones(self):
+        import json
         before = dict(self.data.DAILY_CHOICES)
         with self.serve('{"daily": [{"provider": "codex", "model": "x", "effort": "low"}]}'):
             self.assertFalse(self.data.refresh_live())
+        base = json.loads((Path(self.data.__file__).with_name('data') / 'personal-choices.json').read_text(encoding='utf-8'))
+        missing_reviewer = copy.deepcopy(base)
+        missing_reviewer['roles'].pop('reviewer')
+        missing_security = copy.deepcopy(base)
+        missing_security['roles'].pop('security')
+        missing_claude = copy.deepcopy(base)
+        missing_claude['daily'] = [c for c in missing_claude['daily'] if c['provider'] != 'claude']
+        for broken in (missing_reviewer, missing_security, missing_claude):
+            with self.serve(json.dumps(broken)):
+                self.assertFalse(self.data.refresh_live())
         with patch('urllib.request.urlopen', side_effect=OSError('offline')):
             self.assertFalse(self.data.refresh_live())
         self.assertEqual(self.data.DAILY_CHOICES, before)
@@ -62,13 +73,13 @@ class UsageGuidanceTests(unittest.TestCase):
 
     def test_my_usage_paragraph_keeps_daily_choices_separate_from_roles(self):
         page = html_report.render("")
-        usage = page.split('<h2><span class="l-en">My usage</span>', 1)[1].split('</section>', 1)[0]
-        self.assertIn('Claude Code mainly Opus 5.5 / medium', usage)
-        self.assertIn('Codex GPT-6.2-Sol / medium', usage)
-        self.assertIn('Claude Code 主要用 Opus 5.5 / medium', usage)
-        self.assertIn('Codex GPT-6.2-Sol / medium.<br>Gemini uses Gemini 4 Neon / medium.', usage)
-        self.assertIn('Codex 用 GPT-6.2-Sol / medium。<br>Gemini 用 Gemini 4 Neon / medium。', usage)
-        self.assertNotIn('xhigh', usage)
+        usage = page.split('<h2><span class="l-en">My usage &amp; workflow</span>', 1)[1].split('</section>', 1)[0]
+        self.assertIn('Claude Code mainly Opus 5.5 / high', usage)
+        self.assertIn('Codex GPT-6.2-Sol / high', usage)
+        self.assertIn('Claude Code 主要用 Opus 5.5 / high', usage)
+        self.assertIn('Codex GPT-6.2-Sol / high.<br>Gemini uses Gemini 4 Hydrogen / high.', usage)
+        self.assertIn('Codex 用 GPT-6.2-Sol / high。<br>Gemini 用 Gemini 4 Hydrogen / high。', usage)
+        self.assertIn('Gemini 4 Neon / xhigh', usage)
 
     def test_qualified_claude_pick_never_uses_fable(self):
         rows = [
@@ -115,8 +126,8 @@ class UsageGuidanceTests(unittest.TestCase):
 
     def test_daily_choices_and_roles_render_without_template_edits(self):
         roles = copy.deepcopy(html_report.ROLE_ASSIGNMENTS)
-        executor = next(role for role in roles if role['role'] == 'Executor')
-        executor['models']['gemini'] = ('Gemini Fixture <script>', 'xhigh')
+        reviewer = next(role for role in roles if role['role'] == 'Reviewer')
+        reviewer['models']['gemini'] = ('Gemini Fixture <script>', 'xhigh')
         choices = {
             'claude': ('Claude Fixture <script>', 'low'),
             'codex': ('Codex Fixture', 'medium'),
@@ -145,25 +156,22 @@ class UsageGuidanceTests(unittest.TestCase):
         hydrogen = {'model': 'Gemini 4 Hydrogen', 'effort': 'High', 'score': 51, 'cost': 1}
         self.assertEqual(cursorbench.pick([argon, hydrogen], 'agy')[0], 'Gemini 4 Hydrogen High')
         self.assertIsNone(cursorbench.pick([argon], 'agy'))
-        # Displayed Gemini roles follow My usage roleOverrides, not s-agent's Argon dispatch.
-        for role in html_report.ROLE_ASSIGNMENTS:
-            expected = 'Gemini 4 Neon'
-            effort = {'Designer': 'medium', 'Executor': 'low', 'DevOps': 'medium', 'Security': 'xhigh'}.get(role['role'], 'high')
-            self.assertEqual(role['models']['gemini'], (expected, effort))
+        by_role = {role['role']: role['models'] for role in html_report.ROLE_ASSIGNMENTS}
+        self.assertEqual(by_role['Reviewer']['gemini'], ('Gemini 4 Neon', 'high'))
+        self.assertEqual(by_role['Security']['gemini'], ('Gemini 4 Neon', 'xhigh'))
         page = html_report.render('')
         self.assertNotIn('本機選型草案', page)
         self.assertNotIn('尚未同步 Notion', page)
-        choice, roles = page.split('<h2><span class="l-en">Delegated roles</span>', 1)
-        self.assertNotIn('安全工作使用 Carbon / high', choice)
-        self.assertIn('Gemini selection', roles)
-        self.assertIn('Gemini 選型', roles)
-        self.assertEqual(page.count('日常工作使用 Gemini 4 Neon / medium。安全工作使用 Gemini 4 Neon / xhigh，以安全性與正確性優先。因成本排除 Gemini 4 Argon。'), 1)
-        self.assertIn('日常工作使用 Gemini 4 Neon / medium', roles.split('<table', 1)[0])
-        self.assertNotIn('Upgrade to xhigh', roles)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / high</td>'), 2)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / medium</td>'), 2)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / low</td>'), 1)
-        self.assertEqual(roles.count('<td class="gemini">Gemini 4 Neon / xhigh</td>'), 1)
+        workflow = page.split('<h2><span class="l-en">My usage &amp; workflow</span>', 1)[1].split('</section>', 1)[0]
+        self.assertEqual(page.count('Gemini 選型：日常 Gemini 4 Hydrogen / high，安全 Gemini 4 Neon / xhigh，排除 Gemini 4 Argon。'), 1)
+        self.assertIn('data-provider="Claude Code"', workflow)
+        self.assertIn('data-provider="Codex"', workflow)
+        self.assertIn('data-provider="Gemini"', workflow)
+        self.assertEqual(workflow.count('<tr>'), 5)  # 1 header + 4 workflow rows
+        self.assertIn('frontend-design', workflow)
+        self.assertIn('impeccable', workflow)
+        self.assertIn('ui-ux-pro-max', workflow)
+        self.assertIn('playwright-cli', workflow)
 
     def test_only_fable_has_no_qualified_pick(self):
         rows = [{'model': 'Fable 5.2', 'effort': 'High', 'score': 60, 'cost': 4}]
