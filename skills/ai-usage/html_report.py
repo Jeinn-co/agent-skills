@@ -263,11 +263,11 @@ def hue(pct):
 
 
 def pace_hue(pct, elapsed):
-    # Usage against time already spent in the window: red = over 10 points ahead (too fast),
-    # amber = within ±10 points, green = over 10 points behind (still early). Each ±10 boundary
+    # Usage against time already spent in the window: red = over 2 points ahead,
+    # amber = between -10 and +2 points, green = over 10 points behind. Each boundary
     # blends over 2 points either side instead of jumping. Mirrored in reset-expiry.js.
     d = pct - elapsed
-    return round(142 - 104 * min(max((d + 12) / 4, 0), 1) - 38 * min(max((d - 8) / 4, 0), 1))
+    return round(142 - 104 * min(max((d + 12) / 4, 0), 1) - 38 * min(max(d / 4, 0), 1))
 
 
 def logo(cli):

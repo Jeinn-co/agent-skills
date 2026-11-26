@@ -11,7 +11,7 @@ function updateResetExpiry() {
     const pct = Number(row.dataset.windowPct), bar = row.previousElementSibling;
     const d = pct - (100 - share), ramp = x => Math.min(Math.max(x, 0), 1);
     if (bar && Number.isFinite(pct))
-      bar.style.setProperty('--h', Math.round(142 - 104 * ramp((d + 12) / 4) - 38 * ramp((d - 8) / 4)));
+      bar.style.setProperty('--h', Math.round(142 - 104 * ramp((d + 12) / 4) - 38 * ramp(d / 4)));
     const minutes = Math.floor(left);
     const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60);
     const mins = String(minutes % 60).padStart(days || hours ? 2 : 1, '0');

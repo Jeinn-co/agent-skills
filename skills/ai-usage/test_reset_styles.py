@@ -69,13 +69,13 @@ now += 242 * 60000;
 tick();
 const later = read();
 const quotaLater = {width: quota.fill.style.width, text: quota.remaining.textContent, ...pace()};
-now += 360 * 60000;
+now += 1200 * 60000;
 tick();
 const quotaYellow = pace().bar;
 now += 2400 * 60000;
 tick();
 const quotaGreen = pace().bar;
-now -= 3002 * 60000;
+now -= 3842 * 60000;
 now += 10080 * 60000;
 tick();
 console.log(JSON.stringify({initial, later, interval, quotaStart, quotaLater, quotaYellow, quotaGreen,
@@ -104,15 +104,15 @@ console.log(JSON.stringify({initial, later, interval, quotaStart, quotaLater, qu
         self.assertEqual(data["quotaLater"]["text"], "6d19h56m left")
         self.assertLess(float(data["quotaLater"]["width"][:-1]), float(data["quotaStart"]["width"][:-1]))
         self.assertEqual(data["quotaExpired"], {"width": "0%", "text": "0m left"})
-        # 13% used: red at first, amber within ±10 points, green once 25% of the week has passed.
+        # 13% used: red at first, amber between -10 and +2 points, then green.
         # A full time-left track is red; it turns green as the reset nears.
         self.assertEqual((data["quotaStart"]["bar"], data["quotaStart"]["time"]), (0, 0))
-        self.assertEqual(data["quotaLater"]["bar"], 13)  # 10.58 points ahead: inside the amber-to-red blend
+        self.assertEqual(data["quotaLater"]["bar"], 0)
         self.assertEqual(data["quotaYellow"], 38)
         self.assertEqual(data["quotaGreen"], 142)
 
     def test_usage_bar_color_follows_pace(self):
-        self.assertEqual([html_report.pace_hue(p, 50) for p in (65, 60.5, 50, 39, 35)], [0, 14, 38, 116, 142])
+        self.assertEqual([html_report.pace_hue(p, 50) for p in (54, 52, 50, 39, 35)], [0, 19, 38, 116, 142])
         start = dt.datetime.fromisoformat("2026-11-30T12:00:00+08:00")
         page = html_report.card_html(
             "### GEMINI\nargon 30.0% used window weekly resets 2026-11-30T12:00:00+08:00 (3d12h) bar █\n",
