@@ -1,155 +1,65 @@
 # S-Agent
 
-> **舊思維註記（2026-11-26）**：將任務拆給六個專職角色（`planner`／`designer`／`executor`／`devops` 等）的流水線屬於舊思維。現在預設以單一主線迴圈搭配按需載入的 Skills 完成開發與 UI/UX；`s-agent` 僅保留作為三平台模型設定同步器，或於需要無偏見 `reviewer`／`security` 獨立上下文時使用。
-> 英文版 [README.md](README.md) 為準，本檔為對照翻譯。
-
-針對 **Codex、Claude Code 與 Antigravity（Gemini）**，依目前工作選角與分派 subagent。
-Notion 決定各角色的 model／effort；主 agent 負責協調與驗證。
+在 **Codex、Claude Code 與 Antigravity（Gemini）** 中（支援 **macOS、Linux 與 Windows**），對齊 `/uu`（`ai-usage`）的工作模式：日常開發、規劃、維運與 UI/UX 留在主線配 Skills，獨立審查（`reviewer`）與安全掃描（`security`）由 Notion 同步型號／effort 後開乾淨 subagent，並規定無關專案或純問答的外部 AI CLI 一律切到無專案的暫存目錄（macOS/Linux 用 `/tmp`；Windows 用 `$env:TEMP` / `%TEMP%`）執行以免重專案前綴狂燒 token。
 
 ```text
 /s-agent -h
-/s-agent 修這個 bug，完成後請另一個 agent review。
+/s-agent 用乾淨暫存目錄開 Codex 幫我想這個重試佇列設計。
+/s-agent 請獨立 reviewer 檢查這段 diff。
 ```
 
 Codex 使用 `$s-agent`，參數相同。
 
 ## 安裝
 
-安裝器需要 Node.js 22.20+ 與 npm；skill 與自動更新器執行時只需要 Python。
-一次安裝給三個工具：
+安裝器需要 Node.js 22.20+ 與 npm；skill 與自動更新器執行時只需要 Python。一次安裝給三個工具：
 
 ```bash
 npx skills add Jeinn-co/agent-skills -g --skill s-agent -a codex claude-code antigravity-cli -y
 ```
 
-`-a` 只保留你使用且受支援的工具；不加 `-g` 則安裝到目前專案。
-預設共用模式將一份實體檔案放在 `~/.agents/skills/`，再接到各工具入口。
-Codex 直接讀取；Claude Code 使用 `~/.claude/skills/`（或 `$CLAUDE_CONFIG_DIR/skills/`），
-Antigravity CLI 使用 `~/.gemini/config/skills/`，不需要發布者本機的連結。
-無法建立共用連結時可用 `--copy`，每份副本仍包含完整資源。
+`-a` 只保留你使用且受支援的工具；不加 `-g` 則安裝到目前專案。預設共用模式將一份實體檔案放在 `~/.agents/skills/`，再接到各工具入口。沒有 Node/npm 時，請複製整個 skill 目錄（含 scripts、data、references）；不要將本機 symlink 提交到 repo。
 
-沒有 Node/npm 時，請複製整個 skill 目錄，保留腳本、assets、locales、data 與 references。
-不要將本機 symlink 提交到 repo。執行時使用你自己的工具與帳號；缺少先決條件會明確回報，
-不會借用發布者的設定。若沒有出現 skill，請開新對話或重新啟動工具。
-
-需要：提供分派工具的 Codex／Claude Code、能讀取 Notion 的連接器或公開網頁工具，
-以及驗證／同步使用的 **Python 3.11+**。不包含 API key 或個人路徑。
-
-測試過的平台：
-
-| OS | 狀態 |
-|---|---|
-| Windows 11 | 曾以 Python 3.12 驗證角色檔寫入；未涵蓋實際派工。 |
-| macOS | 未記錄。 |
-| Linux | 尚未測試。 |
+需要：提供分派或 CLI 能力的 Codex／Claude Code／Antigravity、能讀取 Notion 的連接器或公開網頁工具，以及驗證／同步使用的 **Python 3.11+**。不包含 API key 或個人路徑；`ai-usage`、UI skills、`playwright-cli` 僅為選用搭配，沒有安裝也能跑。
 
 ## Skill 自動更新
 
-每次 `/s-agent`（含 `-h`）先解析已安裝的 skill 路徑，從工作目錄執行，
-不要把目前目錄切進即將替換的 skill 安裝資料夾：
+每次 `/s-agent`（含 `-h`）先解析已安裝的 skill 路徑，從工作目錄執行（Windows 用 `py -3.11`，不要切進即將替換的 skill 目錄）：
 
 ```bash
 python3.11 "<skill-dir>/scripts/check_update.py" --apply
 ```
 
-有新版就自動下載安裝，不再詢問 y/n；agent 重新讀取更新後的 `SKILL.md`，再繼續原本工作。
-共用 Python 更新器只替換目前的 skill 安裝目錄，一般安裝和手動複製的副本都適用，
-不需要 Node/npm、安裝紀錄或同層 repo。下載內容先驗證完整性，替換失敗會還原舊副本；
-skill 目錄外的使用者設定保留，開發用 checkout 不會被覆寫。
-檢查或下載更新失敗會列出原因與本機版本；本機舊版可用就直接繼續原本工作，不詢問、不等待。只有沒有可用本機版本時才停止。
-
-省略 `--apply` 可只查不更新，不讀取任何憑證。Skill 自動更新與 Notion 的 model／effort
-同步分開，也不會因此啟動 subagent。
+有新版就自動下載安裝，不需 y/n；agent 重新讀取更新後的 `SKILL.md` 再繼續原本工作。開發用 checkout 不會被覆寫。檢查或下載失敗會顯示原因與本機版本，有可用本機副本時直接繼續。省略 `--apply` 可只查不更新。
 
 ## Notion 就是設定
 
 [開啟共用 Notion 設定](https://honorable-ground-e97.notion.site/s-agent-config-effort-4118e936085b810891bdc1a77dd59b63)。
-**S-Agent configuration** 標題下唯一的 JSON 區塊是設定本體。
-修改角色的 `model` 或 `effort`，下次使用 S-Agent 就會自動同步變更。
-不必另下 sync，也不必為了新增已支援的模型更版 skill。
-可在請求中提供符合相同 schema 的自有 Notion 設定頁 URL。
+**S-Agent configuration** 下的 JSON 提供 `reviewer` 與 `security` 的 `model`／`effort`，**My usage configuration** 提供 `/uu` 與主線日常的 `daily` 設定。每次呼叫（含 `-h`）先嘗試讀 Notion；設定沒變就直接用本機，不寫檔也不建備份；設定有變或缺少檔案時，自動驗證能力清單、備份到 `~/.agents/s-agent-backups/` 並同步更新。
 
-每次呼叫（含 `-h`）都先嘗試讀 Notion。驗證後設定沒變，就直接使用本機角色，
-不寫檔、不建立備份；設定改變或缺少角色時，自動驗證 model／effort、預覽、備份後套用。
-不必再輸入 `sync`。`-h` 顯示角色、來源與讀取時間；可同步設定，但不派 agent、不執行任務。
+無法連線時沿用有效本機角色並標示「本機設定；Notion 無法連線」；格式錯誤或模型不支援時保留本機並停止派工。自動同步更新 Codex（`~/.codex/agents/`）、Claude（`~/.claude/agents/`）、共用來源（`~/.agents/roles/`）及 Antigravity（`~/.gemini/config/agents/`，`model: inherit`）的 `reviewer` 與 `security`，保留原有 prompt、工具與權限。來源 URL 記在 `~/.agents/s-agent-source.json`。
 
-Notion 或讀取工具無法連線時，沿用有效本機角色，明確標示「本機設定；Notion 無法連線」，
-不把 local 值當成最新 Notion。沒有可用本機角色時才回報缺少設定。
-連線成功但設定格式錯誤、內容不完整或模型不支援時，保留本機檔案並停止派工。
+## 對齊 `/uu` 的模式與乾淨暫存目錄隔離規則
 
-模型版本直接寫在既有的 `model` ID；help 顯示完整 ID。別名會標為別名，
-只有 host 回傳解析結果才顯示實際版本；設定不等於已執行該模型。
-各角色預設是本設定的選擇，不代表業界統一標準。
+| 模式／角色 | 職責 | 執行方式 |
+|---|---|---|
+| 主線 + Skills | 規劃、實作、維運、UI/UX 設計 | 留主對話用 `daily` 型號／effort＋按需載入已安裝 Skills（如 Claude 用 `frontend-design`、Codex 用 `impeccable`、Antigravity 用 `ui-ux-pro-max`，皆可搭 `web-design-guidelines`）。 |
+| `reviewer` | 獨立審查與 QA | 獨立乾淨上下文（嚴禁 fork），套用 Notion `reviewer` 設定。 |
+| `security` | 唯讀安全掃描 | 獨立唯讀乾淨上下文（嚴禁 fork），套用 Notion `security` 設定。 |
+| 乾淨暫存目錄外部 CLI | 純問答、第二意見、無關當前 repo 的查詢 | 切到 `/tmp`（macOS/Linux）或 `$env:TEMP`／`%TEMP%`（Windows，或 `codex exec -C`；不用 `cd /tmp` 與 PS 5.1 不支援的 `&&`）再啟動外部 CLI；Claude `claude -p` 加 `--strict-mcp-config --setting-sources user`（純問答加 `--no-session-persistence --tools ""`，不預設加會跳過 OAuth 登入的 `--bare`）。 |
 
-自動同步更新 Codex／Claude 原生角色與既有共用角色來源，保留 prompt、工具及權限；
-缺少角色時用最小責任說明建立。複雜格式或 symlink 會在寫入前拒絕。
-寫入失敗會回復；相同設定不重寫。備份位於 `~/.agents/s-agent-backups/`，
-來源 URL 記錄在 `~/.agents/s-agent-source.json`。
-舊的 `/s-agent sync [Notion URL]` 仍可相容為只更新、不派工的呼叫，但不是必要步驟。
-
-套用必須有 host 取得的當前能力清單，不能把期望設定當成可用能力。
-文件列為支援不代表帳號一定有權限；無法查證支援就不套用。
-執行中的 agent 不會換模型；修改角色後可能需要重開 host／新對話。
-派工發現設定不符會提示，不會默默使用舊模型。
-
-
-## Gemini 角色設定
-
-在 Notion JSON 的六個角色都加入 `gemini`，欄位為 `model` 與 `effort`。
-舊有只含 `codex`、`claude` 的設定仍可使用。能力清單也必須包含 Gemini。
-完整型號與強度存於 `~/.agents/roles/<role>.toml`，原生角色說明存於
-`~/.gemini/config/agents/<role>.md`，模型層級設為 `inherit`。
-
-在 Antigravity 預設優先使用官方內建 `invoke_subagent`（讀取 `~/.gemini/config/agents/<role>.md`，`model: inherit`）；僅在明確要求或高風險任務（如 `security` 需嚴格鎖定模型／強度）時，改用 `agy --agent <role> --model <model> --effort <effort> -p <handoff>` 派工。
-預設依目前主工具選平台：Gemini／Antigravity 使用 Notion 的 `gemini` 設定；
-跨平台派工需要使用者明確指定，不會更換主 agent 的模型。只分析、審查或規劃的
-CLI 派工明確加上 `--mode plan`，交接需附禁止編輯與專案測試限制。獨立 CLI session
-不會自動繼承主 agent 的權限與 sandbox；派工前必須確認並套用同等限制，做不到就
-留在原本已授權的 host。實際使用仍需登入與對應方案，主 agent 負責驗證結果。
-
-Gemini 角色和 Claude、Codex 一樣，照 Notion 的 `effort` 執行。沒有可選的較高強度，也沒有自動升級。
-
-已知 Gemini 思考強度從內附的 `data/gemini-models.json` 讀取，此檔案與 ai-usage
-由同一份專案模型目錄分發。仍須另行確認當前 host 與帳號支援；模型資料不會覆蓋
-Notion 預設，也不代表帳號具有使用權限。
-
-## 角色與協調
-
-| 角色 | 責任 |
-|---|---|
-| `planner` | 可執行的 plan：範圍、驗收條件、步驟與檢查 |
-| `designer` | UI／UX、流程與無障礙（Claude Code 不派 `designer` subagent，改直接送 Claude Design：先呼叫 Artifact `quickstart`（`intent: "design"`），再用回傳的 Design `type_url` 建立 artifact；Codex 與 Antigravity 維持使用 `ui-ux-pro-max`） |
-| `executor` | 照已核准的 plan 逐步實作 |
-| `reviewer` | 獨立審查與測試 |
-| `devops` | CI/CD、環境、log 與可靠性 |
-| `security` | 程式碼、相依套件與設定的安全掃描 |
-
-先用一個 subagent；僅在工作獨立時增加，最多三個且遵守 host 更低上限。
-清楚分配檔案責任，有依賴的工作依序執行，相關後續沿用 agent。
-一律優先使用各平台官方內建派工，預設開全新乾淨上下文；只有使用者當下明確要求時才可 fork 對話，且 `reviewer` 與 `security` 永遠禁止 fork。
-小事可由主 agent 直接做；不會從開啟的編輯器檔案自行發明任務。
-沒有分派工具時，不宣稱有 agent 執行。
-
-授權限於目前任務與必要後續。原本的核准關卡、瀏覽器偏好與測試環境都要遵守。
-要求規劃就只規劃；角色本身不授權部署、發布或外部寫入，也不保證總 token 更省。
+在 Antigravity 預設優先使用 `invoke_subagent`（`model: inherit`）；僅在明確要求或高風險掃描需鎖定精確 `[gemini]` 型號／強度（如 `gemini-4-neon` / `xhigh`）時，才切到目標 repo 以 `agy --agent <role> --model <model> --effort <effort> -p <handoff>` 執行（唯讀任務加 `--mode plan`）。派工前必先告知使用者派了誰與怎麼派。
 
 ## 工具與驗證
 
-Host 讀取 Notion，將嚴格 JSON 與當前能力清單交給
-[`scripts/sync_roles.py`](scripts/sync_roles.py)。工具僅用 Python 標準函式庫，
-沒有網路或 token 功能；完整流程見 [SKILL.md](SKILL.md)。
-CLI `--help` 說明工具參數；`/s-agent -h` 才是會讀 Notion 的 agent 說明。
+Host 讀取 Notion 後，將 JSON 與當前能力清單交給 [`scripts/sync_roles.py`](scripts/sync_roles.py)（僅用 Python 標準函式庫；過渡期也相容舊 Notion 的 4 個 legacy role key，但不會寫出舊角色檔）。完整流程見 [SKILL.md](SKILL.md)。
 
 ```bash
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # 預覽
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
 ```
 
-隔離測試涵蓋嚴格驗證、保留設定、建立角色、未來模型名稱、重複套用不寫入、
-失敗回復，以及暫存檔關閉後才替換。設定檢查不代表已確認模型權限或實際派工。
-
 [English](README.md) ·
 [Claude subagents](https://code.claude.com/docs/en/sub-agents) ·
-[Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
-
-[Antigravity subagents](https://antigravity.google/docs/subagents) · [Antigravity CLI](https://antigravity.google/docs/cli/reference/)
+[Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) ·
+[Antigravity subagents](https://antigravity.google/docs/subagents)

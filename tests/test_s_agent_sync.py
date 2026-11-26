@@ -131,7 +131,7 @@ class SyncTests(unittest.TestCase):
 
     def test_unknown_complex_toml_is_rejected_before_writes(self):
         self.seed()
-        target = self.root / '.codex/agents/devops.toml'
+        target = self.root / '.codex/agents/reviewer.toml'
         target.write_text('model = """old"""\nmodel_reasoning_effort = "low"\n')
         before = self.snapshot()
         self.assertEqual(self.run_cli(apply=True), 1)
@@ -169,9 +169,9 @@ class SyncTests(unittest.TestCase):
     def test_gemini_creates_shared_exact_settings_and_native_inherited_profile(self):
         self.configure_gemini()
         self.assertEqual(self.run_cli(apply=True), 0)
-        shared = tomllib.loads((self.root / '.agents/roles/executor.toml').read_text())
-        self.assertEqual(shared['gemini'], self.policy['roles']['executor']['gemini'])
-        native = (self.root / '.gemini/config/agents/executor.md').read_text()
+        shared = tomllib.loads((self.root / '.agents/roles/reviewer.toml').read_text())
+        self.assertEqual(shared['gemini'], self.policy['roles']['reviewer']['gemini'])
+        native = (self.root / '.gemini/config/agents/reviewer.md').read_text()
         self.assertIn('model: "inherit"\n', native)
         self.assertNotIn('effort:', native)
         self.assertNotIn('gemini-4-argon', native)
@@ -208,15 +208,15 @@ class SyncTests(unittest.TestCase):
         self.catalog['gemini']['gemini-4-hydrogen'] = ['low', 'medium', 'high', 'xhigh']
         for effort in ('low', 'medium', 'high', 'xhigh'):
             with self.subTest(effort=effort):
-                self.policy['roles']['executor']['gemini'] = {'model': 'gemini-4-hydrogen', 'effort': effort}
+                self.policy['roles']['reviewer']['gemini'] = {'model': 'gemini-4-hydrogen', 'effort': effort}
                 self.catalog_path.write_text(json.dumps(self.catalog))
                 self.assertEqual(self.run_cli(apply=True), 0)
-                shared = tomllib.loads((self.root / '.agents/roles/executor.toml').read_text())
-                self.assertEqual(shared['gemini'], self.policy['roles']['executor']['gemini'])
+                shared = tomllib.loads((self.root / '.agents/roles/reviewer.toml').read_text())
+                self.assertEqual(shared['gemini'], self.policy['roles']['reviewer']['gemini'])
         baseline = self.snapshot()
         for model in sync.GEMINI_EFFORTS:
             invalid = 'minimal' if 'xhigh' in sync.GEMINI_EFFORTS[model] else 'xhigh'
-            self.policy['roles']['executor']['gemini'] = {'model': model, 'effort': invalid}
+            self.policy['roles']['reviewer']['gemini'] = {'model': model, 'effort': invalid}
             # Even a mistaken runtime catalog must not bypass known model constraints.
             self.catalog['gemini'][model] = [invalid]
             self.catalog_path.write_text(json.dumps(self.catalog))
@@ -225,9 +225,16 @@ class SyncTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'unsupported effort'):
                 sync.validate(self.policy)
 
+    def test_optional_legacy_roles_are_accepted_without_creating_legacy_profiles(self):
+        for role in sync.LEGACY_ROLES:
+            self.policy['roles'][role] = {platform: {'model': platform + '-future-9', 'effort': 'ultra'}
+                                          for platform in ('codex', 'claude')}
+        self.assertEqual(self.run_cli(apply=True), 0)
+        self.assertEqual(sorted(p.stem for p in (self.root / '.codex/agents').glob('*.toml')), sorted(sync.ROLES))
+
     def test_bad_last_target_prevents_entire_batch(self):
         self.seed()
-        (self.root / '.claude/agents/devops.md').write_text('---\nmodel: *alias\n---\n')
+        (self.root / '.claude/agents/security.md').write_text('---\nmodel: *alias\n---\n')
         before = self.snapshot()
         self.assertEqual(self.run_cli(apply=True), 1)
         self.assertEqual(before, self.snapshot())
@@ -248,20 +255,20 @@ class SyncTests(unittest.TestCase):
 
     def test_malformed_flow_list_and_unsupported_yaml_never_write(self):
         self.seed()
-        target = self.root / '.claude/agents/devops.md'
+        target = self.root / '.claude/agents/security.md'
         for invalid in ('tools: [Read, Grep', 'tools: [Read, [Grep]]',
                         'tools: [Read, "Grep]', 'tools: {Read: true}',
                         'permissions:\n  mode: bypassPermissions',
                         'description: text\n  illegal continuation'):
             with self.subTest(frontmatter=invalid):
-                target.write_text('---\nname: devops\nmodel: old\neffort: low\n' + invalid + '\n---\nPrompt\n')
+                target.write_text('---\nname: security\nmodel: old\neffort: low\n' + invalid + '\n---\nPrompt\n')
                 before = self.snapshot()
                 self.assertEqual(self.run_cli(apply=True), 1)
                 self.assertEqual(before, self.snapshot())
 
     def test_validate_only_ignores_broken_profiles_and_does_not_write(self):
         self.seed()
-        (self.root / '.claude/agents/devops.md').write_text('not valid frontmatter')
+        (self.root / '.claude/agents/security.md').write_text('not valid frontmatter')
         self.policy_path.write_text(json.dumps(self.policy))
         before = self.snapshot()
         with mock.patch.object(sync, 'plan', side_effect=AssertionError('profiles must not be read')):

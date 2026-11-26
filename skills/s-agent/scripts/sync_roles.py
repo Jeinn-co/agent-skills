@@ -14,13 +14,10 @@ import tomllib
 import uuid
 
 ROLES = {
-    'planner': 'Turn a request into an executable plan: scope, acceptance criteria, steps and checks.',
-    'designer': 'Design usable flows, accessible interactions, layouts and states. On Claude Code, do not dispatch a designer subagent; send directly to Claude Design by calling Artifact quickstart with intent "design" and creating the artifact with the returned Design type_url. On Codex and Antigravity, use ui-ux-pro-max when installed.',
-    'executor': 'Implement an approved plan step by step and verify each step.',
-    'reviewer': 'Independently review and test changes: correctness, security, regressions and acceptance.',
-    'devops': 'Investigate CI/CD, environments, deployment configuration and reliability.',
-    'security': 'Scan code, dependencies and configuration for vulnerabilities and leaked secrets.',
+    'reviewer': 'Independently review and test changes: correctness, security, regressions and acceptance. Use playwright-cli for UI QA.',
+    'security': 'Scan code, dependencies and configuration for vulnerabilities and leaked secrets (read-only).',
 }
+LEGACY_ROLES = ('planner', 'designer', 'executor', 'devops')
 PLATFORMS = {'codex', 'claude'}
 # Known model-specific constraints; other models still require a verified runtime catalog.
 _CATALOG = json.loads((Path(__file__).resolve().parents[1] / 'data/gemini-models.json').read_text(encoding='utf-8'))
@@ -42,8 +39,11 @@ def validate(policy, catalog=None):
     exact_keys(policy, {'schema_version', 'roles'}, 'policy')
     if type(policy['schema_version']) is not int or policy['schema_version'] != 1:
         raise ValueError('schema_version must be 1')
-    exact_keys(policy['roles'], ROLES, 'roles')
-    platforms = set(policy['roles']['planner']) if isinstance(policy['roles']['planner'], dict) else set()
+    roles = policy['roles']
+    allowed_roles = set(ROLES) | set(LEGACY_ROLES)
+    if not isinstance(roles, dict) or not set(ROLES).issubset(roles) or not set(roles).issubset(allowed_roles):
+        raise ValueError(f'roles: expected {sorted(ROLES)} (optional legacy: {sorted(LEGACY_ROLES)})')
+    platforms = set(roles['reviewer']) if isinstance(roles['reviewer'], dict) else set()
     if platforms not in (PLATFORMS, PLATFORMS | {'gemini'}):
         raise ValueError('roles require codex and claude, with optional gemini on all roles')
     if catalog is not None:
@@ -57,7 +57,7 @@ def validate(policy, catalog=None):
                     raise ValueError('catalog efforts must be a nonempty list')
                 for effort in efforts:
                     token(effort, 'catalog effort')
-    for role, settings in policy['roles'].items():
+    for role, settings in roles.items():
         exact_keys(settings, platforms, role)
         for platform, values in settings.items():
             exact_keys(values, {'model', 'effort'}, f'{role}.{platform}')
@@ -407,7 +407,7 @@ def main(argv=None):
         catalog = read_json(args.catalog) if args.catalog else None
         validate(policy, catalog)
         if args.validate_only:
-            print('Validated 6 policy roles.' + (' Catalog verified.' if catalog else ' Catalog not supplied.'))
+            print(f'Validated {len(ROLES)} policy roles.' + (' Catalog verified.' if catalog else ' Catalog not supplied.'))
             print('Validation only: no local profiles read or written. No agents were executed.')
             return 0
         root = args.root.absolute()

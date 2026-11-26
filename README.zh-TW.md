@@ -19,7 +19,7 @@ npx skills add Jeinn-co/agent-skills -g --skill '*' -a codex claude-code antigra
 |---|---|---|
 | [`ai-usage`](skills/ai-usage/) | 一份報表看完 Claude、ChatGPT、Grok、Muse、Gemini（Antigravity CLI）五邊訂閱還剩多少 —— 用掉幾 %、各視窗何時重置、還有多少加購額度，以及每個 CLI 目前的 model 與 effort、以及那個 model 在 CursorBench 的分數、成本與 CP。`setup` 可挑要報告哪些 provider。三個 skill 每次呼叫都會自動安裝自己的新版，再繼續原本工作。 | [English](skills/ai-usage/README.md) · [中文](skills/ai-usage/README.zh-TW.md) |
 | [`ai-cli-version`](skills/ai-cli-version/) | 你的 Claude Code、Codex、Grok Build、Muse Code、Antigravity（Gemini）CLI 是不是最新版 —— 目前版本和安裝時間、最新版本和發佈時間。有更新時，可選 `y` 全部更新或 `Esc` 跳過；`setup` 可挑要檢查哪些 CLI。目前已在 Windows 與 macOS 測試，Linux 尚未測試。 | [English](skills/ai-cli-version/README.md) · [中文](skills/ai-cli-version/README.zh-TW.md) |
-| [`s-agent`](skills/s-agent/) | **（舊思維／Legacy）** 在 Codex／Claude Code／Antigravity（Gemini）自動選角與同步角色設定；建議僅作模型同步與獨立 `reviewer`／`security` 備用，日常改以單主線＋Skills 執行。 | [English](skills/s-agent/README.md) · [中文](skills/s-agent/README.zh-TW.md) |
+| [`s-agent`](skills/s-agent/) | 對齊 `/uu` 角色分層，同步 Codex／Claude Code／Antigravity（Gemini）的獨立 `reviewer`／`security` 設定；日常開發與 UI 留主線配 Skills，跨專案或純問答的外部 AI CLI 自動切到 `/tmp` 乾淨執行以免載入重專案前綴。 | [English](skills/s-agent/README.md) · [中文](skills/s-agent/README.zh-TW.md) |
 
 `/ai-usage` —— 在瀏覽器打開的 HTML 報表（示範資料）。會開在本機頁面上，有 Refresh 按鈕和
 Auto / Light / Dark 切換：
