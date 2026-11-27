@@ -272,23 +272,46 @@ def safe_path(root, path):
         raise ValueError('root cannot be a symlink')
 
 
-def parse_daily(value, catalog=None):
-    """Parse a Codex main-loop `daily` choice given as MODEL:EFFORT (model ID, not display name)."""
+def parse_daily(value, platform, catalog=None):
+    """Parse a main-loop `daily` choice given as MODEL:EFFORT (model ID, not display name)."""
     model, separator, effort = value.rpartition(':')
     if not separator:
-        raise ValueError('--codex-daily: expected MODEL:EFFORT')
-    token(model, 'codex-daily model')
-    token(effort, 'codex-daily effort')
-    if catalog is not None and effort not in catalog.get('codex', {}).get(model, []):
-        raise ValueError(f'codex-daily: unavailable model/effort {model}:{effort}')
-    return {'model': model, 'model_reasoning_effort': effort}
+        raise ValueError(f'--{platform}-daily: expected MODEL:EFFORT')
+    token(model, f'{platform}-daily model')
+    token(effort, f'{platform}-daily effort')
+    if catalog is not None and effort not in catalog.get(platform, {}).get(model, []):
+        raise ValueError(f'{platform}-daily: unavailable model/effort {model}:{effort}')
+    return model, effort
 
 
-def plan(root, policy, source_url=None, codex_daily=None):
+def update_claude_settings(path, model, effort):
+    """Set Claude Code's main-loop model and its saved effort without reformatting settings.json."""
+    raw = path.read_text(encoding='utf-8') if path.exists() else '{}\n'
+    data = json.loads(raw, object_pairs_hook=json_object)
+    indent = re.search(r'\n( +)"', raw)
+    dump = lambda value: (json.dumps(value, indent=len(indent[1]) if indent else 2, ensure_ascii=False)
+                          + ('\n' if raw.endswith('\n') else ''))
+    if not isinstance(data, dict) or (path.exists() and dump(data) != raw):
+        raise ValueError(f'{path}: unsupported settings.json layout; no files changed')
+    settings = data.setdefault('modelSettings', {})
+    if not isinstance(settings, dict) or not isinstance(settings.setdefault(model, {}), dict):
+        raise ValueError(f'{path}: unsupported modelSettings layout; no files changed')
+    data['model'] = model
+    settings[model]['effortLevel'] = effort
+    return dump(data)
+
+
+def plan(root, policy, source_url=None, codex_daily=None, claude_daily=None):
     outputs = {}
     quote = lambda value: json.dumps(value, ensure_ascii=False)
+    if claude_daily is not None:
+        # Notion `My usage` daily is the Claude Code main-loop default; only model and its effort change.
+        settings_path = root / '.claude/settings.json'
+        safe_path(root, settings_path)
+        outputs[settings_path] = update_claude_settings(settings_path, *claude_daily)
     if codex_daily is not None:
         # Notion `My usage` daily is the Codex main-loop default; only these two top-level keys change.
+        codex_daily = dict(zip(('model', 'model_reasoning_effort'), codex_daily))
         config = root / '.codex/config.toml'
         safe_path(root, config)
         content = config.read_text(encoding='utf-8') if config.exists() else ''
@@ -418,6 +441,8 @@ def main(argv=None):
     parser.add_argument('--source-url', help='record the policy source HTTPS URL locally')
     parser.add_argument('--codex-daily', metavar='MODEL:EFFORT',
                         help='Notion My usage Codex daily as model ID:effort; aligns ~/.codex/config.toml top-level model/model_reasoning_effort')
+    parser.add_argument('--claude-daily', metavar='MODEL:EFFORT',
+                        help='Notion My usage Claude daily as full model ID:effort; aligns ~/.claude/settings.json model and modelSettings.<model>.effortLevel')
     parser.add_argument('--apply', action='store_true', help='write validated changes; default is preview only')
     parser.add_argument('--validate-only', action='store_true', help='validate policy and optional catalog without reading local profiles')
     args = parser.parse_args(argv)
@@ -429,13 +454,14 @@ def main(argv=None):
         policy = read_json(args.policy)
         catalog = read_json(args.catalog) if args.catalog else None
         validate(policy, catalog)
-        codex_daily = parse_daily(args.codex_daily, catalog) if args.codex_daily else None
+        codex_daily = parse_daily(args.codex_daily, 'codex', catalog) if args.codex_daily else None
+        claude_daily = parse_daily(args.claude_daily, 'claude', catalog) if args.claude_daily else None
         if args.validate_only:
             print(f'Validated {len(ROLES)} policy roles.' + (' Catalog verified.' if catalog else ' Catalog not supplied.'))
             print('Validation only: no local profiles read or written. No agents were executed.')
             return 0
         root = args.root.absolute()
-        changes = plan(root, policy, args.source_url, codex_daily)
+        changes = plan(root, policy, args.source_url, codex_daily, claude_daily)
         print('Validated %d roles.' % len(ROLES) + (' Catalog verified.' if catalog else ' Catalog not supplied; apply is unavailable.'))
         # Display only changed settings, never unrelated prompt or permission content.
         for path, before, after in changes:

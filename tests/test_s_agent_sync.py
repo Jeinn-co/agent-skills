@@ -121,6 +121,29 @@ class SyncTests(unittest.TestCase):
             self.assertEqual(sync.main(argv[:-2] + ['codex-future-9:max', '--apply']), 1)
         self.assertEqual(config.read_bytes(), before)
 
+    def test_claude_daily_sets_model_and_saved_effort_without_reformatting(self):
+        path = self.root / '.claude/settings.json'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        original = {'model': 'opus', 'hooks': {'Stop': []}, 'modelSettings': {'other': {'effortLevel': 'low'}}}
+        path.write_text(json.dumps(original, indent=2) + '\n')
+        self.policy_path.write_text(json.dumps(self.policy))
+        argv = [str(self.policy_path), '--root', str(self.root), '--catalog', str(self.catalog_path),
+                '--claude-daily', 'claude-future-9:ultra', '--apply']
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sync.main(argv), 0)
+        data = json.loads(path.read_text())
+        self.assertEqual(data['model'], 'claude-future-9')
+        self.assertEqual(data['modelSettings'], {'other': {'effortLevel': 'low'},
+                                                 'claude-future-9': {'effortLevel': 'ultra'}})
+        self.assertEqual(data['hooks'], {'Stop': []})
+        self.assertEqual(path.read_text(), json.dumps(data, indent=2) + '\n')
+        # A hand-formatted file is refused rather than reformatted.
+        path.write_text('{"model": "opus",   "hooks": {}}\n')
+        before = path.read_bytes()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sync.main(argv), 1)
+        self.assertEqual(path.read_bytes(), before)
+
     def test_repeated_apply_does_not_rewrite_or_backup(self):
         self.assertEqual(self.run_cli(apply=True), 0)
         before = {path: path.stat().st_mtime_ns for path in self.root.rglob('*') if path.is_file()}
