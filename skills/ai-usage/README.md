@@ -231,14 +231,12 @@ Read top to bottom:
    faster than it runs out.
 3. **Now** — the model and effort of that CLI's newest local session, plus a link to the
    provider's own usage page (Claude, ChatGPT, Grok).
-4. **My usage** — personal model and effort choices from `DAILY_CHOICES`, with a
-   link to AI Model Compare for official guidance, effort and API prices, plus
-   personal choices for the six delegated roles. These display preferences are
-   separate from the actual s-agent defaults in Notion. Report generation does
-   not change CLI settings or fetch/sync Notion.
-   Security uses Opus 5.5 / max, GPT-6 Astra / max and Gemini 4 Carbon / high.
-   Daily Gemini work and the planner, designer, reviewer and devops roles use Gemini 4 Neon / high;
-   Executor uses Gemini 4 Hydrogen / medium (Notion snapshot, 2026-11-20).
+4. **My usage** — personal daily model and effort choices from `DAILY_CHOICES`, with a
+   link to AI Model Compare for official guidance, effort and API prices, plus the two
+   isolated roles, `reviewer` and `security`. Both come from the same Notion page that
+   s-agent uses (`My usage` `daily` and the `S-Agent configuration` JSON), so the report
+   and s-agent dispatch show the same values; no model or effort is hard-coded here.
+   Report generation does not change CLI settings or fetch/sync Notion.
    The current Antigravity table (rechecked 2026-11-20) excludes Free and Plus from every Gemini 4 model.
    Neon and Argon support Pro (†), Ultra or Enterprise; Hydrogen supports Pro (\*\*), Ultra or Enterprise; Carbon requires Ultra or Enterprise.
    † includes paid Pro or trials with eligible premium devices; \*\* is paid Pro only, not trials.

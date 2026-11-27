@@ -183,12 +183,10 @@ Muse 時也不花那一次探測呼叫 —— 並列在 `Not checked (setup): �
    例如 `2h32m left`。用量條跑在時間條前面，就代表用得比時間過得快。
 3. **Now** —— 該 CLI 最新一個本機 session 的 model 與 effort，以及這家自己的用量頁連結
    （Claude、ChatGPT、Grok）。
-4. **我的用法** —— 從 `DAILY_CHOICES` 讀取個人的模型與 effort 選擇；官方說法、effort
-   與 API 價格連到 AI Model Compare，並顯示六個派工角色的個人選擇。這些顯示偏好與
-   Notion 的 s-agent 實際預設分開；產生報表不會修改 CLI 設定或讀取、同步 Notion。
-   Security 使用 Opus 5.5 / max、GPT-6 Astra / max、Gemini 4 Carbon / high。
-   日常 Gemini 工作與 planner、designer、reviewer、devops 使用 Gemini 4 Neon / high；
-   Executor 使用 Gemini 4 Hydrogen / medium（Notion 快照，2026-11-20）。
+4. **我的用法** —— 從 `DAILY_CHOICES` 讀取個人日常使用的模型與 effort；官方說法、effort
+   與 API 價格連到 AI Model Compare，並顯示 `reviewer`、`security` 兩個獨立角色。兩者都取自
+   s-agent 使用的同一頁 Notion（`My usage` 的 `daily` 與 `S-Agent configuration` JSON），
+   報表與 s-agent 派工顯示的值一致；這裡不寫死任何模型或 effort。產生報表不會修改 CLI 設定或讀取、同步 Notion。
    2026-11-20 重新核對 Antigravity 官方表：Gemini 4 全系列都不含 Free 與 Plus。Neon、Argon 為 Pro（†）、Ultra、Enterprise；Hydrogen 為 Pro（\*\*）、Ultra、Enterprise；Carbon 限 Ultra 或 Enterprise。† 指付費 Pro 或符合資格裝置的試用方案；\*\* 只限付費 Pro，試用不含。
    API 使用資格另計，付費 Gemini API 也是另一個管道；報表不會驗證帳號使用資格。
 5. **分數 50 以上（Artificial Analysis）** —— 第三方 benchmark，僅供參考，不是官方建議。每個 CLI 一列。「目前」是你最後用的 model + effort；
