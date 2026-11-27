@@ -126,15 +126,18 @@ class SyncTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         original = {'model': 'opus', 'hooks': {'Stop': []}, 'modelSettings': {'other': {'effortLevel': 'low'}}}
         path.write_text(json.dumps(original, indent=2) + '\n')
+        # Roles in the shared policy use `ultra`; keep it so validate() passes and only the daily flag is tested.
+        self.catalog['claude']['claude-future-9'] = ['ultra', 'high']
+        self.catalog_path.write_text(json.dumps(self.catalog))
         self.policy_path.write_text(json.dumps(self.policy))
         argv = [str(self.policy_path), '--root', str(self.root), '--catalog', str(self.catalog_path),
-                '--claude-daily', 'claude-future-9:ultra', '--apply']
+                '--claude-daily', 'claude-future-9:high', '--apply']
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(sync.main(argv), 0)
         data = json.loads(path.read_text())
         self.assertEqual(data['model'], 'claude-future-9')
         self.assertEqual(data['modelSettings'], {'other': {'effortLevel': 'low'},
-                                                 'claude-future-9': {'effortLevel': 'ultra'}})
+                                                 'claude-future-9': {'effortLevel': 'high'}})
         self.assertEqual(data['hooks'], {'Stop': []})
         self.assertEqual(path.read_text(), json.dumps(data, indent=2) + '\n')
         # A hand-formatted file is refused rather than reformatted.
@@ -143,6 +146,33 @@ class SyncTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(sync.main(argv), 1)
         self.assertEqual(path.read_bytes(), before)
+
+    def test_daily_sync_keeps_crlf_never_prints_unrelated_lines_and_rejects_bad_values(self):
+        config = self.root / '.codex/config.toml'
+        config.parent.mkdir(parents=True, exist_ok=True)
+        secret = 'Authorization = "Bearer not-a-real-token"'
+        config.write_bytes(('model = "old"\r\nmodel_reasoning_effort = "low"\r\n'
+                            f'[mcp_servers.x.http_headers]\r\n{secret}\r\n').encode())
+        self.policy_path.write_text(json.dumps(self.policy))
+        base = [str(self.policy_path), '--root', str(self.root), '--catalog', str(self.catalog_path)]
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sync.main(base + ['--codex-daily', 'codex-future-9:ultra', '--apply']), 0)
+        self.assertNotIn('not-a-real-token', out.getvalue())
+        self.assertEqual(config.read_bytes(), ('model = "codex-future-9"\r\nmodel_reasoning_effort = "ultra"\r\n'
+                                               f'[mcp_servers.x.http_headers]\r\n{secret}\r\n').encode())
+        before = self.snapshot()
+        self.catalog['claude']['claude-future-9'] = ['ultra', 'max']
+        self.catalog_path.write_text(json.dumps(self.catalog))
+        for extra, reason in ((['--gemini-daily', ''], 'gemini-daily label'),
+                              (['--codex-daily', ''], '--codex-daily: expected MODEL:EFFORT'),
+                              (['--claude-daily', 'claude-future-9:max'], 'settings.json can only save effort')):
+            error = io.StringIO()
+            with self.subTest(extra=extra), contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(error):
+                self.assertEqual(sync.main(base + extra + ['--apply']), 1)
+                self.assertIn(reason, error.getvalue())
+                self.assertEqual(self.snapshot(), before)
 
     def test_gemini_daily_saves_agy_model_label(self):
         path = self.root / '.gemini/antigravity-cli/settings.json'
@@ -350,17 +380,54 @@ class SyncTests(unittest.TestCase):
                 changes = sync.plan(self.root, self.policy)
                 real_write = sync.atomic_write
                 count = 0
-                def fail_third(*args):
+                def fail_third(*args, **kwargs):
                     nonlocal count
                     count += 1
                     if count == 3:
                         raise OSError('injected write failure')
-                    real_write(*args)
+                    real_write(*args, **kwargs)
                 with mock.patch.object(sync, 'atomic_write', side_effect=fail_third):
                     with self.assertRaisesRegex(OSError, 'injected'):
                         sync.apply(self.root, changes)
                 after = {key: value for key, value in self.snapshot().items() if 's-agent-backups' not in key}
                 self.assertEqual(before, after)
+
+    def test_rollback_keeps_a_file_saved_again_during_sync(self):
+        self.seed()
+        changes = sync.plan(self.root, self.policy)
+        real_write = sync.atomic_write
+        count = 0
+        def save_then_fail(*args, **kwargs):
+            nonlocal count
+            count += 1
+            if count == 2:
+                # The user saves the first file again, then the next write fails.
+                changes[0][0].write_text('user saved this')
+                raise OSError('injected write failure')
+            real_write(*args, **kwargs)
+        with mock.patch.object(sync, 'atomic_write', side_effect=save_then_fail):
+            with self.assertRaisesRegex(OSError, 'kept newer saves'):
+                sync.apply(self.root, changes)
+        self.assertEqual(changes[0][0].read_text(), 'user saved this')
+
+    def test_refused_write_is_never_rolled_back(self):
+        # Another session creates the same new file first; this session must refuse it and leave it alone.
+        changes = sync.plan(self.root, self.policy)
+        real_write = sync.atomic_write
+        count = 0
+        def other_session_creates_second(*args, **kwargs):
+            nonlocal count
+            count += 1
+            if count == 2:
+                path, before, after = changes[1]
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(after)
+            real_write(*args, **kwargs)
+        with mock.patch.object(sync, 'atomic_write', side_effect=other_session_creates_second):
+            with self.assertRaises(sync.WriteConflict):
+                sync.apply(self.root, changes)
+        self.assertEqual(changes[1][0].read_bytes(), changes[1][2])
+        self.assertFalse(changes[0][0].exists())
 
     def test_atomic_write_closes_temp_handle_before_replace(self):
         # Windows refuses to rename a file that is still open (WinError 32).

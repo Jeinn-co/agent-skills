@@ -19,6 +19,8 @@ ROLES = {
 }
 LEGACY_ROLES = ('planner', 'designer', 'executor', 'devops')
 PLATFORMS = {'codex', 'claude'}
+# Claude Code settings.json accepts only these saved effort levels (higher ones are per-session only).
+CLAUDE_SAVED_EFFORTS = {'low', 'medium', 'high', 'xhigh'}
 # Known model-specific constraints; other models still require a verified runtime catalog.
 _CATALOG = json.loads((Path(__file__).resolve().parents[1] / 'data/gemini-models.json').read_text(encoding='utf-8'))
 GEMINI_EFFORTS = {model['id']: set(model['efforts']) for model in _CATALOG['models']}
@@ -255,7 +257,8 @@ def update_claude(text, name, values):
         if key in seen:
             index, raw = seen[key]
             tail = yaml_scalar(raw)
-            lines[index] = f'{key}: {json.dumps(value)}' + tail + '\n'
+            lines[index] = (f'{key}: {json.dumps(value)}' + tail
+                            + ('\r\n' if lines[index].endswith('\r\n') else '\n'))
         else:
             additions.append(f'{key}: {json.dumps(value)}\n')
     lines[end:end] = additions
@@ -279,25 +282,29 @@ def parse_daily(value, platform, catalog=None):
         raise ValueError(f'--{platform}-daily: expected MODEL:EFFORT')
     token(model, f'{platform}-daily model')
     token(effort, f'{platform}-daily effort')
+    if platform == 'claude' and effort not in CLAUDE_SAVED_EFFORTS:
+        raise ValueError(f'claude-daily: settings.json can only save effort {sorted(CLAUDE_SAVED_EFFORTS)}')
     if catalog is not None and effort not in catalog.get(platform, {}).get(model, []):
         raise ValueError(f'{platform}-daily: unavailable model/effort {model}:{effort}')
     return model, effort
 
 
-def update_json_settings(path, change):
-    """Apply `change` to a settings.json object without reformatting the file."""
-    raw = path.read_text(encoding='utf-8') if path.exists() else '{}\n'
+def update_json_settings(path, raw, change):
+    """Apply `change` to a settings.json object without reformatting the file (CRLF is kept)."""
+    exists = raw is not None
+    raw = raw if exists else '{}\n'
     data = json.loads(raw, object_pairs_hook=json_object)
     indent = re.search(r'\n( +)"', raw)
+    newline = '\r\n' if '\r\n' in raw else '\n'
     dump = lambda value: (json.dumps(value, indent=len(indent[1]) if indent else 2, ensure_ascii=False)
-                          + ('\n' if raw.endswith('\n') else ''))
-    if not isinstance(data, dict) or (path.exists() and dump(data) != raw):
+                          + ('\n' if raw.endswith('\n') else '')).replace('\n', newline)
+    if not isinstance(data, dict) or (exists and dump(data) != raw):
         raise ValueError(f'{path}: unsupported settings.json layout; no files changed')
     change(data)
     return dump(data)
 
 
-def update_claude_settings(path, model, effort):
+def update_claude_settings(path, raw, model, effort):
     """Set Claude Code's main-loop model and its saved effort without reformatting settings.json."""
     def change(data):
         settings = data.setdefault('modelSettings', {})
@@ -305,30 +312,39 @@ def update_claude_settings(path, model, effort):
             raise ValueError(f'{path}: unsupported modelSettings layout; no files changed')
         data['model'] = model
         settings[model]['effortLevel'] = effort
-    return update_json_settings(path, change)
+    return update_json_settings(path, raw, change)
 
 
 def plan(root, policy, source_url=None, codex_daily=None, claude_daily=None, gemini_daily=None):
     outputs = {}
+    snapshot = {}
     quote = lambda value: json.dumps(value, ensure_ascii=False)
+
+    def read(path):
+        # Read raw bytes once: no newline translation, and `before` is exactly what `after` came from.
+        snapshot[path] = path.read_bytes() if path.exists() else None
+        return None if snapshot[path] is None else snapshot[path].decode('utf-8')
+
     if gemini_daily is not None:
         # agy saves the `/model` choice by its label, which already includes the effort variant.
         agy_settings = root / '.gemini/antigravity-cli/settings.json'
         safe_path(root, agy_settings)
-        outputs[agy_settings] = update_json_settings(agy_settings, lambda data: data.update(model=gemini_daily))
+        outputs[agy_settings] = update_json_settings(agy_settings, read(agy_settings),
+                                                     lambda data: data.update(model=gemini_daily))
     if claude_daily is not None:
         # Notion `My usage` daily is the Claude Code main-loop default; only model and its effort change.
         settings_path = root / '.claude/settings.json'
         safe_path(root, settings_path)
-        outputs[settings_path] = update_claude_settings(settings_path, *claude_daily)
+        outputs[settings_path] = update_claude_settings(settings_path, read(settings_path), *claude_daily)
     if codex_daily is not None:
         # Notion `My usage` daily is the Codex main-loop default; only these two top-level keys change.
         codex_daily = dict(zip(('model', 'model_reasoning_effort'), codex_daily))
         config = root / '.codex/config.toml'
         safe_path(root, config)
-        content = config.read_text(encoding='utf-8') if config.exists() else ''
+        content = read(config) or ''
         present = tomllib.loads(content)
-        content = ''.join(f'{key} = {quote(value)}\n' for key, value in codex_daily.items()
+        newline = '\r\n' if '\r\n' in content else '\n'
+        content = ''.join(f'{key} = {quote(value)}{newline}' for key, value in codex_daily.items()
                           if key not in present) + content
         outputs[config] = update_toml(content, {'': codex_daily})
     for name, responsibility in ROLES.items():
@@ -339,8 +355,8 @@ def plan(root, policy, source_url=None, codex_daily=None, claude_daily=None, gem
         for path in (codex, claude, shared):
             safe_path(root, path)
         codex_values = {'model': settings['codex']['model'], 'model_reasoning_effort': settings['codex']['effort']}
-        if codex.exists():
-            content = codex.read_text(encoding='utf-8')
+        content = read(codex)
+        if content is not None:
             parsed = tomllib.loads(content)
             if parsed.get('name', name) != name:
                 raise ValueError(f'{codex}: name mismatch')
@@ -349,11 +365,12 @@ def plan(root, policy, source_url=None, codex_daily=None, claude_daily=None, gem
             outputs[codex] = '\n'.join(f'{key} = {quote(value)}' for key, value in {
                 'name': name, 'description': responsibility, **codex_values,
                 'developer_instructions': responsibility + ' Follow the coordinating agent’s task scope and applicable project instructions.'}.items()) + '\n'
-        outputs[claude] = (update_claude(claude.read_text(encoding='utf-8'), name, settings['claude'])
-                           if claude.exists() else
+        content = read(claude)
+        outputs[claude] = (update_claude(content, name, settings['claude'])
+                           if content is not None else
                            f'---\nname: {quote(name)}\ndescription: {quote(responsibility)}\nmodel: {quote(settings["claude"]["model"])}\neffort: {quote(settings["claude"]["effort"])}\n---\n\n{responsibility} Follow the coordinating agent’s task scope and applicable project instructions.\n')
-        if shared.exists():
-            content = shared.read_text(encoding='utf-8')
+        content = read(shared)
+        if content is not None:
             if 'gemini' in settings and 'gemini' not in tomllib.loads(content):
                 content += '\n[gemini]\n' + ''.join(
                     f'{key} = {quote(value)}\n' for key, value in settings['gemini'].items())
@@ -366,8 +383,8 @@ def plan(root, policy, source_url=None, codex_daily=None, claude_daily=None, gem
             gemini = root / '.gemini/config/agents' / (name + '.md')
             safe_path(root, gemini)
             # Exact model/effort are session flags; native subagents only support model tiers.
-            if gemini.exists():
-                content = gemini.read_text(encoding='utf-8')
+            content = read(gemini)
+            if content is not None:
                 outputs[gemini] = update_claude(content, name, {'model': 'inherit'})
             else:
                 outputs[gemini] = (
@@ -382,14 +399,23 @@ def plan(root, policy, source_url=None, codex_daily=None, claude_daily=None, gem
         outputs[path] = json.dumps({'schema_version': 1, 'source_url': source_url}, indent=2) + '\n'
     result = []
     for path, content in outputs.items():
-        before = path.read_bytes() if path.exists() else None
+        before = snapshot[path] if path in snapshot else (path.read_bytes() if path.exists() else None)
         after = content.encode('utf-8')
         if before != after:
             result.append((path, before, after))
     return result
 
 
-def atomic_write(path, content, mode=0o644):
+class WriteConflict(ValueError):
+    """The target changed after planning; it was not replaced and must not be rolled back."""
+
+
+def current_bytes(path):
+    return path.read_bytes() if path.exists() else None
+
+
+def atomic_write(path, content, mode=0o644, expected=...):
+    """Replace `path`; with `expected`, refuse if the file changed since it was planned."""
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, name = tempfile.mkstemp(dir=path.parent)
     temporary = Path(name)
@@ -399,9 +425,15 @@ def atomic_write(path, content, mode=0o644):
             stream.flush()
             os.fsync(stream.fileno())
         os.chmod(temporary, mode)
+        # Re-check at the last moment so a save made while the temp file was written is kept.
+        if expected is not ... and current_bytes(path) != expected:
+            raise WriteConflict(f'file changed during apply: {path}')
         os.replace(temporary, path)
     finally:
-        temporary.unlink(missing_ok=True)
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass  # A locked temp file (e.g. antivirus on Windows) must not mask the real outcome.
 
 
 def apply(root, changes):
@@ -412,35 +444,71 @@ def apply(root, changes):
     modes = {}
     for path, before, after in changes:
         safe_path(root, path)
-        if (path.read_bytes() if path.exists() else None) != before:
+        if current_bytes(path) != before:
             raise ValueError(f'file changed during validation: {path}')
         modes[path] = path.stat().st_mode & 0o777 if before is not None else 0o644
+    # Backups may hold tokens from config files; keep the folder private to this user.
+    backup.mkdir(parents=True, exist_ok=True)
+    backup.chmod(0o700)
     # Finish every backup before writing any live profile.
     for path, before, after in changes:
         if before is not None:
             target = backup / path.relative_to(root)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
-    backup.mkdir(parents=True, exist_ok=True)
     (backup / 'manifest.json').write_text(json.dumps({str(path.relative_to(root)): before is not None for path, before, _ in changes}, indent=2) + '\n')
     written = []
+    attempted = None
     try:
         for path, before, after in changes:
-            written.append((path, before))
-            atomic_write(path, after, modes[path])
-    except BaseException:
-        for path, before in reversed(written):
-            if before is None:
-                path.unlink(missing_ok=True)
-            else:
-                # Restore via a separate replacement so an injected write failure cannot skip rollback.
-                restore = backup / path.relative_to(root)
-                temporary = path.with_name(path.name + '.restore-' + uuid.uuid4().hex)
-                try:
-                    shutil.copy2(restore, temporary)
-                    os.replace(temporary, path)
-                finally:
-                    temporary.unlink(missing_ok=True)
+            attempted = (path, before, after)
+            atomic_write(path, after, modes[path], expected=before)
+            # Record only completed replacements; a failed write left its original untouched.
+            written.append(attempted)
+            attempted = None
+    except BaseException as error:
+        failed, conflicts = [], []
+        # A refused write never replaced its target; never treat it as ours to roll back.
+        if attempted is not None and not isinstance(error, WriteConflict):
+            try:
+                if current_bytes(attempted[0]) == attempted[2]:
+                    # Interrupted after the replace but before it was recorded (e.g. Ctrl+C).
+                    written.append(attempted)
+            except OSError:
+                failed.append(str(attempted[0]))
+        for path, before, after in reversed(written):
+            try:
+                if before is None:
+                    if current_bytes(path) != after:
+                        conflicts.append(str(path))
+                    else:
+                        path.unlink(missing_ok=True)
+                else:
+                    restore = backup / path.relative_to(root)
+                    # mkstemp creates the copy as 0600, so credentials are never briefly world-readable.
+                    descriptor, name = tempfile.mkstemp(dir=path.parent, prefix=path.name + '.restore-')
+                    os.close(descriptor)
+                    temporary = Path(name)
+                    try:
+                        shutil.copyfile(restore, temporary)
+                        shutil.copystat(restore, temporary)
+                        # Compare after preparing the restore copy, right before replacing.
+                        if current_bytes(path) != after:
+                            # Saved again after this sync wrote it: keep the newer content, report it.
+                            conflicts.append(str(path))
+                        else:
+                            os.replace(temporary, path)
+                    finally:
+                        try:
+                            temporary.unlink(missing_ok=True)
+                        except OSError:
+                            pass  # Leftover temp copy only; the restore outcome is already decided.
+            except OSError:
+                # Keep restoring the rest; report every file that could not be rolled back.
+                failed.append(str(path))
+        if failed or conflicts:
+            raise OSError(f'{error}; rollback failed for {failed}; kept newer saves in {conflicts}; '
+                          f'backup: {backup}') from error
         raise
     return backup
 
@@ -468,9 +536,10 @@ def main(argv=None):
         policy = read_json(args.policy)
         catalog = read_json(args.catalog) if args.catalog else None
         validate(policy, catalog)
-        codex_daily = parse_daily(args.codex_daily, 'codex', catalog) if args.codex_daily else None
-        claude_daily = parse_daily(args.claude_daily, 'claude', catalog) if args.claude_daily else None
-        if args.gemini_daily:
+        codex_daily = parse_daily(args.codex_daily, 'codex', catalog) if args.codex_daily is not None else None
+        claude_daily = parse_daily(args.claude_daily, 'claude', catalog) if args.claude_daily is not None else None
+        if args.gemini_daily is not None:
+            # `is not None`: an empty label must be rejected, not silently written as model "".
             token(args.gemini_daily, 'gemini-daily label')
         if args.validate_only:
             print(f'Validated {len(ROLES)} policy roles.' + (' Catalog verified.' if catalog else ' Catalog not supplied.'))
@@ -480,8 +549,14 @@ def main(argv=None):
         changes = plan(root, policy, args.source_url, codex_daily, claude_daily, args.gemini_daily)
         print('Validated %d roles.' % len(ROLES) + (' Catalog verified.' if catalog else ' Catalog not supplied; apply is unavailable.'))
         # Display only changed settings, never unrelated prompt or permission content.
+        main_configs = {root / '.codex/config.toml': codex_daily, root / '.claude/settings.json': claude_daily,
+                        root / '.gemini/antigravity-cli/settings.json': args.gemini_daily}
         for path, before, after in changes:
             print(('Update: ' if before is not None else 'Create: ') + str(path))
+            if path in main_configs:
+                # These files can hold credentials, and a neighbouring line may change (e.g. an added comma).
+                print(f'  main-loop daily -> {main_configs[path]} (diff hidden: this file can hold credentials)')
+                continue
             print(''.join(difflib.unified_diff(
                 (before or b'').decode('utf-8').splitlines(keepends=True),
                 after.decode('utf-8').splitlines(keepends=True),
