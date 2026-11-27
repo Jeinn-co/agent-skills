@@ -489,7 +489,7 @@ def main(argv=None):
         if args.apply:
             backup = apply(root, changes)
             print(f'Applied {len(changes)} changed files.' + (f' Backup: {backup}' if backup else ' No writes needed.'))
-            print('Reload/restart configured hosts to pick up role settings. Gemini model/effort use session flags. No agents were executed.')
+            print('Reload/restart configured hosts to pick up role and main-loop settings; Gemini subagent model/effort still use agy session flags. No agents were executed.')
         else:
             print(f'Preview only: {len(changes)} files would change. No files written.')
         return 0

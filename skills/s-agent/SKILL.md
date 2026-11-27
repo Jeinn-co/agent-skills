@@ -3,7 +3,7 @@ name: s-agent
 description: Select and dispatch /uu-aligned isolated roles (`reviewer`, `security`) and clean temp-dir external AI CLI queries across Codex, Claude Code and Antigravity (Gemini) on macOS, Linux and Windows. Use /s-agent or $s-agent; automatically update the skill, sync Notion role settings when changed, reuse local settings when unchanged or offline, isolate unrelated external CLI prompts outside heavy repos, and show current modes with -h.
 metadata:
   author: Jeinn
-  version: "1.9.0"
+  version: "1.9.1"
 ---
 
 # S-Agent
