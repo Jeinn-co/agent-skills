@@ -94,6 +94,33 @@ class SyncTests(unittest.TestCase):
             self.assertEqual(shared['codex'], self.policy['roles'][role]['codex'])
         self.assertEqual(len(list((self.root / '.agents/s-agent-backups').glob('*/.codex/agents/reviewer.toml'))), 1)
 
+    def test_codex_daily_aligns_main_config_and_preserves_the_rest(self):
+        config = self.root / '.codex/config.toml'
+        config.parent.mkdir(parents=True, exist_ok=True)
+        config.write_text('model = "old" # keep\nmodel_reasoning_effort = "low"\n'
+                          'approval_policy = "never"\n[mcp_servers.x]\nurl = "https://example.test"\n')
+        config.chmod(0o600)
+        self.policy_path.write_text(json.dumps(self.policy))
+        argv = [str(self.policy_path), '--root', str(self.root), '--catalog', str(self.catalog_path),
+                '--codex-daily', 'codex-future-9:ultra', '--apply']
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sync.main(argv), 0)
+        parsed = tomllib.loads(config.read_text())
+        self.assertEqual((parsed['model'], parsed['model_reasoning_effort']), ('codex-future-9', 'ultra'))
+        self.assertEqual(parsed['mcp_servers'], {'x': {'url': 'https://example.test'}})
+        self.assertIn(' # keep', config.read_text())
+        self.assertEqual(config.stat().st_mode & 0o777, 0o600)
+        # Missing keys are added at the top; an effort outside the catalog never writes.
+        config.write_text('[profiles.a]\nmodel = "other"\n')
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sync.main(argv), 0)
+            parsed = tomllib.loads(config.read_text())
+            self.assertEqual(parsed['model_reasoning_effort'], 'ultra')
+            self.assertEqual(parsed['profiles'], {'a': {'model': 'other'}})
+            before = config.read_bytes()
+            self.assertEqual(sync.main(argv[:-2] + ['codex-future-9:max', '--apply']), 1)
+        self.assertEqual(config.read_bytes(), before)
+
     def test_repeated_apply_does_not_rewrite_or_backup(self):
         self.assertEqual(self.run_cli(apply=True), 0)
         before = {path: path.stat().st_mtime_ns for path in self.root.rglob('*') if path.is_file()}

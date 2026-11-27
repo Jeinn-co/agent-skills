@@ -68,7 +68,7 @@ The host reads Notion and supplies strict JSON and a current capability catalog 
 
 ```bash
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # preview
-python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply
+python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply  # add --codex-daily MODEL:EFFORT to align ~/.codex/config.toml with Notion daily
 ```
 
 Isolated sync tests cover strict validation, preservation, bootstrap, legacy-role transition compatibility, future model identifiers, idempotence, rollback and closing temporary files before replacement.

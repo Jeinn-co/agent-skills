@@ -272,9 +272,30 @@ def safe_path(root, path):
         raise ValueError('root cannot be a symlink')
 
 
-def plan(root, policy, source_url=None):
+def parse_daily(value, catalog=None):
+    """Parse a Codex main-loop `daily` choice given as MODEL:EFFORT (model ID, not display name)."""
+    model, separator, effort = value.rpartition(':')
+    if not separator:
+        raise ValueError('--codex-daily: expected MODEL:EFFORT')
+    token(model, 'codex-daily model')
+    token(effort, 'codex-daily effort')
+    if catalog is not None and effort not in catalog.get('codex', {}).get(model, []):
+        raise ValueError(f'codex-daily: unavailable model/effort {model}:{effort}')
+    return {'model': model, 'model_reasoning_effort': effort}
+
+
+def plan(root, policy, source_url=None, codex_daily=None):
     outputs = {}
     quote = lambda value: json.dumps(value, ensure_ascii=False)
+    if codex_daily is not None:
+        # Notion `My usage` daily is the Codex main-loop default; only these two top-level keys change.
+        config = root / '.codex/config.toml'
+        safe_path(root, config)
+        content = config.read_text(encoding='utf-8') if config.exists() else ''
+        present = tomllib.loads(content)
+        content = ''.join(f'{key} = {quote(value)}\n' for key, value in codex_daily.items()
+                          if key not in present) + content
+        outputs[config] = update_toml(content, {'': codex_daily})
     for name, responsibility in ROLES.items():
         settings = policy['roles'][name]
         codex = root / '.codex/agents' / (name + '.toml')
@@ -395,6 +416,8 @@ def main(argv=None):
     parser.add_argument('--root', type=Path, default=Path.home(), help='home directory (use a temporary root for tests)')
     parser.add_argument('--catalog', help='JSON of actual host model/effort capabilities; required for --apply')
     parser.add_argument('--source-url', help='record the policy source HTTPS URL locally')
+    parser.add_argument('--codex-daily', metavar='MODEL:EFFORT',
+                        help='Notion My usage Codex daily as model ID:effort; aligns ~/.codex/config.toml top-level model/model_reasoning_effort')
     parser.add_argument('--apply', action='store_true', help='write validated changes; default is preview only')
     parser.add_argument('--validate-only', action='store_true', help='validate policy and optional catalog without reading local profiles')
     args = parser.parse_args(argv)
@@ -406,12 +429,13 @@ def main(argv=None):
         policy = read_json(args.policy)
         catalog = read_json(args.catalog) if args.catalog else None
         validate(policy, catalog)
+        codex_daily = parse_daily(args.codex_daily, catalog) if args.codex_daily else None
         if args.validate_only:
             print(f'Validated {len(ROLES)} policy roles.' + (' Catalog verified.' if catalog else ' Catalog not supplied.'))
             print('Validation only: no local profiles read or written. No agents were executed.')
             return 0
         root = args.root.absolute()
-        changes = plan(root, policy, args.source_url)
+        changes = plan(root, policy, args.source_url, codex_daily)
         print('Validated %d roles.' % len(ROLES) + (' Catalog verified.' if catalog else ' Catalog not supplied; apply is unavailable.'))
         # Display only changed settings, never unrelated prompt or permission content.
         for path, before, after in changes:
