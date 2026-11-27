@@ -56,7 +56,7 @@ Host 讀取 Notion 後，將 JSON 與當前能力清單交給 [`scripts/sync_rol
 
 ```bash
 python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json  # 預覽
-python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply  # 加 --codex-daily／--claude-daily MODEL:EFFORT 可讓主線預設對齊 Notion daily
+python3.11 scripts/sync_roles.py POLICY.json --catalog CATALOG.json --apply  # 加 --codex-daily／--claude-daily MODEL:EFFORT 與 --gemini-daily "<agy label>" 可讓主線預設對齊 Notion daily
 ```
 
 [English](README.md) ·

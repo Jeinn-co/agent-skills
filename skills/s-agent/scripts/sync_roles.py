@@ -284,8 +284,8 @@ def parse_daily(value, platform, catalog=None):
     return model, effort
 
 
-def update_claude_settings(path, model, effort):
-    """Set Claude Code's main-loop model and its saved effort without reformatting settings.json."""
+def update_json_settings(path, change):
+    """Apply `change` to a settings.json object without reformatting the file."""
     raw = path.read_text(encoding='utf-8') if path.exists() else '{}\n'
     data = json.loads(raw, object_pairs_hook=json_object)
     indent = re.search(r'\n( +)"', raw)
@@ -293,17 +293,29 @@ def update_claude_settings(path, model, effort):
                           + ('\n' if raw.endswith('\n') else ''))
     if not isinstance(data, dict) or (path.exists() and dump(data) != raw):
         raise ValueError(f'{path}: unsupported settings.json layout; no files changed')
-    settings = data.setdefault('modelSettings', {})
-    if not isinstance(settings, dict) or not isinstance(settings.setdefault(model, {}), dict):
-        raise ValueError(f'{path}: unsupported modelSettings layout; no files changed')
-    data['model'] = model
-    settings[model]['effortLevel'] = effort
+    change(data)
     return dump(data)
 
 
-def plan(root, policy, source_url=None, codex_daily=None, claude_daily=None):
+def update_claude_settings(path, model, effort):
+    """Set Claude Code's main-loop model and its saved effort without reformatting settings.json."""
+    def change(data):
+        settings = data.setdefault('modelSettings', {})
+        if not isinstance(settings, dict) or not isinstance(settings.setdefault(model, {}), dict):
+            raise ValueError(f'{path}: unsupported modelSettings layout; no files changed')
+        data['model'] = model
+        settings[model]['effortLevel'] = effort
+    return update_json_settings(path, change)
+
+
+def plan(root, policy, source_url=None, codex_daily=None, claude_daily=None, gemini_daily=None):
     outputs = {}
     quote = lambda value: json.dumps(value, ensure_ascii=False)
+    if gemini_daily is not None:
+        # agy saves the `/model` choice by its label, which already includes the effort variant.
+        agy_settings = root / '.gemini/antigravity-cli/settings.json'
+        safe_path(root, agy_settings)
+        outputs[agy_settings] = update_json_settings(agy_settings, lambda data: data.update(model=gemini_daily))
     if claude_daily is not None:
         # Notion `My usage` daily is the Claude Code main-loop default; only model and its effort change.
         settings_path = root / '.claude/settings.json'
@@ -443,6 +455,8 @@ def main(argv=None):
                         help='Notion My usage Codex daily as model ID:effort; aligns ~/.codex/config.toml top-level model/model_reasoning_effort')
     parser.add_argument('--claude-daily', metavar='MODEL:EFFORT',
                         help='Notion My usage Claude daily as full model ID:effort; aligns ~/.claude/settings.json model and modelSettings.<model>.effortLevel')
+    parser.add_argument('--gemini-daily', metavar='LABEL',
+                        help='Notion My usage Gemini daily as the `agy models` label, e.g. "Gemini 4 Hydrogen (High)"; aligns ~/.gemini/antigravity-cli/settings.json model')
     parser.add_argument('--apply', action='store_true', help='write validated changes; default is preview only')
     parser.add_argument('--validate-only', action='store_true', help='validate policy and optional catalog without reading local profiles')
     args = parser.parse_args(argv)
@@ -456,12 +470,14 @@ def main(argv=None):
         validate(policy, catalog)
         codex_daily = parse_daily(args.codex_daily, 'codex', catalog) if args.codex_daily else None
         claude_daily = parse_daily(args.claude_daily, 'claude', catalog) if args.claude_daily else None
+        if args.gemini_daily:
+            token(args.gemini_daily, 'gemini-daily label')
         if args.validate_only:
             print(f'Validated {len(ROLES)} policy roles.' + (' Catalog verified.' if catalog else ' Catalog not supplied.'))
             print('Validation only: no local profiles read or written. No agents were executed.')
             return 0
         root = args.root.absolute()
-        changes = plan(root, policy, args.source_url, codex_daily, claude_daily)
+        changes = plan(root, policy, args.source_url, codex_daily, claude_daily, args.gemini_daily)
         print('Validated %d roles.' % len(ROLES) + (' Catalog verified.' if catalog else ' Catalog not supplied; apply is unavailable.'))
         # Display only changed settings, never unrelated prompt or permission content.
         for path, before, after in changes:

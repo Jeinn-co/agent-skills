@@ -144,6 +144,18 @@ class SyncTests(unittest.TestCase):
             self.assertEqual(sync.main(argv), 1)
         self.assertEqual(path.read_bytes(), before)
 
+    def test_gemini_daily_saves_agy_model_label(self):
+        path = self.root / '.gemini/antigravity-cli/settings.json'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({'colorScheme': 'night', 'trustedWorkspaces': ['/w']}, indent=2) + '\n')
+        self.policy_path.write_text(json.dumps(self.policy))
+        argv = [str(self.policy_path), '--root', str(self.root), '--catalog', str(self.catalog_path),
+                '--gemini-daily', 'Gemini 9 Future (High)', '--apply']
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(sync.main(argv), 0)
+        self.assertEqual(json.loads(path.read_text()), {'colorScheme': 'night', 'trustedWorkspaces': ['/w'],
+                                                        'model': 'Gemini 9 Future (High)'})
+
     def test_repeated_apply_does_not_rewrite_or_backup(self):
         self.assertEqual(self.run_cli(apply=True), 0)
         before = {path: path.stat().st_mtime_ns for path in self.root.rglob('*') if path.is_file()}
